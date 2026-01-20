@@ -3,153 +3,159 @@
 import { useEffect, useState } from "react"
 import { questions, Question } from "./data/questions"
 
-export default function Home() {
-  const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [displayNumber, setDisplayNumber] = useState(1)
+type Mode = "normal" | "exam" | "review" | "result"
 
-  const [shuffledChoices, setShuffledChoices] = useState<string[]>([])
-  const [correctChoiceIndex, setCorrectChoiceIndex] = useState(0)
+export default function Home() {
+  const [mode, setMode] = useState<Mode>("normal")
+  const [quiz, setQuiz] = useState<Question[]>([])
+  const [index, setIndex] = useState(0)
+
+  const [choices, setChoices] = useState<string[]>([])
+  const [correctIndex, setCorrectIndex] = useState(0)
 
   const [selected, setSelected] = useState<number | null>(null)
   const [showResult, setShowResult] = useState(false)
 
   const [correctCount, setCorrectCount] = useState(0)
-  const [wrongQuestions, setWrongQuestions] = useState<Question[]>([])
-  const [isReviewMode, setIsReviewMode] = useState(false)
+  const [wrongList, setWrongList] = useState<Question[]>([])
 
-  // 配列シャッフル
-  const shuffle = <T,>(array: T[]): T[] =>
-    [...array].sort(() => Math.random() - 0.5)
+  const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
-  // 初回：問題シャッフル
-  useEffect(() => {
-    setShuffledQuestions(shuffle(questions))
-  }, [])
+  const startNormal = () => {
+    setQuiz(shuffle(questions))
+    setMode("normal")
+    reset()
+  }
 
-  const question = shuffledQuestions[currentIndex]
+  const startExam = () => {
+    setQuiz(shuffle(questions).slice(0, 20))
+    setMode("exam")
+    reset()
+  }
 
-  // 問題が変わったら選択肢シャッフル
+  const startReview = () => {
+    setQuiz(shuffle(wrongList))
+    setWrongList([])
+    setMode("review")
+    reset()
+  }
+
+  const reset = () => {
+    setIndex(0)
+    setCorrectCount(0)
+    setSelected(null)
+    setShowResult(false)
+  }
+
+  const question = quiz[index]
+
   useEffect(() => {
     if (!question) return
-
-    const correctChoice = question.choices[question.correctIndex]
+    const correct = question.choices[question.correctIndex]
     const shuffled = shuffle(question.choices)
-    const newCorrectIndex = shuffled.indexOf(correctChoice)
-
-    setShuffledChoices(shuffled)
-    setCorrectChoiceIndex(newCorrectIndex)
+    setChoices(shuffled)
+    setCorrectIndex(shuffled.indexOf(correct))
     setSelected(null)
     setShowResult(false)
   }, [question])
 
-  const handleAnswer = (index: number) => {
-    setSelected(index)
+  const answer = (i: number) => {
+    setSelected(i)
     setShowResult(true)
-
-    if (index === correctChoiceIndex) {
-      setCorrectCount((prev) => prev + 1)
+    if (i === correctIndex) {
+      setCorrectCount((c) => c + 1)
     } else {
-      setWrongQuestions((prev) => [...prev, question])
+      setWrongList((w) => [...w, question])
     }
   }
 
-  const nextQuestion = () => {
-    setCurrentIndex((prev) => prev + 1)
-    setDisplayNumber((prev) => prev + 1)
+  const next = () => {
+    if (index + 1 >= quiz.length) {
+      setMode("result")
+    } else {
+      setIndex((i) => i + 1)
+    }
   }
 
-  // 全問終了画面
-  if (displayNumber > shuffledQuestions.length && shuffledQuestions.length > 0) {
-    const total = shuffledQuestions.length
-    const rate = Math.round((correctCount / total) * 100)
+  if (mode === "result") {
+    const rate = Math.round((correctCount / quiz.length) * 100)
+    const pass = mode === "exam" && rate >= 90
 
     return (
       <main style={{ padding: 20 }}>
-        <h1>全問終了！</h1>
-        <p>正解数：{correctCount} / {total}</p>
+        <h1>結果</h1>
+        <p>
+          正解数：{correctCount} / {quiz.length}
+        </p>
         <p>正解率：{rate}%</p>
 
-        {wrongQuestions.length > 0 && (
-          <button
-            style={{ marginTop: 20, padding: "10px 20px" }}
-            onClick={() => {
-              setShuffledQuestions(shuffle(wrongQuestions))
-              setWrongQuestions([])
-              setCurrentIndex(0)
-              setDisplayNumber(1)
-              setCorrectCount(0)
-              setIsReviewMode(true)
-            }}
-          >
-            ❌ 間違えた問題を復習する
-          </button>
+        {mode === "exam" && (
+          <h2>{pass ? "🎉 合格" : "❌ 不合格"}</h2>
         )}
+
+        {wrongList.length > 0 && (
+          <button onClick={startReview}>間違えた問題を復習</button>
+        )}
+
+        <div style={{ marginTop: 20 }}>
+          <button onClick={startNormal}>通常モード</button>{" "}
+          <button onClick={startExam}>模擬試験モード</button>
+        </div>
       </main>
     )
   }
 
   if (!question) {
-    return <main style={{ padding: 20 }}>読み込み中...</main>
+    return (
+      <main style={{ padding: 20 }}>
+        <h1>外国免許切替 クイズ</h1>
+        <button onClick={startNormal}>▶ 通常モード</button>
+        <br />
+        <br />
+        <button onClick={startExam}>▶ 模擬試験モード（20問）</button>
+      </main>
+    )
   }
 
   return (
     <main style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
       <h2>
-        {isReviewMode ? "復習" : "問題"} {displayNumber} /{" "}
-        {shuffledQuestions.length}
+        {mode === "exam" ? "模擬試験" : mode === "review" ? "復習" : "問題"}{" "}
+        {index + 1} / {quiz.length}
       </h2>
 
       <p style={{ fontSize: 18 }}>{question.question}</p>
 
-      {shuffledChoices.map((choice, index) => {
+      {choices.map((c, i) => {
         let bg = "#eee"
         if (showResult) {
-          if (index === correctChoiceIndex) bg = "#a7f3d0"
-          if (index === selected && index !== correctChoiceIndex)
-            bg = "#fecaca"
+          if (i === correctIndex) bg = "#a7f3d0"
+          if (i === selected && i !== correctIndex) bg = "#fecaca"
         }
 
         return (
           <button
-            key={index}
-            onClick={() => handleAnswer(index)}
+            key={i}
+            onClick={() => answer(i)}
             disabled={showResult}
             style={{
               width: "100%",
               padding: 12,
               marginBottom: 10,
-              backgroundColor: bg,
+              background: bg,
               borderRadius: 6,
-              border: "1px solid #ccc",
             }}
           >
-            {choice}
+            {c}
           </button>
         )
       })}
 
       {showResult && (
         <div style={{ marginTop: 20 }}>
-          <p>
-            {selected === correctChoiceIndex ? "⭕ 正解！" : "❌ 不正解"}
-          </p>
-          <p>
-            <strong>正解：</strong>
-            {shuffledChoices[correctChoiceIndex]}
-          </p>
-          {question.explanation && (
-            <p>
-              <strong>解説：</strong>
-              {question.explanation}
-            </p>
-          )}
-          <button
-            onClick={nextQuestion}
-            style={{ marginTop: 20, padding: "10px 20px" }}
-          >
-            次へ
-          </button>
+          <p>{selected === correctIndex ? "⭕ 正解" : "❌ 不正解"}</p>
+          {question.explanation && <p>解説：{question.explanation}</p>}
+          <button onClick={next}>次へ</button>
         </div>
       )}
     </main>

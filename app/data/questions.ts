@@ -1,6 +1,5 @@
-// app/data/questions.ts
-
 export type Question = {
+  id: number
   question: string
   choices: string[]
   correctIndex: number
@@ -9,50 +8,60 @@ export type Question = {
 
 export const questions: Question[] = [
   {
-    question: "夜間に前照灯（ライト）を点灯しなければならないのはいつですか？",
+    id: 1,
+    question: "この標識が示す意味はどれですか？",
+    choices: ["一時停止", "徐行", "通行止め", "駐車禁止"],
+    correctIndex: 0,
+    explanation: "赤い逆三角形の標識は一時停止を意味します。",
+  },
+  {
+    id: 2,
+    question: "黄色の実線の意味として正しいものはどれですか？",
     choices: [
-      "日没から日の出まで",
-      "雨が降っているときだけ",
-      "トンネル内だけ",
+      "追い越し禁止",
+      "駐停車禁止",
+      "右折禁止",
+      "徐行区間",
     ],
     correctIndex: 0,
-    explanation: "夜間は日没から日の出まで、前照灯を点灯する義務があります。",
+    explanation: "黄色の実線は追い越し禁止を示します。",
   },
   {
-    question: "横断歩道に歩行者がいる場合、車はどうしなければなりませんか？",
+    id: 3,
+    question: "横断歩道の手前で歩行者がいる場合、どうしますか？",
     choices: [
-      "クラクションを鳴らして進む",
-      "一時停止または減速して歩行者を優先する",
-      "歩行者が止まるまで進む",
-    ],
-    correctIndex: 1,
-    explanation: "横断歩道では歩行者が最優先です。",
-  },
-  {
-    question: "制限速度が定められていない一般道路の最高速度は何km/hですか？",
-    choices: ["40km/h", "50km/h", "60km/h"],
-    correctIndex: 2,
-    explanation: "日本の一般道路の法定最高速度は60km/hです。",
-  },
-  {
-    question: "信号が黄色に変わったとき、正しい行動はどれですか？",
-    choices: [
-      "必ず急ブレーキで止まる",
-      "安全に停止できる場合は停止する",
-      "そのまま加速して進む",
-    ],
-    correctIndex: 1,
-    explanation:
-      "黄色信号は「止まれ」の意味で、安全に停止できる場合は停止します。",
-  },
-  {
-    question: "踏切を通過する前に必ず行うべきことはどれですか？",
-    choices: [
-      "一時停止して安全確認",
-      "徐行のみ",
-      "警報音が鳴っていなければそのまま通過",
+      "必ず一時停止する",
+      "減速して通過してよい",
+      "クラクションを鳴らす",
+      "歩行者が止まるのを待つ",
     ],
     correctIndex: 0,
-    explanation: "踏切では必ず一時停止し、左右の安全確認を行います。",
+    explanation: "横断歩道では歩行者優先です。",
   },
+  {
+    id: 4,
+    question: "制限速度50km/hの道路を60km/hで走行した場合どうなりますか？",
+    choices: [
+      "速度違反になる",
+      "問題ない",
+      "夜間なら問題ない",
+      "追い越し中なら問題ない",
+    ],
+    correctIndex: 0,
+    explanation: "制限速度を超えると速度違反です。",
+  },
+  {
+    id: 5,
+    question: "信号が黄色になったときの正しい行動は？",
+    choices: [
+      "安全に停止できるなら停止する",
+      "必ず進む",
+      "必ず止まる",
+      "スピードを上げる",
+    ],
+    correctIndex: 0,
+    explanation: "黄色信号は『止まれ』の予告です。",
+  },
+
+  // 👉 この下にいくらでも追加できます
 ]
