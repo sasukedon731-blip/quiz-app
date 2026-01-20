@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react"
 import { questions, Question } from "./data/questions"
 
-type Mode = "normal" | "exam" | "review" | "result"
+type Mode = "menu" | "normal" | "exam" | "review" | "result"
+
+const EXAM_TIME = 20 * 60 // 20分（秒）
 
 export default function Home() {
-  const [mode, setMode] = useState<Mode>("normal")
+  const [mode, setMode] = useState<Mode>("menu")
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
 
@@ -19,25 +21,31 @@ export default function Home() {
   const [correctCount, setCorrectCount] = useState(0)
   const [wrongList, setWrongList] = useState<Question[]>([])
 
+  // ⏱ タイマー
+  const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
+
   const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
+
+  /* ---------- スタート処理 ---------- */
 
   const startNormal = () => {
     setQuiz(shuffle(questions))
-    setMode("normal")
     reset()
+    setMode("normal")
   }
 
   const startExam = () => {
     setQuiz(shuffle(questions).slice(0, 20))
-    setMode("exam")
     reset()
+    setTimeLeft(EXAM_TIME)
+    setMode("exam")
   }
 
   const startReview = () => {
     setQuiz(shuffle(wrongList))
     setWrongList([])
-    setMode("review")
     reset()
+    setMode("review")
   }
 
   const reset = () => {
@@ -49,6 +57,8 @@ export default function Home() {
 
   const question = quiz[index]
 
+  /* ---------- 選択肢シャッフル ---------- */
+
   useEffect(() => {
     if (!question) return
     const correct = question.choices[question.correctIndex]
@@ -59,9 +69,28 @@ export default function Home() {
     setShowResult(false)
   }, [question])
 
+  /* ---------- ⏱ タイマー処理 ---------- */
+
+  useEffect(() => {
+    if (mode !== "exam") return
+    if (timeLeft <= 0) {
+      setMode("result")
+      return
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((t) => t - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [mode, timeLeft])
+
+  /* ---------- 回答 ---------- */
+
   const answer = (i: number) => {
     setSelected(i)
     setShowResult(true)
+
     if (i === correctIndex) {
       setCorrectCount((c) => c + 1)
     } else {
@@ -77,6 +106,23 @@ export default function Home() {
     }
   }
 
+  /* ---------- 画面 ---------- */
+
+  // メニュー
+  if (mode === "menu") {
+    return (
+      <main style={{ padding: 20 }}>
+        <h1>外国免許切替 クイズ</h1>
+        <button onClick={startNormal}>▶ 通常モード</button>
+        <br /><br />
+        <button onClick={startExam}>
+          ▶ 模擬試験モード（20問・20分）
+        </button>
+      </main>
+    )
+  }
+
+  // 結果
   if (mode === "result") {
     const rate = Math.round((correctCount / quiz.length) * 100)
     const pass = mode === "exam" && rate >= 90
@@ -84,13 +130,11 @@ export default function Home() {
     return (
       <main style={{ padding: 20 }}>
         <h1>結果</h1>
-        <p>
-          正解数：{correctCount} / {quiz.length}
-        </p>
+        <p>正解数：{correctCount} / {quiz.length}</p>
         <p>正解率：{rate}%</p>
 
         {mode === "exam" && (
-          <h2>{pass ? "🎉 合格" : "❌ 不合格"}</h2>
+          <h2>{rate >= 90 ? "🎉 合格" : "❌ 不合格"}</h2>
         )}
 
         {wrongList.length > 0 && (
@@ -98,24 +142,16 @@ export default function Home() {
         )}
 
         <div style={{ marginTop: 20 }}>
-          <button onClick={startNormal}>通常モード</button>{" "}
-          <button onClick={startExam}>模擬試験モード</button>
+          <button onClick={() => setMode("menu")}>メニューに戻る</button>
         </div>
       </main>
     )
   }
 
-  if (!question) {
-    return (
-      <main style={{ padding: 20 }}>
-        <h1>外国免許切替 クイズ</h1>
-        <button onClick={startNormal}>▶ 通常モード</button>
-        <br />
-        <br />
-        <button onClick={startExam}>▶ 模擬試験モード（20問）</button>
-      </main>
-    )
-  }
+  if (!question) return null
+
+  const min = Math.floor(timeLeft / 60)
+  const sec = timeLeft % 60
 
   return (
     <main style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
@@ -123,6 +159,12 @@ export default function Home() {
         {mode === "exam" ? "模擬試験" : mode === "review" ? "復習" : "問題"}{" "}
         {index + 1} / {quiz.length}
       </h2>
+
+      {mode === "exam" && (
+        <p style={{ color: "red", fontWeight: "bold" }}>
+          残り時間：{min}:{sec.toString().padStart(2, "0")}
+        </p>
+      )}
 
       <p style={{ fontSize: 18 }}>{question.question}</p>
 
@@ -153,7 +195,6 @@ export default function Home() {
 
       {showResult && (
         <div style={{ marginTop: 20 }}>
-          <p>{selected === correctIndex ? "⭕ 正解" : "❌ 不正解"}</p>
           {question.explanation && <p>解説：{question.explanation}</p>}
           <button onClick={next}>次へ</button>
         </div>
