@@ -5,7 +5,7 @@ import { questions, Question } from "./data/questions"
 
 type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
-const EXAM_TIME = 20 * 60
+const EXAM_TIME = 20 * 60 // 20分（秒）
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("menu")
@@ -15,18 +15,6 @@ export default function Home() {
   const [selected, setSelected] = useState<number | null>(null)
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
-
-  // --- 配列をシャッフル ---
-  const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
-
-  // --- 選択肢シャッフルと正解インデックス更新 ---
-  const shuffleChoices = (q: Question): Question => {
-    const choices = [...q.choices]
-    const correct = choices[q.correctIndex]
-    const shuffled = shuffleArray(choices)
-    const newIndex = shuffled.findIndex(c => c === correct)
-    return { ...q, choices: shuffled, correctIndex: newIndex }
-  }
 
   // --- 初期化・途中再開 ---
   useEffect(() => {
@@ -48,7 +36,7 @@ export default function Home() {
     }
   }, [])
 
-  // --- タイマー ---
+  // --- タイマー（模擬試験モード） ---
   useEffect(() => {
     if (mode !== "exam") return
     const timer = setInterval(() => {
@@ -64,20 +52,30 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題セット（モード変更時のみ） ---
-  const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
+  // --- 配列をランダム化する関数 ---
+  const shuffleArray = <T,>(arr: T[]): T[] => {
+    return [...arr].sort(() => Math.random() - 0.5)
+  }
 
+  // --- 選択肢ランダム化（正解位置も更新） ---
+  const shuffleChoices = (q: Question): Question => {
+    const choices = [...q.choices]
+    const correctAnswer = choices[q.correctIndex]
+    const shuffled = shuffleArray(choices)
+    const newCorrectIndex = shuffled.findIndex(c => c === correctAnswer)
+    return { ...q, choices: shuffled, correctIndex: newCorrectIndex }
+  }
+
+  // --- 問題選択・ランダム化 ---
   useEffect(() => {
-    if (mode === "normal") setQuiz(initQuiz(questions))
-    else if (mode === "exam") setQuiz(initQuiz(questions).slice(0, 20))
-    else if (mode === "review") {
-      const reviewQs = questions.filter(q => reviewIds.includes(String(q.id)))
-      setQuiz(initQuiz(reviewQs))
+    if (mode === "normal") {
+      setQuiz(shuffleArray(questions).map(shuffleChoices))
+    } else if (mode === "exam") {
+      setQuiz(shuffleArray(questions).slice(0, 20).map(shuffleChoices))
+    } else if (mode === "review") {
+      const reviewQuestions = questions.filter(q => reviewIds.includes(String(q.id)))
+      setQuiz(shuffleArray(reviewQuestions).map(shuffleChoices))
     }
-    // index・score・selected リセット
-    setIndex(0)
-    setScore(0)
-    setSelected(null)
   }, [mode, reviewIds])
 
   // --- 回答処理 ---
@@ -88,9 +86,9 @@ export default function Home() {
 
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
-      const updated = reviewIds.filter(id => id !== String(current.id))
-      setReviewIds(updated)
-      localStorage.setItem("reviewIds", JSON.stringify(updated))
+      const updatedReview = reviewIds.filter(id => id !== String(current.id))
+      setReviewIds(updatedReview)
+      localStorage.setItem("reviewIds", JSON.stringify(updatedReview))
     } else {
       if (!reviewIds.includes(String(current.id))) {
         const updated = [...reviewIds, String(current.id)]
@@ -100,7 +98,7 @@ export default function Home() {
     }
   }
 
-  // --- 途中中断 ---
+  // --- 途中中断ボタン ---
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
@@ -121,7 +119,7 @@ export default function Home() {
     )
   }
 
-  // --- 結果 ---
+  // --- 結果画面 ---
   if (mode === "result") {
     return (
       <div>
@@ -132,7 +130,11 @@ export default function Home() {
     )
   }
 
-  if (!quiz[index]) return <p>問題を読み込み中…</p>
+  // --- クイズ画面 ---
+  if (quiz.length === 0 || index >= quiz.length) {
+    return <p>問題を読み込み中…</p>
+  }
+
   const current = quiz[index]
 
   return (
@@ -141,7 +143,7 @@ export default function Home() {
       <h3>問題 {index+1}/{quiz.length}</h3>
       <p>{current.question}</p>
 
-      {/* 選択肢 */}
+      {/* 選択肢ボタン */}
       <div>
         {current.choices.map((choice, i) => (
           <button
@@ -173,7 +175,7 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 正誤・解説・次へ */}
+      {/* 正誤表示・解説・次へ進むボタン */}
       {selected !== null && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
@@ -200,7 +202,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 中断＋始めから */}
+      {/* 中断ボタンと始めからボタン */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
         <button
           onClick={handlePause}
@@ -222,10 +224,10 @@ export default function Home() {
 
         <button
           onClick={() => {
-            setQuiz(initQuiz(questions))
             setIndex(0)
             setScore(0)
             setSelected(null)
+            setQuiz(shuffleArray(quiz).map(shuffleChoices)) // 選択肢もシャッフル
           }}
           style={{
             backgroundColor: "#9c27b0",
