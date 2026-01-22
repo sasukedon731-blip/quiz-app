@@ -1,37 +1,23 @@
 const KEY = 'quiz-results'
 
-type ResultMap = Record<number, boolean>
-
-const isBrowser = () => typeof window !== 'undefined'
-
-function load(): ResultMap {
-  if (!isBrowser()) return {}
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || '{}')
-  } catch {
-    return {}
-  }
+type Result = {
+  id: string
+  correct: boolean
 }
 
-function save(data: ResultMap) {
-  if (!isBrowser()) return
+export function saveResult(id: string, correct: boolean) {
+  const raw = localStorage.getItem(KEY)
+  const data: Result[] = raw ? JSON.parse(raw) : []
+
+  data.push({ id, correct })
+
   localStorage.setItem(KEY, JSON.stringify(data))
 }
 
-export function saveResult(id: number, correct: boolean) {
-  const data = load()
-  data[id] = correct
-  save(data)
-}
+export function getWrongIds(): string[] {
+  const raw = localStorage.getItem(KEY)
+  if (!raw) return []
 
-export function getReviewCount(): number {
-  const data = load()
-  return Object.values(data).filter(v => v === false).length
-}
-
-export function getReviewIds(): number[] {
-  const data = load()
-  return Object.entries(data)
-    .filter(([, v]) => v === false)
-    .map(([k]) => Number(k))
+  const data: Result[] = JSON.parse(raw)
+  return data.filter(r => !r.correct).map(r => r.id)
 }

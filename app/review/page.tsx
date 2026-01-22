@@ -1,16 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { questions } from '../data/questions'
-import { getReviewIds } from '../lib/quizStats'
+import { getWrongIds } from '../lib/quizStats'
 
 export default function ReviewPage() {
-  const [ids, setIds] = useState<number[]>([])
-
-  useEffect(() => {
-    setIds(getReviewIds())
-  }, [])
-
+  const ids = getWrongIds()
   const list = questions.filter(q => ids.includes(q.id))
 
   if (list.length === 0) {
@@ -19,10 +13,13 @@ export default function ReviewPage() {
 
   return (
     <main>
+      <h1>復習問題</h1>
       {list.map(q => (
-        <div key={q.id}>
-          <p>{q.question}</p>
-        </div>
+        <section key={q.id}>
+          <h3>{q.question}</h3>
+          <p>正解：{q.choices[q.correctIndex]}</p>
+          <p>{q.explanation}</p>
+        </section>
       ))}
     </main>
   )
