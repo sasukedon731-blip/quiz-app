@@ -13,13 +13,12 @@ export default function Home() {
   const [index, setIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+  const [showNext, setShowNext] = useState(false)
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  // --- 配列をシャッフル ---
   const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
-  // --- 選択肢シャッフルと正解インデックス更新 ---
   const shuffleChoices = (q: Question): Question => {
     const choices = [...q.choices]
     const correct = choices[q.correctIndex]
@@ -28,14 +27,12 @@ export default function Home() {
     return { ...q, choices: shuffled, correctIndex: newIndex }
   }
 
-  // --- 初期化・途中再開 ---
   useEffect(() => {
     if (typeof window === "undefined") return
     const storedReview = localStorage.getItem("reviewIds")
     setReviewIds(storedReview ? JSON.parse(storedReview) : [])
   }, [])
 
-  // --- タイマー ---
   useEffect(() => {
     if (mode !== "exam") return
     const timer = setInterval(() => {
@@ -51,7 +48,6 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題セット ---
   const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
 
   useEffect(() => {
@@ -65,11 +61,11 @@ export default function Home() {
     setIndex(0)
     setScore(0)
     setSelected(null)
+    setShowNext(false)
   }, [mode, reviewIds])
 
-  // --- 回答処理（indexは進めない） ---
   const handleChoice = (choiceIndex: number) => {
-    if (!quiz[index] || selected !== null) return
+    if (selected !== null) return
     setSelected(choiceIndex)
     const current = quiz[index]
 
@@ -85,9 +81,18 @@ export default function Home() {
         localStorage.setItem("reviewIds", JSON.stringify(updated))
       }
     }
+
+    // 次へボタンを少し遅延して表示
+    setTimeout(() => setShowNext(true), 100)
   }
 
-  // --- 中断 ---
+  const handleNext = () => {
+    setSelected(null)
+    setShowNext(false)
+    if (index + 1 < quiz.length) setIndex(i => i + 1)
+    else setMode("result")
+  }
+
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
@@ -96,7 +101,6 @@ export default function Home() {
     setMode("menu")
   }
 
-  // --- メニュー ---
   if (mode === "menu") {
     return (
       <div>
@@ -108,7 +112,6 @@ export default function Home() {
     )
   }
 
-  // --- 結果 ---
   if (mode === "result") {
     return (
       <div>
@@ -161,16 +164,12 @@ export default function Home() {
       </div>
 
       {/* 正誤・解説・次へ */}
-      {selected !== null && (
+      {selected !== null && showNext && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
           <button
-            onClick={() => {
-              setSelected(null)
-              if (index + 1 < quiz.length) setIndex(i => i + 1)
-              else setMode("result")
-            }}
+            onClick={handleNext}
             style={{
               marginTop: "10px",
               padding: "8px 16px",
@@ -213,6 +212,7 @@ export default function Home() {
             setIndex(0)
             setScore(0)
             setSelected(null)
+            setShowNext(false)
           }}
           style={{
             backgroundColor: "#9c27b0",
