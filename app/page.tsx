@@ -128,7 +128,7 @@ export default function Home() {
       {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
       <h3>問題 {index+1}/{quiz.length}</h3>
       <p>{current.question}</p>
-      
+
       {/* 選択肢ボタン */}
       <div>
         {current.choices.map((choice, i) => (
@@ -142,12 +142,18 @@ export default function Home() {
               width: "200px",
               padding: "8px 12px",
               backgroundColor:
-                selected === null ? "#eee" :
-                i === current.correctIndex ? "lightgreen" :
-                i === selected ? "salmon" : "#eee",
+                selected === null ? "#fff" : // 未選択は白
+                i === current.correctIndex ? "#4caf50" : // 正解は緑
+                i === selected ? "#f44336" : "#fff",    // 間違いは赤、他は白
+              color:
+                selected === null ? "#000" : // 未選択は黒文字
+                i === current.correctIndex ? "#fff" : // 正解は白文字
+                i === selected ? "#fff" : "#000",      // 間違いは白文字
               border: "1px solid #999",
               borderRadius: "5px",
               cursor: selected === null ? "pointer" : "default",
+              fontWeight: "bold",
+              fontSize: "16px",
             }}
           >
             {choice}
