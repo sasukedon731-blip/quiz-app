@@ -5,9 +5,8 @@ import { questions, Question } from "./data/questions"
 
 type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
-const EXAM_TIME = 20 * 60 // 20分（秒）
+const EXAM_TIME = 20 * 60
 
-// --- ヘルパー関数 ---
 // 配列をシャッフル
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array]
@@ -18,18 +17,14 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr
 }
 
-// 問題の選択肢をシャッフルして correctIndex を補正
+// 選択肢をシャッフルして correctIndex を補正
 function shuffleQuestionChoices(question: Question): Question {
   const originalChoices = question.choices
   const shuffledChoices = shuffleArray(originalChoices)
   const correctIndex = shuffledChoices.findIndex(
     c => c === originalChoices[question.correctIndex]
   )
-  return {
-    ...question,
-    choices: shuffledChoices,
-    correctIndex,
-  }
+  return { ...question, choices: shuffledChoices, correctIndex }
 }
 
 export default function Home() {
@@ -43,25 +38,21 @@ export default function Home() {
 
   // --- 初期化・途中再開 ---
   useEffect(() => {
-    if (typeof window === "undefined") return // SSR回避
-
+    if (typeof window === "undefined") return
+    const storedQuiz = localStorage.getItem("quizData")
+    const storedIndex = localStorage.getItem("quizIndex")
+    const storedScore = localStorage.getItem("quizScore")
+    const storedSelected = localStorage.getItem("quizSelected")
     const storedReview = localStorage.getItem("reviewIds")
-    setReviewIds(storedReview ? JSON.parse(storedReview) : [])
 
-    const savedMode = localStorage.getItem("quizMode")
-    const savedIndex = localStorage.getItem("quizIndex")
-    const savedScore = localStorage.getItem("quizScore")
-    const savedSelected = localStorage.getItem("quizSelected")
-
-    if (savedMode && savedIndex && savedScore) {
-      setMode(savedMode as Mode)
-      setIndex(Number(savedIndex))
-      setScore(Number(savedScore))
-      setSelected(savedSelected ? Number(savedSelected) : null)
-    }
+    if (storedQuiz) setQuiz(JSON.parse(storedQuiz))
+    if (storedIndex) setIndex(Number(storedIndex))
+    if (storedScore) setScore(Number(storedScore))
+    if (storedSelected) setSelected(Number(storedSelected))
+    if (storedReview) setReviewIds(JSON.parse(storedReview))
   }, [])
 
-  // --- タイマー（模擬試験モード） ---
+  // --- タイマー ---
   useEffect(() => {
     if (mode !== "exam") return
     const timer = setInterval(() => {
@@ -77,29 +68,37 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題・選択肢ランダム化 ---
-  useEffect(() => {
-    if (mode === "normal") {
-      setQuiz(shuffleArray(questions).map(shuffleQuestionChoices))
-    } else if (mode === "exam") {
-      setQuiz(
-        shuffleArray(questions)
-          .slice(0, 20)
-          .map(shuffleQuestionChoices)
-      )
-    } else if (mode === "review") {
-      const reviewQuestions = questions
-        .filter(q => reviewIds.includes(String(q.id)))
+  // --- モード開始時の quiz 初期化 ---
+  const startMode = (newMode: Mode) => {
+    let selectedQuestions: Question[] = []
+
+    if (newMode === "normal") {
+      selectedQuestions = shuffleArray(questions).map(shuffleQuestionChoices)
+    } else if (newMode === "exam") {
+      selectedQuestions = shuffleArray(questions)
+        .slice(0, 20)
         .map(shuffleQuestionChoices)
-      setQuiz(shuffleArray(reviewQuestions))
+    } else if (newMode === "review") {
+      selectedQuestions = shuffleArray(
+        questions.filter(q => reviewIds.includes(String(q.id)))
+      ).map(shuffleQuestionChoices)
     }
+
+    setQuiz(selectedQuestions)
     setIndex(0)
     setScore(0)
     setSelected(null)
+    setMode(newMode)
     setTimeLeft(EXAM_TIME)
-  }, [mode, reviewIds])
 
-  // --- 回答処理 ---
+    // 初期化時に localStorage をクリア（新規開始）
+    localStorage.removeItem("quizData")
+    localStorage.removeItem("quizIndex")
+    localStorage.removeItem("quizScore")
+    localStorage.removeItem("quizSelected")
+  }
+
+  // --- 回答 ---
   const handleChoice = (choiceIndex: number) => {
     if (!quiz[index]) return
     const current = quiz[index]
@@ -117,14 +116,33 @@ export default function Home() {
         localStorage.setItem("reviewIds", JSON.stringify(updated))
       }
     }
-  }
 
-  // --- 途中中断ボタン ---
-  const handlePause = () => {
-    localStorage.setItem("quizMode", mode)
+    // 次回の中断用に quiz 状態を保存
+    localStorage.setItem("quizData", JSON.stringify(quiz))
     localStorage.setItem("quizIndex", index.toString())
     localStorage.setItem("quizScore", score.toString())
-    localStorage.setItem("quizSelected", selected !== null ? selected.toString() : "")
+    localStorage.setItem(
+      "quizSelected",
+      choiceIndex !== null ? choiceIndex.toString() : ""
+    )
+  }
+
+  // --- 次へ ---
+  const handleNext = () => {
+    setSelected(null)
+    if (index + 1 < quiz.length) setIndex(i => i + 1)
+    else setMode("result")
+  }
+
+  // --- 中断 ---
+  const handlePause = () => {
+    localStorage.setItem("quizData", JSON.stringify(quiz))
+    localStorage.setItem("quizIndex", index.toString())
+    localStorage.setItem("quizScore", score.toString())
+    localStorage.setItem(
+      "quizSelected",
+      selected !== null ? selected.toString() : ""
+    )
     setMode("menu")
   }
 
@@ -133,29 +151,27 @@ export default function Home() {
     return (
       <div>
         <h1>外国免許切替クイズ</h1>
-        <button onClick={() => setMode("normal")}>通常モード</button>
-        <button onClick={() => setMode("exam")}>模擬試験モード</button>
-        <button onClick={() => setMode("review")}>復習モード</button>
+        <button onClick={() => startMode("normal")}>通常モード</button>
+        <button onClick={() => startMode("exam")}>模擬試験モード</button>
+        <button onClick={() => startMode("review")}>復習モード</button>
       </div>
     )
   }
 
-  // --- 結果画面 ---
+  // --- 結果 ---
   if (mode === "result") {
     return (
       <div>
         <h2>結果</h2>
         <p>正解数: {score} / {quiz.length}</p>
         <button onClick={() => setMode("menu")}>メニューに戻る</button>
-        <button onClick={() => setMode(mode)}>もう一度同じモードで再開</button>
+        <button onClick={() => startMode(mode)}>もう一度同じモードで再開</button>
       </div>
     )
   }
 
   // --- クイズ画面 ---
-  if (quiz.length === 0 || index >= quiz.length) {
-    return <p>問題を読み込み中…</p>
-  }
+  if (quiz.length === 0 || index >= quiz.length) return <p>問題を読み込み中…</p>
 
   const current = quiz[index]
 
@@ -167,7 +183,7 @@ export default function Home() {
       <h3>問題 {index + 1}/{quiz.length}</h3>
       <p>{current.question}</p>
 
-      {/* 選択肢ボタン */}
+      {/* 選択肢 */}
       <div>
         {current.choices.map((choice, i) => (
           <button
@@ -199,17 +215,13 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 正誤表示・解説・次へ進むボタン */}
+      {/* 正誤・解説・次へ */}
       {selected !== null && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
           <button
-            onClick={() => {
-              setSelected(null)
-              if (index + 1 < quiz.length) setIndex(i => i + 1)
-              else setMode("result")
-            }}
+            onClick={handleNext}
             style={{
               marginTop: "10px",
               padding: "8px 16px",
@@ -226,7 +238,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 中断ボタン */}
+      {/* 中断 */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
         <button
           onClick={handlePause}
