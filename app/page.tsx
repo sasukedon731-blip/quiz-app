@@ -1,242 +1,162 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { questions, Question } from "./data/questions"
 
 type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
-const EXAM_TIME = 20 * 60
-const REVIEW_KEY = "reviewQuestions"
+const EXAM_TIME = 20 * 60 // 20分（秒）
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("menu")
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
-
-  const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
-
+  const [selected, setSelected] = useState<number | null>(null)
+  const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  /* ======================
-     復習用 localStorage
-  ====================== */
-
-  const addToReview = (id: string) => {
-    const stored = localStorage.getItem(REVIEW_KEY)
-    const ids: string[] = stored ? JSON.parse(stored) : []
-
-    if (!ids.includes(id)) {
-      ids.push(id)
-      localStorage.setItem(REVIEW_KEY, JSON.stringify(ids))
-    }
-  }
-
-  const removeFromReview = (id: string) => {
-    const stored = localStorage.getItem(REVIEW_KEY)
-    if (!stored) return
-
-    const ids = JSON.parse(stored).filter((qid: string) => qid !== id)
-    localStorage.setItem(REVIEW_KEY, JSON.stringify(ids))
-  }
-
-  /* ======================
-     モード開始
-  ====================== */
-
-  const startNormal = () => {
-    setQuiz([...questions])
-    setIndex(0)
-    setScore(0)
-    setSelected(null)
-    setMode("normal")
-  }
-
-  const startExam = () => {
-    const shuffled = [...questions]
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 20)
-
-    setQuiz(shuffled)
-    setIndex(0)
-    setScore(0)
-    setSelected(null)
-    setTimeLeft(EXAM_TIME)
-    setMode("exam")
-  }
-
-  const startReview = () => {
-    setMode("review")
-  }
-
-  /* ======================
-     復習モード読込
-  ====================== */
-
+  // --- 初期化・途中再開 ---
   useEffect(() => {
-    if (mode !== "review") return
+    // reviewIds は localStorage から取得
+    const storedReview = localStorage.getItem("reviewIds")
+    setReviewIds(storedReview ? JSON.parse(storedReview) : [])
 
-    const stored = localStorage.getItem(REVIEW_KEY)
-    const ids: string[] = stored ? JSON.parse(stored) : []
+    // quizIndex / score / selectedAnswers 復元
+    const savedMode = localStorage.getItem("quizMode")
+    const savedIndex = localStorage.getItem("quizIndex")
+    const savedScore = localStorage.getItem("quizScore")
+    const savedSelected = localStorage.getItem("quizSelected")
 
-    const reviewQuestions = questions.filter(q =>
-      ids.includes(String(q.id))
-    )
+    if (savedMode && savedIndex && savedScore) {
+      setMode(savedMode as Mode)
+      setIndex(Number(savedIndex))
+      setScore(Number(savedScore))
+      setSelected(savedSelected ? Number(savedSelected) : null)
+    }
+  }, [])
 
-    setQuiz(reviewQuestions)
-    setIndex(0)
-    setSelected(null)
-  }, [mode])
-
-  /* ======================
-     模擬試験タイマー
-  ====================== */
-
+  // --- タイマー（模擬試験モード） ---
   useEffect(() => {
     if (mode !== "exam") return
-    if (timeLeft <= 0) {
-      setMode("result")
-      return
-    }
-
     const timer = setInterval(() => {
-      setTimeLeft(t => t - 1)
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(timer)
+          setMode("result")
+          return 0
+        }
+        return t - 1
+      })
     }, 1000)
-
     return () => clearInterval(timer)
-  }, [mode, timeLeft])
+  }, [mode])
 
-  /* ======================
-     回答処理
-  ====================== */
+  // --- 問題選択 ---
+  useEffect(() => {
+    if (mode === "normal") {
+      setQuiz(questions)
+    } else if (mode === "exam") {
+      setQuiz(questions.slice(0, 20))
+    } else if (mode === "review") {
+      const reviewQuestions = questions.filter(q => reviewIds.includes(String(q.id)))
+      setQuiz(reviewQuestions)
+    }
+  }, [mode, reviewIds])
 
-  const handleAnswer = (choiceIndex: number) => {
-    if (selected !== null) return
-
-    setSelected(choiceIndex)
+  // --- 回答処理 ---
+  const handleChoice = (choiceIndex: number) => {
     const current = quiz[index]
+    setSelected(choiceIndex)
 
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
-      removeFromReview(String(current.id))
+      // 正解なら review から削除
+      setReviewIds(prev => prev.filter(id => id !== String(current.id)))
+      localStorage.setItem("reviewIds", JSON.stringify(reviewIds.filter(id => id !== String(current.id))))
     } else {
-      addToReview(String(current.id))
+      // 間違えたら review に追加
+      if (!reviewIds.includes(String(current.id))) {
+        const updated = [...reviewIds, String(current.id)]
+        setReviewIds(updated)
+        localStorage.setItem("reviewIds", JSON.stringify(updated))
+      }
     }
+
+    // 選択後少し待って次の問題へ
+    setTimeout(() => {
+      setSelected(null)
+      if (index + 1 < quiz.length) {
+        setIndex(i => i + 1)
+      } else {
+        setMode("result")
+      }
+    }, 1000)
   }
 
-  const nextQuestion = () => {
-    setSelected(null)
-
-    if (index + 1 < quiz.length) {
-      setIndex(i => i + 1)
-    } else {
-      setMode(mode === "exam" ? "result" : "menu")
-    }
+  // --- 途中中断ボタン ---
+  const handlePause = () => {
+    localStorage.setItem("quizMode", mode)
+    localStorage.setItem("quizIndex", index.toString())
+    localStorage.setItem("quizScore", score.toString())
+    localStorage.setItem("quizSelected", selected !== null ? selected.toString() : "")
+    setMode("menu")
   }
 
-  /* ======================
-     表示
-  ====================== */
-
+  // --- メニュー ---
   if (mode === "menu") {
     return (
-      <main>
-        <h1>外国免許切替 知識試験対策</h1>
-        <button onClick={startNormal}>通常モード</button>
-        <button onClick={startExam}>模擬試験（20分）</button>
-        <button onClick={startReview}>復習モード</button>
-      </main>
+      <div>
+        <h1>外国免許切替クイズ</h1>
+        <button onClick={() => setMode("normal")}>通常モード</button>
+        <button onClick={() => setMode("exam")}>模擬試験モード</button>
+        <button onClick={() => setMode("review")}>復習モード</button>
+      </div>
     )
   }
 
-  if (mode === "review" && quiz.length === 0) {
-    return (
-      <main>
-        <h2>🎉 復習する問題はありません！</h2>
-        <button onClick={() => setMode("menu")}>メニューへ</button>
-      </main>
-    )
-  }
-
+  // --- 結果画面 ---
   if (mode === "result") {
-    const pass = score >= 18
     return (
-      <main>
+      <div>
         <h2>結果</h2>
-        <p>{score} / {quiz.length}</p>
-        <p>{pass ? "合格 🎉" : "不合格"}</p>
-        <button onClick={() => setMode("menu")}>メニューへ</button>
-      </main>
+        <p>正解数: {score} / {quiz.length}</p>
+        <button onClick={() => setMode("menu")}>メニューに戻る</button>
+      </div>
     )
   }
 
-  const q = quiz[index]
-  const explanation =
-    "explanation" in q ? (q as any).explanation : null
-
+  // --- クイズ画面 ---
+  const current = quiz[index]
   return (
-    <main>
-      {mode === "exam" && (
-        <p>
-          残り時間：
-          {Math.floor(timeLeft / 60)}:
-          {String(timeLeft % 60).padStart(2, "0")}
-        </p>
-      )}
-
-      <h2>Q{index + 1}</h2>
-      <p>{q.question}</p>
-
-      {q.choices.map((c, i) => (
-        <button
-          key={i}
-          onClick={() => handleAnswer(i)}
-          disabled={selected !== null}
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            background:
-              selected === null
-                ? ""
-                : i === q.correctIndex
-                ? "lightgreen"
-                : i === selected
-                ? "salmon"
-                : ""
-          }}
-        >
-          {c}
-        </button>
-      ))}
-
-      {selected !== null && (
-        <>
-          <div
+    <div>
+      {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
+      <h3>問題 {index+1}/{quiz.length}</h3>
+      <p>{current.question}</p>
+      <div>
+        {current.choices.map((choice, i) => (
+          <button
+            key={i}
+            onClick={() => handleChoice(i)}
+            disabled={selected !== null}
             style={{
-              marginTop: "16px",
-              padding: "12px",
-              background: "#f5f5f5",
-              borderRadius: "8px"
+              backgroundColor:
+                selected === null ? "" :
+                i === current.correctIndex ? "lightgreen" :
+                i === selected ? "salmon" : ""
             }}
           >
-            <p>
-              正解：
-              <strong>{q.choices[q.correctIndex]}</strong>
-            </p>
-
-            {explanation && (
-              <p>
-                解説：<br />
-                {explanation}
-              </p>
-            )}
-          </div>
-
-          <button style={{ marginTop: "16px" }} onClick={nextQuestion}>
-            次へ
+            {choice}
           </button>
-        </>
+        ))}
+      </div>
+      {selected !== null && (
+        <div>
+          <p>正解: {current.choices[current.correctIndex]}</p>
+          <p>解説: {current.explanation}</p>
+        </div>
       )}
-    </main>
+      <button onClick={handlePause}>一時中断</button>
+    </div>
   )
 }
