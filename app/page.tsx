@@ -16,10 +16,10 @@ export default function Home() {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  // --- 配列をシャッフル ---
+  // --- 配列シャッフル ---
   const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
-  // --- 選択肢シャッフルと正解インデックス更新 ---
+  // --- 選択肢シャッフル＆正解インデックス更新 ---
   const shuffleChoices = (q: Question): Question => {
     const choices = [...q.choices]
     const correct = choices[q.correctIndex]
@@ -64,7 +64,7 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題セット（モード変更時のみ） ---
+  // --- 問題セット ---
   const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
 
   useEffect(() => {
@@ -74,15 +74,16 @@ export default function Home() {
       const reviewQs = questions.filter(q => reviewIds.includes(String(q.id)))
       setQuiz(initQuiz(reviewQs))
     }
+
     // index・score・selected リセット
     setIndex(0)
     setScore(0)
     setSelected(null)
   }, [mode, reviewIds])
 
-  // --- 回答処理 ---
+  // --- 回答処理（index はここでは進めない） ---
   const handleChoice = (choiceIndex: number) => {
-    if (!quiz[index]) return
+    if (!quiz[index] || selected !== null) return
     const current = quiz[index]
     setSelected(choiceIndex)
 
@@ -100,7 +101,7 @@ export default function Home() {
     }
   }
 
-  // --- 途中中断 ---
+  // --- 中断 ---
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
@@ -180,7 +181,7 @@ export default function Home() {
           <p>解説: {current.explanation}</p>
           <button
             onClick={() => {
-              setSelected(null)
+              setSelected(null) // 次の問題に行く前に選択リセット
               if (index + 1 < quiz.length) setIndex(i => i + 1)
               else setMode("result")
             }}
