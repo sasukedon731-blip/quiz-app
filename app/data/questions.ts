@@ -21,7 +21,7 @@ export const questions: Question[] = [
     question: '信号機の黄色の意味として正しいものはどれですか？',
     choices: ['進んでもよい', '必ず止まれ', '止まれの準備をする', '徐行して進め'],
     correctIndex: 2,
-    explanation: '黄色信号は「止まれ」を意味します。',
+    explanation: '黄色信号は「止まれ」の予告です。',
     category: '交通ルール',
   },
   {
@@ -218,7 +218,7 @@ export const questions: Question[] = [
     question: '安全確認で最も重要なのは？',
     choices: ['ミラー', '目視', '音', '勘'],
     correctIndex: 1,
-    explanation: '目視確認が重要です。',
+    explanation: '目視確認が最も重要です。',
     category: '交通ルール',
   },
   {

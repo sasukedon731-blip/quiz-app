@@ -1,7 +1,7 @@
 'use client'
 
-import { questions } from '../data/questions'
-import { getWrongIds } from '../lib/quizStats'
+import { questions } from '@/app/data/questions'
+import { getWrongIds } from '@/app/lib/quizStats'
 
 export default function ReviewPage() {
   const ids = getWrongIds()
@@ -12,14 +12,13 @@ export default function ReviewPage() {
   }
 
   return (
-    <main>
-      <h1>復習問題</h1>
+    <main style={{ padding: 20 }}>
       {list.map(q => (
-        <section key={q.id}>
+        <div key={q.id}>
           <h3>{q.question}</h3>
           <p>正解：{q.choices[q.correctIndex]}</p>
           <p>{q.explanation}</p>
-        </section>
+        </div>
       ))}
     </main>
   )
