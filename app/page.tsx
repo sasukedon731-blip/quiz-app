@@ -16,10 +16,10 @@ export default function Home() {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  // --- 配列シャッフル ---
+  // --- 配列をシャッフル ---
   const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
-  // --- 選択肢シャッフル＆正解インデックス更新 ---
+  // --- 選択肢シャッフルと正解インデックス更新 ---
   const shuffleChoices = (q: Question): Question => {
     const choices = [...q.choices]
     const correct = choices[q.correctIndex]
@@ -31,21 +31,8 @@ export default function Home() {
   // --- 初期化・途中再開 ---
   useEffect(() => {
     if (typeof window === "undefined") return
-
     const storedReview = localStorage.getItem("reviewIds")
     setReviewIds(storedReview ? JSON.parse(storedReview) : [])
-
-    const savedMode = localStorage.getItem("quizMode")
-    const savedIndex = localStorage.getItem("quizIndex")
-    const savedScore = localStorage.getItem("quizScore")
-    const savedSelected = localStorage.getItem("quizSelected")
-
-    if (savedMode && savedIndex && savedScore) {
-      setMode(savedMode as Mode)
-      setIndex(Number(savedIndex))
-      setScore(Number(savedScore))
-      setSelected(savedSelected ? Number(savedSelected) : null)
-    }
   }, [])
 
   // --- タイマー ---
@@ -75,17 +62,16 @@ export default function Home() {
       setQuiz(initQuiz(reviewQs))
     }
 
-    // index・score・selected リセット
     setIndex(0)
     setScore(0)
     setSelected(null)
   }, [mode, reviewIds])
 
-  // --- 回答処理（index はここでは進めない） ---
+  // --- 回答処理（indexは進めない） ---
   const handleChoice = (choiceIndex: number) => {
     if (!quiz[index] || selected !== null) return
-    const current = quiz[index]
     setSelected(choiceIndex)
+    const current = quiz[index]
 
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
@@ -181,7 +167,7 @@ export default function Home() {
           <p>解説: {current.explanation}</p>
           <button
             onClick={() => {
-              setSelected(null) // 次の問題に行く前に選択リセット
+              setSelected(null)
               if (index + 1 < quiz.length) setIndex(i => i + 1)
               else setMode("result")
             }}
