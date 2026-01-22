@@ -16,9 +16,10 @@ export default function Home() {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  // --- シャッフル関数 ---
+  // --- 配列をシャッフル ---
   const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
+  // --- 選択肢シャッフルと正解インデックス更新 ---
   const shuffleChoices = (q: Question): Question => {
     const choices = [...q.choices]
     const correct = choices[q.correctIndex]
@@ -63,7 +64,7 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題セット ---
+  // --- 問題セット（モード変更時のみ） ---
   const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
 
   useEffect(() => {
@@ -73,6 +74,10 @@ export default function Home() {
       const reviewQs = questions.filter(q => reviewIds.includes(String(q.id)))
       setQuiz(initQuiz(reviewQs))
     }
+    // index・score・selected リセット
+    setIndex(0)
+    setScore(0)
+    setSelected(null)
   }, [mode, reviewIds])
 
   // --- 回答処理 ---
@@ -95,7 +100,7 @@ export default function Home() {
     }
   }
 
-  // --- 中断 ---
+  // --- 途中中断 ---
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
@@ -217,10 +222,10 @@ export default function Home() {
 
         <button
           onClick={() => {
+            setQuiz(initQuiz(questions))
             setIndex(0)
             setScore(0)
             setSelected(null)
-            setQuiz(initQuiz(questions)) // 問題順も選択肢もシャッフル
           }}
           style={{
             backgroundColor: "#9c27b0",
