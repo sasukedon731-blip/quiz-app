@@ -7,7 +7,7 @@ type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
 const EXAM_TIME = 20 * 60
 
-// 配列をシャッフル
+// ---------- utils ----------
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array]
   for (let i = arr.length - 1; i > 0; i--) {
@@ -17,16 +17,16 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr
 }
 
-// 選択肢をシャッフルして correctIndex を補正
-function shuffleQuestionChoices(question: Question): Question {
-  const originalChoices = question.choices
-  const shuffledChoices = shuffleArray(originalChoices)
-  const correctIndex = shuffledChoices.findIndex(
-    c => c === originalChoices[question.correctIndex]
+function shuffleQuestionChoices(q: Question): Question {
+  const original = q.choices
+  const shuffled = shuffleArray(original)
+  const correctIndex = shuffled.findIndex(
+    c => c === original[q.correctIndex]
   )
-  return { ...question, choices: shuffledChoices, correctIndex }
+  return { ...q, choices: shuffled, correctIndex }
 }
 
+// ---------- component ----------
 export default function Home() {
   const [mode, setMode] = useState<Mode>("menu")
   const [quiz, setQuiz] = useState<Question[]>([])
@@ -36,9 +36,10 @@ export default function Home() {
   const [reviewIds, setReviewIds] = useState<string[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
-  // --- 初期化・途中再開 ---
+  // ---------- 初期化（途中再開用） ----------
   useEffect(() => {
     if (typeof window === "undefined") return
+
     const storedQuiz = localStorage.getItem("quizData")
     const storedIndex = localStorage.getItem("quizIndex")
     const storedScore = localStorage.getItem("quizScore")
@@ -52,7 +53,7 @@ export default function Home() {
     if (storedReview) setReviewIds(JSON.parse(storedReview))
   }, [])
 
-  // --- タイマー ---
+  // ---------- タイマー ----------
   useEffect(() => {
     if (mode !== "exam") return
     const timer = setInterval(() => {
@@ -68,73 +69,65 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- モード開始時の quiz 初期化 ---
-  const startMode = (newMode: Mode) => {
-    let selectedQuestions: Question[] = []
+  // ---------- 開始 ----------
+  const startMode = (m: Mode) => {
+    let list: Question[] = []
 
-    if (newMode === "normal") {
-      selectedQuestions = shuffleArray(questions).map(shuffleQuestionChoices)
-    } else if (newMode === "exam") {
-      selectedQuestions = shuffleArray(questions)
+    if (m === "normal") {
+      list = shuffleArray(questions).map(shuffleQuestionChoices)
+    } else if (m === "exam") {
+      list = shuffleArray(questions)
         .slice(0, 20)
         .map(shuffleQuestionChoices)
-    } else if (newMode === "review") {
-      selectedQuestions = shuffleArray(
+    } else if (m === "review") {
+      list = shuffleArray(
         questions.filter(q => reviewIds.includes(String(q.id)))
       ).map(shuffleQuestionChoices)
     }
 
-    setQuiz(selectedQuestions)
+    setQuiz(list)
     setIndex(0)
     setScore(0)
     setSelected(null)
-    setMode(newMode)
     setTimeLeft(EXAM_TIME)
+    setMode(m)
 
-    // 初期化時に localStorage をクリア（新規開始）
     localStorage.removeItem("quizData")
     localStorage.removeItem("quizIndex")
     localStorage.removeItem("quizScore")
     localStorage.removeItem("quizSelected")
   }
 
-  // --- 回答 ---
-  const handleChoice = (choiceIndex: number) => {
+  // ---------- 回答 ----------
+  const handleChoice = (i: number) => {
     if (!quiz[index]) return
     const current = quiz[index]
-    setSelected(choiceIndex)
+    setSelected(i)
 
-    if (choiceIndex === current.correctIndex) {
+    if (i === current.correctIndex) {
       setScore(s => s + 1)
-      const updatedReview = reviewIds.filter(id => id !== String(current.id))
-      setReviewIds(updatedReview)
-      localStorage.setItem("reviewIds", JSON.stringify(updatedReview))
-    } else {
-      if (!reviewIds.includes(String(current.id))) {
-        const updated = [...reviewIds, String(current.id)]
-        setReviewIds(updated)
-        localStorage.setItem("reviewIds", JSON.stringify(updated))
-      }
+      const updated = reviewIds.filter(id => id !== String(current.id))
+      setReviewIds(updated)
+      localStorage.setItem("reviewIds", JSON.stringify(updated))
+    } else if (!reviewIds.includes(String(current.id))) {
+      const updated = [...reviewIds, String(current.id)]
+      setReviewIds(updated)
+      localStorage.setItem("reviewIds", JSON.stringify(updated))
     }
 
-    // 次回の中断用に quiz 状態を保存
     localStorage.setItem("quizData", JSON.stringify(quiz))
     localStorage.setItem("quizIndex", index.toString())
     localStorage.setItem("quizScore", score.toString())
-    localStorage.setItem(
-      "quizSelected",
-      choiceIndex !== null ? choiceIndex.toString() : ""
-    )
+    localStorage.setItem("quizSelected", i.toString())
   }
 
-  // --- 次へ ---
+  // ---------- 操作 ----------
   const handleNext = () => {
     setSelected(null)
     if (index + 1 < quiz.length) setIndex(i => i + 1)
     else setMode("result")
   }
 
-  // --- 中断 ---
   const handlePause = () => {
     localStorage.setItem("quizData", JSON.stringify(quiz))
     localStorage.setItem("quizIndex", index.toString())
@@ -146,7 +139,12 @@ export default function Home() {
     setMode("menu")
   }
 
-  // --- メニュー ---
+  const goToTop = () => {
+    setSelected(null)
+    setMode("menu")
+  }
+
+  // ---------- メニュー ----------
   if (mode === "menu") {
     return (
       <div>
@@ -158,101 +156,71 @@ export default function Home() {
     )
   }
 
-  // --- 結果 ---
+  // ---------- 結果 ----------
   if (mode === "result") {
     return (
       <div>
         <h2>結果</h2>
         <p>正解数: {score} / {quiz.length}</p>
-        <button onClick={() => setMode("menu")}>メニューに戻る</button>
-        <button onClick={() => startMode(mode)}>もう一度同じモードで再開</button>
+        <button onClick={goToTop}>TOPに戻る</button>
       </div>
     )
   }
 
-  // --- クイズ画面 ---
-  if (quiz.length === 0 || index >= quiz.length) return <p>問題を読み込み中…</p>
+  // ---------- クイズ ----------
+  if (!quiz[index]) return <p>読み込み中…</p>
 
   const current = quiz[index]
 
   return (
     <div>
       {mode === "exam" && (
-        <p>残り時間: {Math.floor(timeLeft / 60)}:{("0" + (timeLeft % 60)).slice(-2)}</p>
+        <p>
+          残り時間: {Math.floor(timeLeft / 60)}:
+          {("0" + (timeLeft % 60)).slice(-2)}
+        </p>
       )}
-      <h3>問題 {index + 1}/{quiz.length}</h3>
+
+      <h3>問題 {index + 1} / {quiz.length}</h3>
       <p>{current.question}</p>
 
-      {/* 選択肢 */}
-      <div>
-        {current.choices.map((choice, i) => (
-          <button
-            key={i}
-            onClick={() => handleChoice(i)}
-            disabled={selected !== null}
-            style={{
-              display: "block",
-              margin: "5px auto",
-              width: "200px",
-              padding: "8px 12px",
-              backgroundColor:
-                selected === null ? "#fff" :
-                i === current.correctIndex ? "#4caf50" :
-                i === selected ? "#f44336" : "#fff",
-              color:
-                selected === null ? "#000" :
-                i === current.correctIndex ? "#fff" :
-                i === selected ? "#fff" : "#000",
-              border: "1px solid #999",
-              borderRadius: "5px",
-              cursor: selected === null ? "pointer" : "default",
-              fontWeight: "bold",
-              fontSize: "16px",
-            }}
-          >
-            {choice}
-          </button>
-        ))}
-      </div>
+      {current.choices.map((c, i) => (
+        <button
+          key={i}
+          onClick={() => handleChoice(i)}
+          disabled={selected !== null}
+          style={{
+            display: "block",
+            margin: "6px auto",
+            width: "220px",
+            padding: "10px",
+            fontWeight: "bold",
+            background:
+              selected === null ? "#fff" :
+              i === current.correctIndex ? "#4caf50" :
+              i === selected ? "#f44336" : "#fff",
+            color:
+              selected === null ? "#000" :
+              i === current.correctIndex || i === selected ? "#fff" : "#000",
+          }}
+        >
+          {c}
+        </button>
+      ))}
 
-      {/* 正誤・解説・次へ */}
       {selected !== null && (
-        <div style={{ marginTop: "15px", textAlign: "center" }}>
+        <div style={{ textAlign: "center", marginTop: "15px" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
-          <button
-            onClick={handleNext}
-            style={{
-              marginTop: "10px",
-              padding: "8px 16px",
-              borderRadius: "5px",
-              backgroundColor: "#2196f3",
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            次へ進む
-          </button>
+          <button onClick={handleNext}>次へ進む</button>
         </div>
       )}
 
-      {/* 中断 */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
-        <button
-          onClick={handlePause}
-          style={{
-            backgroundColor: "#ff9800",
-            color: "#fff",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          一時中断
+        <button onClick={handlePause}>一時中断</button>
+        <br />
+        <button onClick={goToTop} style={{ marginTop: "10px" }}>
+          TOPに戻る
         </button>
       </div>
     </div>
