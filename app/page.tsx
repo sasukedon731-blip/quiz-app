@@ -128,6 +128,8 @@ export default function Home() {
       {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
       <h3>問題 {index+1}/{quiz.length}</h3>
       <p>{current.question}</p>
+      
+      {/* 選択肢ボタン */}
       <div>
         {current.choices.map((choice, i) => (
           <button
@@ -135,10 +137,17 @@ export default function Home() {
             onClick={() => handleChoice(i)}
             disabled={selected !== null}
             style={{
+              display: "block",
+              margin: "5px auto",
+              width: "200px",
+              padding: "8px 12px",
               backgroundColor:
-                selected === null ? "" :
+                selected === null ? "#eee" :
                 i === current.correctIndex ? "lightgreen" :
-                i === selected ? "salmon" : ""
+                i === selected ? "salmon" : "#eee",
+              border: "1px solid #999",
+              borderRadius: "5px",
+              cursor: selected === null ? "pointer" : "default",
             }}
           >
             {choice}
@@ -148,7 +157,7 @@ export default function Home() {
 
       {/* 正誤表示・解説・次へ進むボタン */}
       {selected !== null && (
-        <div style={{ marginTop: "15px" }}>
+        <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
           <button
@@ -157,7 +166,16 @@ export default function Home() {
               if (index + 1 < quiz.length) setIndex(i => i + 1)
               else setMode("result")
             }}
-            style={{ marginTop: "10px" }}
+            style={{
+              marginTop: "10px",
+              padding: "8px 16px",
+              borderRadius: "5px",
+              backgroundColor: "#2196f3",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
           >
             次へ進む
           </button>
@@ -165,8 +183,21 @@ export default function Home() {
       )}
 
       {/* 中断ボタンを下に独立配置 */}
-      <div style={{ marginTop: "30px" }}>
-        <button onClick={handlePause}>一時中断</button>
+      <div style={{ marginTop: "30px", textAlign: "center" }}>
+        <button
+          onClick={handlePause}
+          style={{
+            backgroundColor: "#ff9800", // 中断ボタン色
+            color: "#fff",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          一時中断
+        </button>
       </div>
     </div>
   )
