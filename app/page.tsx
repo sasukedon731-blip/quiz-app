@@ -72,28 +72,16 @@ export default function Home() {
 
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
-      // 正解なら review から削除
       const updatedReview = reviewIds.filter(id => id !== String(current.id))
       setReviewIds(updatedReview)
       localStorage.setItem("reviewIds", JSON.stringify(updatedReview))
     } else {
-      // 間違えたら review に追加
       if (!reviewIds.includes(String(current.id))) {
         const updated = [...reviewIds, String(current.id)]
         setReviewIds(updated)
         localStorage.setItem("reviewIds", JSON.stringify(updated))
       }
     }
-
-    // 選択後少し待って次の問題へ
-    setTimeout(() => {
-      setSelected(null)
-      if (index + 1 < quiz.length) {
-        setIndex(i => i + 1)
-      } else {
-        setMode("result")
-      }
-    }, 1000)
   }
 
   // --- 途中中断ボタン ---
@@ -157,13 +145,29 @@ export default function Home() {
           </button>
         ))}
       </div>
+
+      {/* 正誤表示・解説・次へ進むボタン */}
       {selected !== null && (
-        <div>
+        <div style={{ marginTop: "15px" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
+          <button
+            onClick={() => {
+              setSelected(null)
+              if (index + 1 < quiz.length) setIndex(i => i + 1)
+              else setMode("result")
+            }}
+            style={{ marginTop: "10px" }}
+          >
+            次へ進む
+          </button>
         </div>
       )}
-      <button onClick={handlePause}>一時中断</button>
+
+      {/* 中断ボタンを下に独立配置 */}
+      <div style={{ marginTop: "30px" }}>
+        <button onClick={handlePause}>一時中断</button>
+      </div>
     </div>
   )
 }
