@@ -10,7 +10,7 @@ export default function Home() {
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [score, setScore] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selectedMap, setSelectedMap] = useState<{[key: number]: number | null}>({})
   const [reviewIds, setReviewIds] = useState<string[]>([])
 
   // 配列シャッフル
@@ -25,10 +25,15 @@ export default function Home() {
     return { ...q, choices: shuffled, correctIndex: newIndex }
   }
 
-  // quiz 初期化
   const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
 
-  // mode が変わるとき quiz 初期化
+  // 復習データロード
+  useEffect(() => {
+    const storedReview = localStorage.getItem("reviewIds")
+    setReviewIds(storedReview ? JSON.parse(storedReview) : [])
+  }, [])
+
+  // quiz 初期化
   useEffect(() => {
     if (mode === "normal") setQuiz(initQuiz(questions))
     else if (mode === "exam") setQuiz(initQuiz(questions).slice(0, 20))
@@ -39,15 +44,16 @@ export default function Home() {
 
     setIndex(0)
     setScore(0)
-    setSelected(null)
+    setSelectedMap({})
   }, [mode, reviewIds])
 
-  // 回答処理（indexは進めない）
   const handleChoice = (choiceIndex: number) => {
-    if (selected !== null) return
-    setSelected(choiceIndex)
-    const current = quiz[index]
+    if (selectedMap[index] !== undefined) return // すでに回答済み
 
+    const current = quiz[index]
+    setSelectedMap(prev => ({ ...prev, [index]: choiceIndex }))
+
+    // 正誤判定
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
       const updated = reviewIds.filter(id => id !== String(current.id))
@@ -62,14 +68,11 @@ export default function Home() {
     }
   }
 
-  // 次へボタン
   const handleNext = () => {
-    setSelected(null)
     if (index + 1 < quiz.length) setIndex(i => i + 1)
     else setMode("result")
   }
 
-  // 中断
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
@@ -77,7 +80,6 @@ export default function Home() {
     setMode("menu")
   }
 
-  // メニュー
   if (mode === "menu") {
     return (
       <div>
@@ -89,7 +91,6 @@ export default function Home() {
     )
   }
 
-  // 結果
   if (mode === "result") {
     return (
       <div>
@@ -102,10 +103,11 @@ export default function Home() {
 
   if (!quiz[index]) return <p>問題を読み込み中…</p>
   const current = quiz[index]
+  const selected = selectedMap[index]
 
   return (
     <div>
-      <h3>問題 {index + 1}/{quiz.length}</h3>
+      <h3>問題 {index+1}/{quiz.length}</h3>
       <p>{current.question}</p>
 
       {/* 選択肢 */}
@@ -114,23 +116,23 @@ export default function Home() {
           <button
             key={i}
             onClick={() => handleChoice(i)}
-            disabled={selected !== null}
+            disabled={selected !== undefined}
             style={{
               display: "block",
               margin: "5px auto",
               width: "200px",
               padding: "8px 12px",
               backgroundColor:
-                selected === null ? "#fff" :
+                selected === undefined ? "#fff" :
                 i === current.correctIndex ? "#4caf50" :
                 i === selected ? "#f44336" : "#fff",
               color:
-                selected === null ? "#000" :
+                selected === undefined ? "#000" :
                 i === current.correctIndex ? "#fff" :
                 i === selected ? "#fff" : "#000",
               border: "1px solid #999",
               borderRadius: "5px",
-              cursor: selected === null ? "pointer" : "default",
+              cursor: selected === undefined ? "pointer" : "default",
               fontWeight: "bold",
               fontSize: "16px",
             }}
@@ -141,7 +143,7 @@ export default function Home() {
       </div>
 
       {/* 正誤・解説・次へ */}
-      {selected !== null && (
+      {selected !== undefined && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
@@ -188,7 +190,7 @@ export default function Home() {
             setQuiz(initQuiz(questions))
             setIndex(0)
             setScore(0)
-            setSelected(null)
+            setSelectedMap({})
           }}
           style={{
             backgroundColor: "#9c27b0",
