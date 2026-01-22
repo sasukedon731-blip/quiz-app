@@ -1,28 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { questions } from '@/data/questions'
-import { saveAnswerStat } from '@/lib/quizStats'
+import { questions } from '../data/questions'
+import { saveResult } from '../lib/quizStats'
 
-export default function Normal() {
-  const [i, setI] = useState(0)
-  const q = questions[i]
+export default function NormalPage() {
+  const [index, setIndex] = useState(0)
+  const q = questions[index]
 
-  function answer(n: number) {
-    saveAnswerStat(q.id, n === q.answer)
-    setI(i + 1)
+  const answer = (i: number) => {
+    saveResult(q.id, i === q.correct)
+    setIndex((prev) => prev + 1)
   }
 
   if (!q) return <p>終了</p>
 
   return (
-    <>
+    <main>
       <h2>{q.question}</h2>
-      {q.choices.map((c, idx) => (
-        <button key={idx} onClick={() => answer(idx)}>
+      {q.choices.map((c, i) => (
+        <button key={i} onClick={() => answer(i)}>
           {c}
         </button>
       ))}
-    </>
+    </main>
   )
 }

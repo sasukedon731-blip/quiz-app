@@ -1,39 +1,30 @@
-import { Question } from '@/data/questions'
+const KEY = 'quiz-results'
 
-export type QuizStat = {
-  correct: number
-  wrong: number
-}
+type ResultMap = Record<number, boolean>
 
-const STORAGE_KEY = 'quizStats'
-
-export function getQuizStats(): Record<string, QuizStat> {
+function load(): ResultMap {
   if (typeof window === 'undefined') return {}
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+  return JSON.parse(localStorage.getItem(KEY) || '{}')
 }
 
-export function saveAnswerStat(questionId: string, isCorrect: boolean) {
-  const stats = getQuizStats()
-
-  if (!stats[questionId]) {
-    stats[questionId] = { correct: 0, wrong: 0 }
-  }
-
-  isCorrect ? stats[questionId].correct++ : stats[questionId].wrong++
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
+function save(data: ResultMap) {
+  localStorage.setItem(KEY, JSON.stringify(data))
 }
 
-export function getReviewQuestions(all: Question[]): Question[] {
-  const stats = getQuizStats()
-
-  return all.filter(q => {
-    const s = stats[q.id]
-    return s && s.wrong > s.correct
-  })
+export function saveResult(id: number, correct: boolean) {
+  const data = load()
+  data[id] = correct
+  save(data)
 }
 
-export function getReviewCount(): number {
-  const stats = getQuizStats()
-  return Object.values(stats).filter(s => s.wrong > s.correct).length
+export function getReviewCount() {
+  const data = load()
+  return Object.values(data).filter(v => !v).length
+}
+
+export function getReviewIds(): number[] {
+  const data = load()
+  return Object.entries(data)
+    .filter(([, v]) => !v)
+    .map(([k]) => Number(k))
 }
