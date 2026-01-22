@@ -18,7 +18,7 @@ export default function Home() {
 
   // --- 初期化・途中再開 ---
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined") return // SSR回避
 
     const storedReview = localStorage.getItem("reviewIds")
     setReviewIds(storedReview ? JSON.parse(storedReview) : [])
@@ -52,29 +52,15 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 配列をランダム化する関数 ---
-  const shuffleArray = <T,>(arr: T[]): T[] => {
-    return [...arr].sort(() => Math.random() - 0.5)
-  }
-
-  // --- 選択肢ランダム化（正解位置も更新） ---
-  const shuffleChoices = (q: Question): Question => {
-    const choices = [...q.choices]
-    const correctAnswer = choices[q.correctIndex]
-    const shuffled = shuffleArray(choices)
-    const newCorrectIndex = shuffled.findIndex(c => c === correctAnswer)
-    return { ...q, choices: shuffled, correctIndex: newCorrectIndex }
-  }
-
-  // --- 問題選択・ランダム化 ---
+  // --- 問題選択 ---
   useEffect(() => {
     if (mode === "normal") {
-      setQuiz(shuffleArray(questions).map(shuffleChoices))
+      setQuiz(questions)
     } else if (mode === "exam") {
-      setQuiz(shuffleArray(questions).slice(0, 20).map(shuffleChoices))
+      setQuiz(questions.slice(0, 20))
     } else if (mode === "review") {
       const reviewQuestions = questions.filter(q => reviewIds.includes(String(q.id)))
-      setQuiz(shuffleArray(reviewQuestions).map(shuffleChoices))
+      setQuiz(reviewQuestions)
     }
   }, [mode, reviewIds])
 
@@ -156,13 +142,13 @@ export default function Home() {
               width: "200px",
               padding: "8px 12px",
               backgroundColor:
-                selected === null ? "#fff" :
-                i === current.correctIndex ? "#4caf50" :
-                i === selected ? "#f44336" : "#fff",
+                selected === null ? "#fff" : // 未選択は白
+                i === current.correctIndex ? "#4caf50" : // 正解は緑
+                i === selected ? "#f44336" : "#fff",    // 間違いは赤、他は白
               color:
-                selected === null ? "#000" :
-                i === current.correctIndex ? "#fff" :
-                i === selected ? "#fff" : "#000",
+                selected === null ? "#000" : // 未選択は黒文字
+                i === current.correctIndex ? "#fff" : // 正解は白文字
+                i === selected ? "#fff" : "#000",      // 間違いは白文字
               border: "1px solid #999",
               borderRadius: "5px",
               cursor: selected === null ? "pointer" : "default",
@@ -202,44 +188,21 @@ export default function Home() {
         </div>
       )}
 
-      {/* 中断ボタンと始めからボタン */}
+      {/* 中断ボタンを下に独立配置 */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
         <button
           onClick={handlePause}
           style={{
-            backgroundColor: "#ff9800",
+            backgroundColor: "#ff9800", // 中断ボタン色
             color: "#fff",
             padding: "10px 20px",
             border: "none",
             borderRadius: "6px",
             cursor: "pointer",
             fontWeight: "bold",
-            marginBottom: "10px"
           }}
         >
           一時中断
-        </button>
-
-        <br />
-
-        <button
-          onClick={() => {
-            setIndex(0)
-            setScore(0)
-            setSelected(null)
-            setQuiz(shuffleArray(quiz).map(shuffleChoices)) // 選択肢もシャッフル
-          }}
-          style={{
-            backgroundColor: "#9c27b0",
-            color: "#fff",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          始めから
         </button>
       </div>
     </div>
