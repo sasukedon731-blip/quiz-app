@@ -9,8 +9,9 @@ export default function NormalPage() {
   const q = questions[index]
 
   const answer = (i: number) => {
-    saveResult(q.id, i === q.correct)
-    setIndex((prev) => prev + 1)
+    if (!q) return
+    saveResult(q.id, i === q.correctIndex)
+    setIndex(prev => prev + 1)
   }
 
   if (!q) return <p>終了</p>

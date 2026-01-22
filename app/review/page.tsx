@@ -13,7 +13,7 @@ export default function ReviewPage() {
 
   const list = questions.filter(q => ids.includes(q.id))
 
-  if (list.length === 0) return <p>復習問題はありません</p>
+  if.length === 0) return <p>復習問題はありません</p>
 
   return (
     <main>

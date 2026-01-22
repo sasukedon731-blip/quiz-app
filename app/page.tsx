@@ -13,8 +13,7 @@ export default function Home() {
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>外国免許切替クイズ</h1>
-
+      <h1>外国免許切替 クイズ</h1>
       <p>復習が必要な問題数：{count} 問</p>
 
       <ul>

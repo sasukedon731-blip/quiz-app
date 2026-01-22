@@ -6,15 +6,24 @@ import { questions } from '../data/questions'
 export default function ExamPage() {
   const [index, setIndex] = useState(0)
   const [score, setScore] = useState(0)
+
   const q = questions[index]
 
   const answer = (i: number) => {
-    if (i === q.correct) setScore((s) => s + 1)
-    setIndex((prev) => prev + 1)
+    if (!q) return
+    if (i === q.correctIndex) {
+      setScore(s => s + 1)
+    }
+    setIndex(prev => prev + 1)
   }
 
   if (!q) {
-    return <h2>結果：{score} / {questions.length}</h2>
+    return (
+      <main>
+        <h2>結果</h2>
+        <p>{score} / {questions.length}</p>
+      </main>
+    )
   }
 
   return (

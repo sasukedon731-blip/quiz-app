@@ -2,9 +2,7 @@ const KEY = 'quiz-results'
 
 type ResultMap = Record<number, boolean>
 
-function isBrowser() {
-  return typeof window !== 'undefined'
-}
+const isBrowser = () => typeof window !== 'undefined'
 
 function load(): ResultMap {
   if (!isBrowser()) return {}
