@@ -41,7 +41,7 @@ export default function Home() {
   }
 
   /* ======================
-     モード初期化
+     モード開始
   ====================== */
 
   const startNormal = () => {
@@ -141,7 +141,7 @@ export default function Home() {
   if (mode === "menu") {
     return (
       <main>
-        <h1>外国免許切替 クイズ</h1>
+        <h1>外国免許切替 知識試験対策</h1>
         <button onClick={startNormal}>通常モード</button>
         <button onClick={startExam}>模擬試験（20分）</button>
         <button onClick={startReview}>復習モード</button>
@@ -171,6 +171,8 @@ export default function Home() {
   }
 
   const q = quiz[index]
+  const explanation =
+    "explanation" in q ? (q as any).explanation : null
 
   return (
     <main>
@@ -191,6 +193,8 @@ export default function Home() {
           onClick={() => handleAnswer(i)}
           disabled={selected !== null}
           style={{
+            display: "block",
+            marginBottom: "8px",
             background:
               selected === null
                 ? ""
@@ -206,9 +210,32 @@ export default function Home() {
       ))}
 
       {selected !== null && (
-        <div>
-          <button onClick={nextQuestion}>次へ</button>
-        </div>
+        <>
+          <div
+            style={{
+              marginTop: "16px",
+              padding: "12px",
+              background: "#f5f5f5",
+              borderRadius: "8px"
+            }}
+          >
+            <p>
+              正解：
+              <strong>{q.choices[q.correctIndex]}</strong>
+            </p>
+
+            {explanation && (
+              <p>
+                解説：<br />
+                {explanation}
+              </p>
+            )}
+          </div>
+
+          <button style={{ marginTop: "16px" }} onClick={nextQuestion}>
+            次へ
+          </button>
+        </>
       )}
     </main>
   )
