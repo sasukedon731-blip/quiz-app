@@ -18,11 +18,11 @@ export default function Home() {
 
   // --- 初期化・途中再開 ---
   useEffect(() => {
-    // reviewIds は localStorage から取得
+    if (typeof window === "undefined") return // SSR回避
+
     const storedReview = localStorage.getItem("reviewIds")
     setReviewIds(storedReview ? JSON.parse(storedReview) : [])
 
-    // quizIndex / score / selectedAnswers 復元
     const savedMode = localStorage.getItem("quizMode")
     const savedIndex = localStorage.getItem("quizIndex")
     const savedScore = localStorage.getItem("quizScore")
@@ -66,14 +66,16 @@ export default function Home() {
 
   // --- 回答処理 ---
   const handleChoice = (choiceIndex: number) => {
+    if (!quiz[index]) return
     const current = quiz[index]
     setSelected(choiceIndex)
 
     if (choiceIndex === current.correctIndex) {
       setScore(s => s + 1)
       // 正解なら review から削除
-      setReviewIds(prev => prev.filter(id => id !== String(current.id)))
-      localStorage.setItem("reviewIds", JSON.stringify(reviewIds.filter(id => id !== String(current.id))))
+      const updatedReview = reviewIds.filter(id => id !== String(current.id))
+      setReviewIds(updatedReview)
+      localStorage.setItem("reviewIds", JSON.stringify(updatedReview))
     } else {
       // 間違えたら review に追加
       if (!reviewIds.includes(String(current.id))) {
@@ -127,7 +129,12 @@ export default function Home() {
   }
 
   // --- クイズ画面 ---
+  if (quiz.length === 0 || index >= quiz.length) {
+    return <p>問題を読み込み中…</p>
+  }
+
   const current = quiz[index]
+
   return (
     <div>
       {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
