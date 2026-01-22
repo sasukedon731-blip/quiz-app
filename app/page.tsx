@@ -5,20 +5,18 @@ import { questions, Question } from "./data/questions"
 
 type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
-const EXAM_TIME = 20 * 60
-
 export default function Home() {
   const [mode, setMode] = useState<Mode>("menu")
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [showNext, setShowNext] = useState(false)
   const [reviewIds, setReviewIds] = useState<string[]>([])
-  const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
 
+  // 配列シャッフル
   const shuffleArray = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
+  // 選択肢シャッフルと正解インデックス更新
   const shuffleChoices = (q: Question): Question => {
     const choices = [...q.choices]
     const correct = choices[q.correctIndex]
@@ -27,29 +25,10 @@ export default function Home() {
     return { ...q, choices: shuffled, correctIndex: newIndex }
   }
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const storedReview = localStorage.getItem("reviewIds")
-    setReviewIds(storedReview ? JSON.parse(storedReview) : [])
-  }, [])
-
-  useEffect(() => {
-    if (mode !== "exam") return
-    const timer = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          clearInterval(timer)
-          setMode("result")
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [mode])
-
+  // quiz 初期化
   const initQuiz = (source: Question[]) => shuffleArray(source).map(shuffleChoices)
 
+  // mode が変わるとき quiz 初期化
   useEffect(() => {
     if (mode === "normal") setQuiz(initQuiz(questions))
     else if (mode === "exam") setQuiz(initQuiz(questions).slice(0, 20))
@@ -61,9 +40,9 @@ export default function Home() {
     setIndex(0)
     setScore(0)
     setSelected(null)
-    setShowNext(false)
   }, [mode, reviewIds])
 
+  // 回答処理（indexは進めない）
   const handleChoice = (choiceIndex: number) => {
     if (selected !== null) return
     setSelected(choiceIndex)
@@ -81,26 +60,24 @@ export default function Home() {
         localStorage.setItem("reviewIds", JSON.stringify(updated))
       }
     }
-
-    // 次へボタンを少し遅延して表示
-    setTimeout(() => setShowNext(true), 100)
   }
 
+  // 次へボタン
   const handleNext = () => {
     setSelected(null)
-    setShowNext(false)
     if (index + 1 < quiz.length) setIndex(i => i + 1)
     else setMode("result")
   }
 
+  // 中断
   const handlePause = () => {
     localStorage.setItem("quizMode", mode)
     localStorage.setItem("quizIndex", index.toString())
     localStorage.setItem("quizScore", score.toString())
-    localStorage.setItem("quizSelected", selected !== null ? selected.toString() : "")
     setMode("menu")
   }
 
+  // メニュー
   if (mode === "menu") {
     return (
       <div>
@@ -112,6 +89,7 @@ export default function Home() {
     )
   }
 
+  // 結果
   if (mode === "result") {
     return (
       <div>
@@ -127,8 +105,7 @@ export default function Home() {
 
   return (
     <div>
-      {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
-      <h3>問題 {index+1}/{quiz.length}</h3>
+      <h3>問題 {index + 1}/{quiz.length}</h3>
       <p>{current.question}</p>
 
       {/* 選択肢 */}
@@ -164,7 +141,7 @@ export default function Home() {
       </div>
 
       {/* 正誤・解説・次へ */}
-      {selected !== null && showNext && (
+      {selected !== null && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <p>正解: {current.choices[current.correctIndex]}</p>
           <p>解説: {current.explanation}</p>
@@ -186,7 +163,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 中断＋始めから */}
+      {/* 中断・始めから */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
         <button
           onClick={handlePause}
@@ -212,7 +189,6 @@ export default function Home() {
             setIndex(0)
             setScore(0)
             setSelected(null)
-            setShowNext(false)
           }}
           style={{
             backgroundColor: "#9c27b0",
