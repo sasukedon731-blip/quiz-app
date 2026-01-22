@@ -7,6 +7,31 @@ type Mode = "menu" | "normal" | "exam" | "review" | "result"
 
 const EXAM_TIME = 20 * 60 // 20分（秒）
 
+// --- ヘルパー関数 ---
+// 配列をシャッフル
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+// 問題の選択肢をシャッフルして correctIndex を補正
+function shuffleQuestionChoices(question: Question): Question {
+  const originalChoices = question.choices
+  const shuffledChoices = shuffleArray(originalChoices)
+  const correctIndex = shuffledChoices.findIndex(
+    c => c === originalChoices[question.correctIndex]
+  )
+  return {
+    ...question,
+    choices: shuffledChoices,
+    correctIndex,
+  }
+}
+
 export default function Home() {
   const [mode, setMode] = useState<Mode>("menu")
   const [quiz, setQuiz] = useState<Question[]>([])
@@ -52,16 +77,26 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [mode])
 
-  // --- 問題選択 ---
+  // --- 問題・選択肢ランダム化 ---
   useEffect(() => {
     if (mode === "normal") {
-      setQuiz(questions)
+      setQuiz(shuffleArray(questions).map(shuffleQuestionChoices))
     } else if (mode === "exam") {
-      setQuiz(questions.slice(0, 20))
+      setQuiz(
+        shuffleArray(questions)
+          .slice(0, 20)
+          .map(shuffleQuestionChoices)
+      )
     } else if (mode === "review") {
-      const reviewQuestions = questions.filter(q => reviewIds.includes(String(q.id)))
-      setQuiz(reviewQuestions)
+      const reviewQuestions = questions
+        .filter(q => reviewIds.includes(String(q.id)))
+        .map(shuffleQuestionChoices)
+      setQuiz(shuffleArray(reviewQuestions))
     }
+    setIndex(0)
+    setScore(0)
+    setSelected(null)
+    setTimeLeft(EXAM_TIME)
   }, [mode, reviewIds])
 
   // --- 回答処理 ---
@@ -112,6 +147,7 @@ export default function Home() {
         <h2>結果</h2>
         <p>正解数: {score} / {quiz.length}</p>
         <button onClick={() => setMode("menu")}>メニューに戻る</button>
+        <button onClick={() => setMode(mode)}>もう一度同じモードで再開</button>
       </div>
     )
   }
@@ -125,8 +161,10 @@ export default function Home() {
 
   return (
     <div>
-      {mode === "exam" && <p>残り時間: {Math.floor(timeLeft/60)}:{("0"+timeLeft%60).slice(-2)}</p>}
-      <h3>問題 {index+1}/{quiz.length}</h3>
+      {mode === "exam" && (
+        <p>残り時間: {Math.floor(timeLeft / 60)}:{("0" + (timeLeft % 60)).slice(-2)}</p>
+      )}
+      <h3>問題 {index + 1}/{quiz.length}</h3>
       <p>{current.question}</p>
 
       {/* 選択肢ボタン */}
@@ -142,13 +180,13 @@ export default function Home() {
               width: "200px",
               padding: "8px 12px",
               backgroundColor:
-                selected === null ? "#fff" : // 未選択は白
-                i === current.correctIndex ? "#4caf50" : // 正解は緑
-                i === selected ? "#f44336" : "#fff",    // 間違いは赤、他は白
+                selected === null ? "#fff" :
+                i === current.correctIndex ? "#4caf50" :
+                i === selected ? "#f44336" : "#fff",
               color:
-                selected === null ? "#000" : // 未選択は黒文字
-                i === current.correctIndex ? "#fff" : // 正解は白文字
-                i === selected ? "#fff" : "#000",      // 間違いは白文字
+                selected === null ? "#000" :
+                i === current.correctIndex ? "#fff" :
+                i === selected ? "#fff" : "#000",
               border: "1px solid #999",
               borderRadius: "5px",
               cursor: selected === null ? "pointer" : "default",
@@ -188,12 +226,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* 中断ボタンを下に独立配置 */}
+      {/* 中断ボタン */}
       <div style={{ marginTop: "30px", textAlign: "center" }}>
         <button
           onClick={handlePause}
           style={{
-            backgroundColor: "#ff9800", // 中断ボタン色
+            backgroundColor: "#ff9800",
             color: "#fff",
             padding: "10px 20px",
             border: "none",
