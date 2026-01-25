@@ -1,97 +1,128 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { questions, Question } from '@/app/data/questions'
+import { useRouter } from 'next/navigation'
+import { questions, Question } from '../data/questions'
 
 export default function ReviewPage() {
-  const [list, setList] = useState<Question[]>([])
+  const router = useRouter()
+
+  const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [showAnswer, setShowAnswer] = useState(false)
 
-  // 復習問題を読み込む
   useEffect(() => {
-    const ids = JSON.parse(localStorage.getItem('reviewIds') || '[]') as number[]
-    const filtered = questions.filter(q => ids.includes(q.id))
-    setList(filtered)
+    const wrongIds = JSON.parse(
+      localStorage.getItem('wrongQuestions') || '[]'
+    ) as number[]
+
+    const reviewQuestions = questions.filter(q =>
+      wrongIds.includes(q.id)
+    )
+
+    setQuiz(reviewQuestions)
   }, [])
 
-  if (list.length === 0) {
+  // 復習問題が0件の場合
+  if (quiz.length === 0) {
     return (
-      <main style={{ padding: 24 }}>
-        <h1>復習モード</h1>
-        <p>復習する問題はありません 🎉</p>
-        <Link href="/">メニューへ戻る</Link>
-      </main>
+      <div className="container">
+        <div className="card text-center">
+          <h2 className="text-xl font-bold mb-4">復習問題はありません 🎉</h2>
+          <p className="mb-6">
+            すべて正解しています。とても素晴らしいです！
+          </p>
+
+          <button
+            className="button button-main"
+            onClick={() => router.push('/')}
+          >
+            TOPへ戻る
+          </button>
+        </div>
+      </div>
     )
   }
 
-  const q = list[index]
+  const q = quiz[index]
 
-  const answer = (i: number) => {
+  const handleAnswer = (i: number) => {
+    if (showAnswer) return
     setSelected(i)
-    setIsCorrect(i === q.correctIndex)
+    setShowAnswer(true)
+  }
 
-    // 正解したら復習リストから削除
-    if (i === q.correctIndex) {
-      const ids = JSON.parse(localStorage.getItem('reviewIds') || '[]') as number[]
-      const nextIds = ids.filter(id => id !== q.id)
-      localStorage.setItem('reviewIds', JSON.stringify(nextIds))
+  const nextQuestion = () => {
+    setSelected(null)
+    setShowAnswer(false)
+
+    if (index + 1 < quiz.length) {
+      setIndex(i => i + 1)
+    } else {
+      router.push('/')
     }
   }
 
-  const next = () => {
-    setSelected(null)
-    setIsCorrect(null)
-    setIndex(i => i + 1)
-  }
-
   return (
-    <main style={{ padding: 24 }}>
-      <h1>復習モード</h1>
-      <p>
-        {index + 1} / {list.length}
-      </p>
+    <div className="container">
+      <div className="card">
+        <p className="text-sm mb-2">
+          復習問題 {index + 1} / {quiz.length}
+        </p>
 
-      <h2>{q.question}</h2>
+        <p className="text-lg font-bold mb-4">{q.question}</p>
 
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {q.choices.map((c, i) => (
-          <li key={i} style={{ marginBottom: 8 }}>
-            <button
-              onClick={() => answer(i)}
-              disabled={selected !== null}
-              style={{
-                width: '100%',
-                padding: 12,
-                background:
-                  selected === null
-                    ? '#eee'
-                    : i === q.correctIndex
-                    ? '#8f8'
-                    : i === selected
-                    ? '#f88'
-                    : '#eee',
-              }}
-            >
-              {c}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {isCorrect !== null && (
         <div>
-          <p>{isCorrect ? '⭕ 正解！' : '❌ 不正解'}</p>
+          {q.choices.map((c, i) => {
+            let className = 'button button-choice'
 
-          {index + 1 < list.length ? (
-            <button onClick={next}>次へ</button>
-          ) : (
-            <Link href="/">メニューへ戻る</Link>
-          )}
+            if (showAnswer) {
+              if (i === q.correctIndex) {
+                className += ' correct'
+              } else if (i === selected) {
+                className += ' wrong'
+              }
+            }
+
+            return (
+              <button
+                key={i}
+                className={className}
+                onClick={() => handleAnswer(i)}
+              >
+                {c}
+              </button>
+            )
+          })}
         </div>
-      )}
-    </main>
+
+        {showAnswer && (
+          <div className="mt-4">
+            <p className="font-bold mb-2">
+              {selected === q.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
+            </p>
+            <p className="text-sm text-gray-700 mb-4">
+              解説：{q.explanation}
+            </p>
+
+            <button
+              className="button button-main"
+              onClick={nextQuestion}
+            >
+              {index + 1 < quiz.length ? '次の問題へ' : 'TOPへ戻る'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 常時表示 */}
+      <button
+        className="button button-accent"
+        onClick={() => router.push('/')}
+      >
+        TOPへ戻る
+      </button>
+    </div>
   )
 }

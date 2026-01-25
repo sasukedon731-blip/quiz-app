@@ -1,61 +1,80 @@
-:root {
-  --bg: #f9fafb;
-  --card: #ffffff;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-}
-
-* {
-  box-sizing: border-box;
-}
-
+/* ===== 基本 ===== */
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
-  background: var(--bg);
-  color: #111827;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #f9fafb;
+  color: #1f2937;
 }
 
-main {
-  max-width: 720px;
+/* ===== レイアウト ===== */
+.container {
+  max-width: 640px;
   margin: 0 auto;
   padding: 24px;
 }
 
-h1, h2, h3 {
-  margin-bottom: 16px;
+/* ===== カード ===== */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
-ul {
-  padding: 0;
-  list-style: none;
-}
-
-li {
-  margin-bottom: 12px;
-}
-
-button {
+/* ===== ボタン共通（← 間隔ここ） ===== */
+.button {
   display: block;
   width: 100%;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  padding: 14px 20px;
+  margin: 12px 0;          /* ← ボタン間隔 */
   border-radius: 10px;
-  border: none;
-  background: var(--primary);
-  color: #fff;
   font-size: 16px;
+  font-weight: 600;
+  border: none;
   cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
-button:hover {
-  background: var(--primary-hover);
+/* ===== 色別 ===== */
+.button-main {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+.button-main:hover {
+  background-color: #1d4ed8;
 }
 
-.card {
-  background: var(--card);
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 8px 20px rgba(0,0,0,.06);
+.button-accent {
+  background-color: #f59e0b;
+  color: #1f2937;
+}
+.button-accent:hover {
+  background-color: #d97706;
+}
+
+.button-success {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+.button-success:hover {
+  background-color: #15803d;
+}
+
+/* ===== 選択肢 ===== */
+.button-choice {
+  background-color: #e5e7eb;
+  color: #1f2937;
+  text-align: left;
+}
+.button-choice:hover {
+  background-color: #d1d5db;
+}
+.button-choice.correct {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+.button-choice.wrong {
+  background-color: #ef4444;
+  color: #ffffff;
 }

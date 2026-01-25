@@ -1,17 +1,19 @@
-import './globals.css'
+import "./globals.css";
+import React, { ReactNode } from "react";
 
 export const metadata = {
-  title: '免許学科クイズ',
-}
+  title: "外国免許切替クイズ",
+  description: "外国人向け免許切替試験対策クイズアプリ",
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <div className="container">
+          {children}
+        </div>
+      </body>
     </html>
-  )
+  );
 }
