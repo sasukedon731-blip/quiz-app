@@ -41,7 +41,7 @@ export default function Home() {
       </h1>
 
       <p style={{ textAlign: 'center', marginBottom: 24 }}>
-        ようこそ  {user.displayName ?? user.email}  さん
+        ようこそ {user ? (user.displayName ?? user.email) : ''} さん
       </p>
 
       {/* クイズモード */}
