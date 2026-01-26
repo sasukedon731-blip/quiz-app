@@ -1,33 +1,18 @@
 // app/data/quizzes/japanese-n4.ts
-
-export type Question = {
-  id: number
-  question: string
-  choices: string[]
-  answer: number
-}
+import { Question } from './types'
 
 export const questions: Question[] = [
   {
     id: 1,
-    question: "「まってください」の正しい書き方はどれですか？",
-    choices: [
-      "待てください",
-      "待ってください",
-      "待つください",
-      "待っていますください"
-    ],
-    answer: 1
+    question: '「行きます」のて形はどれですか？',
+    choices: ['いって', 'いきて', 'いった', 'いきます'],
+    answer: 0,
+    explanation: '「行く」→「行って」',
   },
   {
     id: 2,
-    question: "「行きます」のて形はどれですか？",
-    choices: [
-      "行いて",
-      "行きて",
-      "行って",
-      "行った"
-    ],
-    answer: 2
-  }
+    question: '「学生＿＿図書館で勉強します。」',
+    choices: ['が', 'を', 'に', 'で'],
+    answer: 0,
+  },
 ]
