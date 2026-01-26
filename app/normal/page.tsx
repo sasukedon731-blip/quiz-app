@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { questions, Question } from '../data/questions'
+import { quizzes } from '../data/quizzes'
+import type { Question } from '../data/quizzes/gaikoku-license'
 
 interface PausedQuiz {
   index: number
@@ -18,14 +19,16 @@ export default function NormalPage() {
   const [result, setResult] = useState<'correct' | 'wrong' | null>(null)
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([])
 
-  // 初期化（シャッフル）
+  /* ===== 初期化（シャッフル） ===== */
   useEffect(() => {
-    const shuffled = [...questions].sort(() => Math.random() - 0.5)
+    const source = quizzes.gaikoku.questions
+    const shuffled = [...source].sort(() => Math.random() - 0.5)
+
     setQuiz(shuffled)
     setSelectedAnswers(Array(shuffled.length).fill(null))
   }, [])
 
-  // 中断復元
+  /* ===== 中断復元 ===== */
   useEffect(() => {
     const paused = localStorage.getItem('pausedQuizNormal')
     if (!paused) return
@@ -46,6 +49,7 @@ export default function NormalPage() {
   const current = quiz[index]
   const isAnswered = result !== null
 
+  /* ===== 回答 ===== */
   const handleAnswer = (i: number) => {
     if (isAnswered) return
 
@@ -59,6 +63,7 @@ export default function NormalPage() {
     })
   }
 
+  /* ===== 次へ ===== */
   const handleNext = () => {
     setSelected(null)
     setResult(null)
@@ -67,80 +72,94 @@ export default function NormalPage() {
       setIndex(prev => prev + 1)
     } else {
       localStorage.removeItem('pausedQuizNormal')
-      router.push('/')
+      router.push('/select-mode')
     }
   }
 
+  /* ===== 中断 ===== */
   const handlePause = () => {
     localStorage.setItem(
       'pausedQuizNormal',
       JSON.stringify({ index, selectedAnswers })
     )
-    alert('中断しました')
-    router.push('/')
+    router.push('/select-mode')
   }
 
   return (
-    <main className="container">
-      <div className="card">
+    <main>
 
-        {/* 🔹 ヘッダー */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-          <button
-            className="button button-main"
-            style={{ width: 'auto', padding: '6px 14px' }}
-            onClick={() => router.push('/')}
-          >
-            TOPへ戻る
-          </button>
-
-          <p>{index + 1} / {quiz.length}</p>
-        </div>
-
-        {/* 問題 */}
-        <h2>{current.question}</h2>
-
-        {/* 選択肢 */}
-        {current.choices.map((choice, i) => {
-          let className = 'button button-choice'
-
-          if (isAnswered) {
-            if (i === current.correctIndex) className += ' correct'
-            else if (i === selected) className += ' wrong'
-          }
-
-          return (
-            <button
-              key={i}
-              className={className}
-              disabled={isAnswered}
-              onClick={() => handleAnswer(i)}
-            >
-              {choice}
-            </button>
-          )
-        })}
-
-        {/* 正誤・解説 */}
-        {result && (
-          <div className="card">
-            <p>
-              {result === 'correct' ? '🎉 正解！' : '❌ 不正解'}
-            </p>
-            {current.explanation && <p>{current.explanation}</p>}
-
-            <button className="button button-main" onClick={handleNext}>
-              次へ
-            </button>
-          </div>
-        )}
-
-        {/* 中断 */}
-        <button className="button button-accent" onClick={handlePause}>
-          中断
+      {/* ===== ヘッダー（cardの外に出す）===== */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 16px',
+          maxWidth: 500,
+          margin: '0 auto'
+        }}
+      >
+        <button
+          className="button button-accent"
+          style={{ width: 'auto', padding: '6px 14px' }}
+          onClick={() => router.push('/')}
+        >
+          HOME
         </button>
 
+        <p style={{ fontSize: 14 }}>
+          {index + 1} / {quiz.length}
+        </p>
       </div>
+
+      {/* ===== クイズカード ===== */}
+      <div className="container">
+        <div className="card">
+
+          {/* 問題 */}
+          <h2>{current.question}</h2>
+
+          {/* 選択肢 */}
+          {current.choices.map((choice, i) => {
+            let className = 'button button-choice'
+
+            if (isAnswered) {
+              if (i === current.correctIndex) className += ' correct'
+              else if (i === selected) className += ' wrong'
+            }
+
+            return (
+              <button
+                key={i}
+                className={className}
+                disabled={isAnswered}
+                onClick={() => handleAnswer(i)}
+              >
+                {choice}
+              </button>
+            )
+          })}
+
+          {/* 正誤・解説 */}
+          {result && (
+            <div className="card">
+              <p>{result === 'correct' ? '⭕ 正解！' : '❌ 不正解'}</p>
+              {current.explanation && <p>{current.explanation}</p>}
+
+              <button className="button button-main" onClick={handleNext}>
+                次へ
+              </button>
+            </div>
+          )}
+
+          {/* 中断 */}
+          <button className="button button-accent" onClick={handlePause}>
+            中断して外国免許TOPへ
+          </button>
+
+        </div>
+      </div>
+
     </main>
   )
 }

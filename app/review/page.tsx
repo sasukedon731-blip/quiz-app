@@ -27,7 +27,26 @@ export default function ReviewPage() {
   // 復習問題が0件の場合
   if (quiz.length === 0) {
     return (
-      <div className="container">
+      <div className="container" style={{ position: 'relative' }}>
+        {/* 小さいHOMEボタン */}
+        <button
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            padding: '4px 8px',
+            fontSize: 12,
+            borderRadius: 5,
+            backgroundColor: '#2196f3',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+          onClick={() => router.push('/')}
+        >
+          HOME
+        </button>
+
         <div className="card text-center">
           <h2 className="text-xl font-bold mb-4">復習問題はありません 🎉</h2>
           <p className="mb-6">
@@ -36,7 +55,7 @@ export default function ReviewPage() {
 
           <button
             className="button button-main"
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/select-mode')}
           >
             TOPへ戻る
           </button>
@@ -60,12 +79,31 @@ export default function ReviewPage() {
     if (index + 1 < quiz.length) {
       setIndex(i => i + 1)
     } else {
-      router.push('/')
+      router.push('/select-mode')
     }
   }
 
   return (
-    <div className="container">
+    <div className="container" style={{ position: 'relative' }}>
+      {/* 小さいHOMEボタン */}
+      <button
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          padding: '4px 8px',
+          fontSize: 12,
+          borderRadius: 5,
+          backgroundColor: '#2196f3',
+          color: '#fff',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+        onClick={() => router.push('/')}
+      >
+        HOME
+      </button>
+
       <div className="card">
         <p className="text-sm mb-2">
           復習問題 {index + 1} / {quiz.length}
@@ -116,10 +154,10 @@ export default function ReviewPage() {
         )}
       </div>
 
-      {/* 常時表示 */}
+      {/* 常時表示 TOPボタン */}
       <button
         className="button button-accent"
-        onClick={() => router.push('/')}
+        onClick={() => router.push('/select-mode')}
       >
         TOPへ戻る
       </button>

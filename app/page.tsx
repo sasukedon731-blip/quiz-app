@@ -7,7 +7,6 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 import { auth } from './lib/firebase'
 import Button from './components/Button'
 
-
 export default function Home() {
   const router = useRouter()
   const [checkingAuth, setCheckingAuth] = useState(true)
@@ -30,6 +29,12 @@ export default function Home() {
     router.replace('/login')
   }
 
+  /** ⭐ クイズ種別を保存 */
+  const selectQuiz = (type: string) => {
+    localStorage.setItem('quizType', type)
+    router.push('/select-mode')
+  }
+
   if (checkingAuth) {
     return <p style={{ textAlign: 'center', marginTop: 40 }}>確認中...</p>
   }
@@ -37,28 +42,28 @@ export default function Home() {
   return (
     <div className="container">
       <h1 style={{ fontSize: 28, fontWeight: 700, textAlign: 'center' }}>
-        外国免許切替クイズ
+        クイズ学習アプリ
       </h1>
 
       <p style={{ textAlign: 'center', marginBottom: 24 }}>
-        ようこそ {user ? (user.displayName ?? user.email) : ''} さん
+        ようこそ {user?.displayName ?? user?.email} さん
       </p>
 
-      {/* クイズモード */}
+      {/* クイズ選択 */}
       <div className="card">
-        <h2 style={{ marginBottom: 12 }}>クイズモード</h2>
+        <h2 style={{ marginBottom: 12 }}>クイズを選択</h2>
 
-        <Link href="/normal">
-          <Button variant="main">通常モード</Button>
-        </Link>
+        <Button variant="main" onClick={() => selectQuiz('license')}>
+          外国免許切替クイズ
+        </Button>
 
-        <Link href="/exam">
-          <Button variant="main">模擬試験</Button>
-        </Link>
+        <Button variant="main" onClick={() => selectQuiz('japanese')}>
+          日本語クイズ（準備中）
+        </Button>
 
-        <Link href="/review">
-          <Button variant="main">復習モード</Button>
-        </Link>
+        <Button variant="main" onClick={() => selectQuiz('safety')}>
+          安全教育クイズ（準備中）
+        </Button>
       </div>
 
       {/* その他 */}

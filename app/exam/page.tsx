@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { questions, Question } from '../data/questions'
+import { quizzes, Question } from '../data/quizzes'
 import { onAuthStateChanged, User } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -35,7 +35,7 @@ export default function ExamPage() {
 
   // 初期化（シャッフル＋20問）
   useEffect(() => {
-    const shuffled = [...questions]
+    const shuffled = [...quizzes.gaikoku.questions]
       .sort(() => Math.random() - 0.5)
       .slice(0, 20)
 
@@ -106,7 +106,26 @@ export default function ExamPage() {
   /* ===== 結果画面 ===== */
   if (mode === 'result') {
     return (
-      <main className="container">
+      <main className="container" style={{ position: 'relative' }}>
+        {/* 小さくHOMEボタン */}
+        <button
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            padding: '4px 8px',
+            fontSize: 12,
+            borderRadius: 5,
+            backgroundColor: '#2196f3',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+          onClick={() => router.push('/')}
+        >
+          HOME
+        </button>
+
         <div className="card">
           <h2>模擬試験 結果</h2>
           <p>スコア：{score} / {quiz.length}</p>
@@ -132,7 +151,8 @@ export default function ExamPage() {
           )
         })}
 
-        <button className="button button-main" onClick={() => router.push('/')}>
+        {/* 外国免許クイズ専用TOPに戻る */}
+        <button className="button button-main" onClick={() => router.push('/select-mode')}>
           TOPへ戻る
         </button>
       </main>
@@ -141,7 +161,26 @@ export default function ExamPage() {
 
   /* ===== 問題画面 ===== */
   return (
-    <main className="container">
+    <main className="container" style={{ position: 'relative' }}>
+      {/* 小さくHOMEボタン */}
+      <button
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          padding: '4px 8px',
+          fontSize: 12,
+          borderRadius: 5,
+          backgroundColor: '#2196f3',
+          color: '#fff',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+        onClick={() => router.push('/')}
+      >
+        HOME
+      </button>
+
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <p>残り時間：{min}:{sec.toString().padStart(2, '0')}</p>
@@ -170,7 +209,7 @@ export default function ExamPage() {
         })}
       </div>
 
-      <button className="button button-main" onClick={() => router.push('/')}>
+      <button className="button button-main" onClick={() => router.push('/select-mode')}>
         TOPへ戻る
       </button>
     </main>
