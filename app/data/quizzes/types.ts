@@ -1,8 +1,8 @@
 // app/data/quizzes/types.ts
-export type Question = {
+export interface Question {
   id: number
   question: string
   choices: string[]
-  answer: number
+  correctIndex: number
   explanation?: string
 }
