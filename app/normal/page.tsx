@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { quizzes } from '../data/quizzes'
-import type { Question } from '../data/quizzes/gaikoku-license'
+import type { Question } from '../data/types'
 
 interface PausedQuiz {
   index: number
@@ -21,7 +21,7 @@ export default function NormalPage() {
 
   /* ===== 初期化（シャッフル） ===== */
   useEffect(() => {
-    const source = quizzes.gaikoku.questions
+    const source: Question[] = quizzes.gaikoku.questions
     const shuffled = [...source].sort(() => Math.random() - 0.5)
 
     setQuiz(shuffled)
@@ -87,8 +87,7 @@ export default function NormalPage() {
 
   return (
     <main>
-
-      {/* ===== ヘッダー（cardの外に出す）===== */}
+      {/* ヘッダー */}
       <div
         style={{
           display: 'flex',
@@ -112,14 +111,11 @@ export default function NormalPage() {
         </p>
       </div>
 
-      {/* ===== クイズカード ===== */}
+      {/* クイズカード */}
       <div className="container">
         <div className="card">
-
-          {/* 問題 */}
           <h2>{current.question}</h2>
 
-          {/* 選択肢 */}
           {current.choices.map((choice, i) => {
             let className = 'button button-choice'
 
@@ -140,7 +136,6 @@ export default function NormalPage() {
             )
           })}
 
-          {/* 正誤・解説 */}
           {result && (
             <div className="card">
               <p>{result === 'correct' ? '⭕ 正解！' : '❌ 不正解'}</p>
@@ -152,14 +147,11 @@ export default function NormalPage() {
             </div>
           )}
 
-          {/* 中断 */}
           <button className="button button-accent" onClick={handlePause}>
             中断して外国免許TOPへ
           </button>
-
         </div>
       </div>
-
     </main>
   )
 }

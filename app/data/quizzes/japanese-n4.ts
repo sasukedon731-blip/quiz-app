@@ -1,5 +1,5 @@
 // app/data/quizzes/japanese-n4.ts
-import type { Question } from "./types"
+import type { Question } from "../types"
 
 export const questions: Question[] = [
   {

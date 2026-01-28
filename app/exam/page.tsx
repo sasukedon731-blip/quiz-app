@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { quizzes, Question } from '../data/quizzes'
+import { quizzes } from '../data/quizzes'
+import type { Question } from '../data/types'
 import { onAuthStateChanged, User } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -22,9 +23,9 @@ export default function ExamPage() {
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
   const [mode, setMode] = useState<'quiz' | 'result'>('quiz')
 
-  const savedRef = useRef(false) // 二重保存防止
+  const savedRef = useRef(false)
 
-  // 🔐 ログイン確認
+  /* ===== ログイン確認 ===== */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => {
       if (!u) router.replace('/login')
@@ -33,7 +34,7 @@ export default function ExamPage() {
     return () => unsub()
   }, [router])
 
-  // 初期化（シャッフル＋20問）
+  /* ===== 初期化（20問） ===== */
   useEffect(() => {
     const shuffled = [...quizzes.gaikoku.questions]
       .sort(() => Math.random() - 0.5)
@@ -43,7 +44,7 @@ export default function ExamPage() {
     setSelectedAnswers(Array(shuffled.length).fill(null))
   }, [])
 
-  // タイマー
+  /* ===== タイマー ===== */
   useEffect(() => {
     if (mode !== 'quiz') return
     if (timeLeft <= 0) {
@@ -58,7 +59,7 @@ export default function ExamPage() {
     return () => clearInterval(timer)
   }, [timeLeft, mode])
 
-  // 🔥 結果保存（1回だけ）
+  /* ===== 結果保存（1回のみ） ===== */
   useEffect(() => {
     if (mode !== 'result') return
     if (!user) return
@@ -106,26 +107,7 @@ export default function ExamPage() {
   /* ===== 結果画面 ===== */
   if (mode === 'result') {
     return (
-      <main className="container" style={{ position: 'relative' }}>
-        {/* 小さくHOMEボタン */}
-        <button
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            padding: '4px 8px',
-            fontSize: 12,
-            borderRadius: 5,
-            backgroundColor: '#2196f3',
-            color: '#fff',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-          onClick={() => router.push('/')}
-        >
-          HOME
-        </button>
-
+      <main className="container">
         <div className="card">
           <h2>模擬試験 結果</h2>
           <p>スコア：{score} / {quiz.length}</p>
@@ -141,17 +123,14 @@ export default function ExamPage() {
               <p>{q.question}</p>
               <p>
                 あなたの回答：
-                <span className={isCorrect ? 'button-success' : ''}>
-                  {' '}
-                  {userAnswer !== null ? q.choices[userAnswer] : '未回答'}
-                </span>
+                <strong>{userAnswer !== null ? q.choices[userAnswer] : '未回答'}</strong>
               </p>
               <p>正解：<strong>{q.choices[q.correctIndex]}</strong></p>
+              {!isCorrect && q.explanation && <p>{q.explanation}</p>}
             </div>
           )
         })}
 
-        {/* 外国免許クイズ専用TOPに戻る */}
         <button className="button button-main" onClick={() => router.push('/select-mode')}>
           TOPへ戻る
         </button>
@@ -161,26 +140,7 @@ export default function ExamPage() {
 
   /* ===== 問題画面 ===== */
   return (
-    <main className="container" style={{ position: 'relative' }}>
-      {/* 小さくHOMEボタン */}
-      <button
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          padding: '4px 8px',
-          fontSize: 12,
-          borderRadius: 5,
-          backgroundColor: '#2196f3',
-          color: '#fff',
-          border: 'none',
-          cursor: 'pointer'
-        }}
-        onClick={() => router.push('/')}
-      >
-        HOME
-      </button>
-
+    <main className="container">
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <p>残り時間：{min}:{sec.toString().padStart(2, '0')}</p>
