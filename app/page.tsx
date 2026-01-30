@@ -1,81 +1,84 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 import { auth } from './lib/firebase'
-import Button from './components/Button'
+import { onAuthStateChanged, User } from 'firebase/auth'
 
-export default function Home() {
+import Button from './components/Button'
+import Card from './components/Card'
+
+export default function HomePage() {
   const router = useRouter()
-  const [checkingAuth, setCheckingAuth] = useState(true)
   const [user, setUser] = useState<User | null>(null)
 
+  // ログインユーザー監視
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
-      if (!u) {
-        router.replace('/login')
-      } else {
-        setUser(u)
-        setCheckingAuth(false)
-      }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u)
     })
-    return () => unsub()
-  }, [router])
-
-  const handleLogout = async () => {
-    await signOut(auth)
-    router.replace('/login')
-  }
-
-  /** ⭐ クイズ種別を保存 */
-  const selectQuiz = (type: string) => {
-    localStorage.setItem('quizType', type)
-    router.push('/select-mode')
-  }
-
-  if (checkingAuth) {
-    return <p style={{ textAlign: 'center', marginTop: 40 }}>確認中...</p>
-  }
+    return () => unsubscribe()
+  }, [])
 
   return (
-    <div className="container">
-      <h1 style={{ fontSize: 28, fontWeight: 700, textAlign: 'center' }}>
+    <main className="container">
+      {/* タイトル */}
+      <h1 style={{ textAlign: 'center', marginBottom: 8 }}>
         クイズ学習アプリ
       </h1>
 
-      <p style={{ textAlign: 'center', marginBottom: 24 }}>
-        ようこそ {user?.displayName ?? user?.email} さん
+      {/* ユーザー名 */}
+      <p style={{ textAlign: 'center', marginBottom: 32 }}>
+        ようこそ{' '}
+        {user?.displayName
+          ? `${user.displayName} さん`
+          : user?.email
+          ? user.email
+          : 'ゲスト さん'}
       </p>
 
       {/* クイズ選択 */}
-      <div className="card">
-        <h2 style={{ marginBottom: 12 }}>クイズを選択</h2>
+      <Card>
+        <h2 style={{ marginBottom: 16 }}>クイズを選択</h2>
 
-        <Button variant="main" onClick={() => selectQuiz('license')}>
+        {/* 外国免許切替 */}
+        <Button
+          variant="main"
+          onClick={() => router.push('/select-mode?type=gaikoku')}
+        >
           外国免許切替クイズ
         </Button>
 
-        <Button variant="main" onClick={() => selectQuiz('japanese')}>
-          日本語クイズ（準備中）
+        {/* 日本語N4 */}
+        <Button
+          variant="main"
+          onClick={() => router.push('/select-mode?type=japanese-n4')}
+        >
+          日本語N4クイズ
         </Button>
 
-        <Button variant="main" onClick={() => selectQuiz('safety')}>
+        {/* 準備中 */}
+        <Button disabled>
           安全教育クイズ（準備中）
         </Button>
-      </div>
+      </Card>
 
-      {/* その他 */}
-      <div className="card">
-        <Link href="/mypage">
-          <Button variant="success">マイページ</Button>
-        </Link>
+      {/* マイページ・ログアウト */}
+      <Card>
+        <Button
+          variant="success"
+          onClick={() => router.push('/mypage')}
+        >
+          マイページ
+        </Button>
 
-        <Button variant="accent" onClick={handleLogout}>
+        <Button
+          variant="accent"
+          onClick={() => auth.signOut()}
+        >
           ログアウト
         </Button>
-      </div>
-    </div>
+      </Card>
+    </main>
   )
 }

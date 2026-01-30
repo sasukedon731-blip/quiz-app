@@ -3,5 +3,5 @@ export type Question = {
   question: string
   choices: string[]
   correctIndex: number
-  explanation: string
+  explanation?: string
 }

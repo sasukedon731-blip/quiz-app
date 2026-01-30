@@ -1,177 +1,117 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { quizzes } from '../data/quizzes'
 import type { Question } from '../data/types'
-import { onAuthStateChanged, User } from 'firebase/auth'
-import { auth } from '../lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../lib/firestore'
+import QuizLayout from '../components/QuizLayout'
+import Button from '../components/Button'
 
-const EXAM_TIME = 20 * 60 // 20分
+const EXAM_TIME = 20 * 60
 
 export default function ExamPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const params = useSearchParams()
+  const quizType = params.get('type') as 'gaikoku' | 'japaneseN4' | null
 
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([])
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
   const [mode, setMode] = useState<'quiz' | 'result'>('quiz')
 
-  const savedRef = useRef(false)
-
-  /* ===== ログイン確認 ===== */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
-      if (!u) router.replace('/login')
-      else setUser(u)
-    })
-    return () => unsub()
-  }, [router])
+    if (!quizType) {
+      router.push('/')
+      return
+    }
 
-  /* ===== 初期化（20問） ===== */
-  useEffect(() => {
-    const shuffled = [...quizzes.gaikoku.questions]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 20)
+    let questions: Question[]
+    if (quizType === 'gaikoku') questions = quizzes.gaikoku.questions
+    else questions = quizzes.japaneseN4.questions
 
-    setQuiz(shuffled)
-    setSelectedAnswers(Array(shuffled.length).fill(null))
-  }, [])
+    setQuiz([...questions].sort(() => Math.random() - 0.5).slice(0, 20))
+  }, [quizType, router])
 
-  /* ===== タイマー ===== */
   useEffect(() => {
     if (mode !== 'quiz') return
     if (timeLeft <= 0) {
       setMode('result')
       return
     }
-
-    const timer = setInterval(() => {
-      setTimeLeft(t => t - 1)
-    }, 1000)
-
+    const timer = setInterval(() => setTimeLeft(t => t - 1), 1000)
     return () => clearInterval(timer)
   }, [timeLeft, mode])
-
-  /* ===== 結果保存（1回のみ） ===== */
-  useEffect(() => {
-    if (mode !== 'result') return
-    if (!user) return
-    if (savedRef.current) return
-
-    savedRef.current = true
-
-    addDoc(collection(db, 'users', user.uid, 'results'), {
-      score,
-      total: quiz.length,
-      mode: 'exam',
-      createdAt: serverTimestamp(),
-    })
-  }, [mode, user, score, quiz.length])
 
   if (quiz.length === 0) {
     return <p className="container">読み込み中...</p>
   }
 
-  const current = quiz[index]
+  const q = quiz[index]
   const min = Math.floor(timeLeft / 60)
   const sec = timeLeft % 60
 
   const handleAnswer = (i: number) => {
     if (selected !== null) return
-
     setSelected(i)
-    setSelectedAnswers(prev => {
-      const copy = [...prev]
-      copy[index] = i
-      return copy
-    })
-
-    if (i === current.correctIndex) {
-      setScore(s => s + 1)
-    }
+    if (i === q.correctIndex) setScore(s => s + 1)
 
     setTimeout(() => {
       setSelected(null)
-      if (index + 1 < quiz.length) setIndex(p => p + 1)
-      else setMode('result')
-    }, 500)
+      if (index + 1 < quiz.length) {
+        setIndex(i => i + 1)
+      } else {
+        setMode('result')
+      }
+    }, 600)
   }
 
-  /* ===== 結果画面 ===== */
   if (mode === 'result') {
     return (
-      <main className="container">
-        <div className="card">
-          <h2>模擬試験 結果</h2>
-          <p>スコア：{score} / {quiz.length}</p>
-        </div>
+      <QuizLayout title="模擬試験 結果">
+        <p>スコア：{score} / {quiz.length}</p>
 
-        {quiz.map((q, i) => {
-          const userAnswer = selectedAnswers[i]
-          const isCorrect = userAnswer === q.correctIndex
-
-          return (
-            <div key={i} className="card">
-              <p><strong>問題 {i + 1}</strong></p>
-              <p>{q.question}</p>
-              <p>
-                あなたの回答：
-                <strong>{userAnswer !== null ? q.choices[userAnswer] : '未回答'}</strong>
-              </p>
-              <p>正解：<strong>{q.choices[q.correctIndex]}</strong></p>
-              {!isCorrect && q.explanation && <p>{q.explanation}</p>}
-            </div>
-          )
-        })}
-
-        <button className="button button-main" onClick={() => router.push('/select-mode')}>
-          TOPへ戻る
-        </button>
-      </main>
+        <Button
+          variant="main"
+          onClick={() => router.push(`/select-mode?type=${quizType}`)}
+        >
+          クイズ選択に戻る
+        </Button>
+      </QuizLayout>
     )
   }
 
-  /* ===== 問題画面 ===== */
   return (
-    <main className="container">
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <p>残り時間：{min}:{sec.toString().padStart(2, '0')}</p>
-          <p>{index + 1} / {quiz.length}</p>
-        </div>
+    <QuizLayout title="模擬試験">
+      <p>
+        残り時間：{min}:{sec.toString().padStart(2, '0')}
+      </p>
 
-        <h2>{current.question}</h2>
+      <p>{index + 1} / {quiz.length}</p>
 
-        {current.choices.map((choice, i) => {
-          let className = 'button button-choice'
-          if (selected !== null) {
-            if (i === current.correctIndex) className += ' correct'
-            else if (i === selected) className += ' wrong'
-          }
+      <h2 className="mb-4">{q.question}</h2>
 
-          return (
-            <button
-              key={i}
-              className={className}
-              onClick={() => handleAnswer(i)}
-              disabled={selected !== null}
-            >
-              {choice}
-            </button>
-          )
-        })}
-      </div>
+      {q.choices.map((c, i) => (
+        <Button
+          key={i}
+          variant="choice"
+          isCorrect={selected !== null && i === q.correctIndex}
+          isWrong={selected !== null && i === selected && i !== q.correctIndex}
+          onClick={() => handleAnswer(i)}
+        >
+          {c}
+        </Button>
+      ))}
 
-      <button className="button button-main" onClick={() => router.push('/select-mode')}>
-        TOPへ戻る
-      </button>
-    </main>
+      {/* ★ 戻るボタン */}
+      <Button
+        variant="accent"
+        onClick={() => router.push(`/select-mode?type=${quizType}`)}
+        className="mt-6"
+      >
+        クイズ選択に戻る
+      </Button>
+    </QuizLayout>
   )
 }

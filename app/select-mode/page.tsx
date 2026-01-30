@@ -1,49 +1,53 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Button from '../components/Button'
-import { useEffect, useState } from 'react'
+import Card from '../components/Card'
 
 export default function SelectModePage() {
   const router = useRouter()
-  const [quizType, setQuizType] = useState<string | null>(null)
+  const params = useSearchParams()
+  const type = params.get('type') // gaikoku | japanese-n4
 
-  useEffect(() => {
-    const type = localStorage.getItem('quizType')
-    if (!type) {
-      router.replace('/')
-    } else {
-      setQuizType(type)
-    }
-  }, [router])
-
-  if (!quizType) return null
+  if (!type) {
+    // 万一 type がない場合は TOPへ
+    router.push('/')
+    return null
+  }
 
   return (
-    <div className="container">
-      <h1 style={{ textAlign: 'center' }}>モード選択</h1>
+    <main className="container">
+      <Card>
+        <h2 style={{ marginBottom: 16 }}>モードを選択</h2>
 
-      <p style={{ textAlign: 'center', marginBottom: 20 }}>
-        選択中のクイズ：{quizType}
-      </p>
-
-      <div className="card">
-        <Button variant="main" onClick={() => router.push('/normal')}>
+        <Button
+          variant="main"
+          onClick={() => router.push(`/normal?type=${type}`)}
+        >
           通常モード
         </Button>
 
-        <Button variant="main" onClick={() => router.push('/exam')}>
+        <Button
+          variant="main"
+          onClick={() => router.push(`/exam?type=${type}`)}
+        >
           模擬試験モード
         </Button>
 
-        <Button variant="main" onClick={() => router.push('/review')}>
+        <Button
+          variant="main"
+          onClick={() => router.push(`/review?type=${type}`)}
+        >
           復習モード
         </Button>
-      </div>
 
-      <Button variant="accent" onClick={() => router.push('/')}>
-        TOPに戻る
-      </Button>
-    </div>
+        <Button
+          variant="accent"
+          onClick={() => router.push('/')}
+        >
+          TOPへ戻る
+        </Button>
+      </Card>
+    </main>
   )
 }

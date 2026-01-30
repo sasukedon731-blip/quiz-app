@@ -1,37 +1,39 @@
-"use client";
+'use client'
 
-import React, { ButtonHTMLAttributes } from "react";
+import { ButtonHTMLAttributes } from 'react'
 
-type Variant = "main" | "accent" | "success" | "choice";
+type Variant = 'main' | 'accent' | 'success' | 'choice'
 
-interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  isCorrect?: boolean;
-  isWrong?: boolean;
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant
+  isCorrect?: boolean
+  isWrong?: boolean
 }
 
 export default function Button({
-  variant = "main",
+  variant = 'main',
   isCorrect,
   isWrong,
+  className = '',
   children,
   ...props
 }: Props) {
-  let className = "button ";
+  let classes = 'button '
 
-  if (variant === "main") className += "button-main";
-  if (variant === "accent") className += "button-accent";
-  if (variant === "success") className += "button-success";
-
-  if (variant === "choice") {
-    className += "button-choice";
-    if (isCorrect) className += " correct";
-    if (isWrong) className += " wrong";
+  if (variant === 'main') classes += 'button-main '
+  if (variant === 'accent') classes += 'button-accent '
+  if (variant === 'success') classes += 'button-success '
+  if (variant === 'choice') {
+    classes += 'button-choice '
+    if (isCorrect) classes += 'correct '
+    if (isWrong) classes += 'wrong '
   }
 
+  classes += className
+
   return (
-    <button className={className} {...props}>
+    <button className={classes} {...props}>
       {children}
     </button>
-  );
+  )
 }

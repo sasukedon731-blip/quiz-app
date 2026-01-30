@@ -1,157 +1,169 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { quizzes } from '../data/quizzes'
 import type { Question } from '../data/types'
+import QuizLayout from '../components/QuizLayout'
+import Button from '../components/Button'
 
-interface PausedQuiz {
-  index: number
-  selectedAnswers: (number | null)[]
+/** URLで使うtype */
+type UrlQuizType = 'gaikoku' | 'japanese-n4'
+
+/** quizzes の実キー */
+type QuizKey = 'gaikoku' | 'japaneseN4'
+
+/** URL → データキー変換 */
+const quizTypeMap: Record<UrlQuizType, QuizKey> = {
+  gaikoku: 'gaikoku',
+  'japanese-n4': 'japaneseN4',
 }
 
 export default function NormalPage() {
   const router = useRouter()
+  const params = useSearchParams()
+
+  const urlType = params.get('type') as UrlQuizType | null
+
+  if (!urlType) {
+    router.push('/')
+    return null
+  }
+
+  const quizKey = quizTypeMap[urlType]
+  const quizData = quizzes[quizKey]
+
+  if (!quizData) {
+    router.push('/')
+    return null
+  }
+
+  const STORAGE_KEY = `normal-progress-${quizKey}`
 
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [result, setResult] = useState<'correct' | 'wrong' | null>(null)
-  const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([])
+  const [showAnswer, setShowAnswer] = useState(false)
 
-  /* ===== 初期化（シャッフル） ===== */
+  /** 初期化 or 中断復元 */
   useEffect(() => {
-    const source: Question[] = quizzes.gaikoku.questions
-    const shuffled = [...source].sort(() => Math.random() - 0.5)
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      setQuiz(parsed.quiz)
+      setIndex(parsed.index)
+      return
+    }
+
+    const shuffled = [...quizData.questions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 50)
 
     setQuiz(shuffled)
-    setSelectedAnswers(Array(shuffled.length).fill(null))
-  }, [])
-
-  /* ===== 中断復元 ===== */
-  useEffect(() => {
-    const paused = localStorage.getItem('pausedQuizNormal')
-    if (!paused) return
-
-    const data: PausedQuiz = JSON.parse(paused)
-    if (confirm('前回のクイズを再開しますか？')) {
-      setIndex(data.index)
-      setSelectedAnswers(data.selectedAnswers)
-    } else {
-      localStorage.removeItem('pausedQuizNormal')
-    }
+    setIndex(0)
   }, [])
 
   if (quiz.length === 0) {
     return <p className="container">読み込み中...</p>
   }
 
-  const current = quiz[index]
-  const isAnswered = result !== null
+  const q = quiz[index]
 
-  /* ===== 回答 ===== */
   const handleAnswer = (i: number) => {
-    if (isAnswered) return
-
+    if (showAnswer) return
     setSelected(i)
-    setResult(i === current.correctIndex ? 'correct' : 'wrong')
-
-    setSelectedAnswers(prev => {
-      const copy = [...prev]
-      copy[index] = i
-      return copy
-    })
+    setShowAnswer(true)
   }
 
-  /* ===== 次へ ===== */
-  const handleNext = () => {
+  const nextQuestion = () => {
     setSelected(null)
-    setResult(null)
+    setShowAnswer(false)
 
     if (index + 1 < quiz.length) {
-      setIndex(prev => prev + 1)
+      setIndex(i => i + 1)
     } else {
-      localStorage.removeItem('pausedQuizNormal')
-      router.push('/select-mode')
+      localStorage.removeItem(STORAGE_KEY)
+      router.push(`/select-mode?type=${urlType}`)
     }
   }
 
-  /* ===== 中断 ===== */
-  const handlePause = () => {
+  /** 中断（保存） */
+  const quitWithSave = () => {
     localStorage.setItem(
-      'pausedQuizNormal',
-      JSON.stringify({ index, selectedAnswers })
+      STORAGE_KEY,
+      JSON.stringify({ quiz, index })
     )
-    router.push('/select-mode')
+    router.push(`/select-mode?type=${urlType}`)
+  }
+
+  /** TOPへ（破棄） */
+  const quitToTop = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    router.push('/')
   }
 
   return (
-    <main>
-      {/* ヘッダー */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '10px 16px',
-          maxWidth: 500,
-          margin: '0 auto'
-        }}
-      >
-        <button
-          className="button button-accent"
-          style={{ width: 'auto', padding: '6px 14px' }}
-          onClick={() => router.push('/')}
-        >
-          HOME
-        </button>
+    <QuizLayout
+      title={
+        quizKey === 'gaikoku'
+          ? '外国免許切替クイズ（通常）'
+          : '日本語N4クイズ（通常）'
+      }
+    >
+      <p>
+        問題 {index + 1} / {quiz.length}
+      </p>
 
-        <p style={{ fontSize: 14 }}>
-          {index + 1} / {quiz.length}
-        </p>
+      <h2 className="text-lg font-medium mt-2 mb-4">
+        {q.question}
+      </h2>
+
+      <div className="flex flex-col gap-3">
+        {q.choices.map((c, i) => (
+          <Button
+            key={i}
+            variant="choice"
+            isCorrect={showAnswer && i === q.correctIndex}
+            isWrong={showAnswer && i === selected && i !== q.correctIndex}
+            onClick={() => handleAnswer(i)}
+          >
+            {c}
+          </Button>
+        ))}
       </div>
 
-      {/* クイズカード */}
-      <div className="container">
-        <div className="card">
-          <h2>{current.question}</h2>
+      {showAnswer && (
+        <div className="mt-4 p-3 bg-gray-100 rounded">
+          <p className="font-semibold">
+            {selected === q.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
+          </p>
 
-          {current.choices.map((choice, i) => {
-            let className = 'button button-choice'
-
-            if (isAnswered) {
-              if (i === current.correctIndex) className += ' correct'
-              else if (i === selected) className += ' wrong'
-            }
-
-            return (
-              <button
-                key={i}
-                className={className}
-                disabled={isAnswered}
-                onClick={() => handleAnswer(i)}
-              >
-                {choice}
-              </button>
-            )
-          })}
-
-          {result && (
-            <div className="card">
-              <p>{result === 'correct' ? '⭕ 正解！' : '❌ 不正解'}</p>
-              {current.explanation && <p>{current.explanation}</p>}
-
-              <button className="button button-main" onClick={handleNext}>
-                次へ
-              </button>
-            </div>
+          {q.explanation && (
+            <p className="mt-2">{q.explanation}</p>
           )}
 
-          <button className="button button-accent" onClick={handlePause}>
-            中断して外国免許TOPへ
-          </button>
+          <Button
+            variant="main"
+            onClick={nextQuestion}
+            className="mt-3"
+          >
+            {index + 1 < quiz.length
+              ? '次の問題へ'
+              : 'モード選択へ戻る'}
+          </Button>
         </div>
+      )}
+
+      {/* 下部固定操作 */}
+      <div style={{ marginTop: 32 }}>
+        <Button variant="accent" onClick={quitWithSave}>
+          中断して戻る
+        </Button>
+
+        <Button variant="main" onClick={quitToTop}>
+          TOPへ戻る（最初から）
+        </Button>
       </div>
-    </main>
+    </QuizLayout>
   )
 }

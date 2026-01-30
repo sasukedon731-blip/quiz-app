@@ -1,48 +1,72 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { quizzes } from '../data/quizzes'
 import type { Question } from '../data/types'
+import QuizLayout from '../components/QuizLayout'
+import Button from '../components/Button'
+
+/** URLで使う type */
+type UrlQuizType = 'gaikoku' | 'japanese-n4'
+
+/** quizzes の実キー */
+type QuizKey = 'gaikoku' | 'japaneseN4'
+
+/** URL → quizzesキー変換 */
+const quizTypeMap: Record<UrlQuizType, QuizKey> = {
+  gaikoku: 'gaikoku',
+  'japanese-n4': 'japaneseN4',
+}
 
 export default function ReviewPage() {
   const router = useRouter()
+  const params = useSearchParams()
+
+  const urlType = params.get('type') as UrlQuizType | null
+
+  if (!urlType) {
+    router.push('/')
+    return null
+  }
+
+  const quizKey = quizTypeMap[urlType]
+  const quizData = quizzes[quizKey]
+
+  if (!quizData) {
+    router.push('/')
+    return null
+  }
 
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [showAnswer, setShowAnswer] = useState(false)
 
-  /* ===== 復習データ取得 ===== */
   useEffect(() => {
     const wrongIndexes = JSON.parse(
-      localStorage.getItem('wrongQuestions') || '[]'
+      localStorage.getItem(`wrongQuestions-${quizKey}`) || '[]'
     ) as number[]
 
-    const source = quizzes.gaikoku.questions
     const reviewQuestions = wrongIndexes
-      .map(i => source[i])
+      .map(i => quizData.questions[i])
       .filter(Boolean)
 
     setQuiz(reviewQuestions)
   }, [])
 
-  /* ===== 復習問題なし ===== */
   if (quiz.length === 0) {
     return (
-      <div className="container">
-        <div className="card">
-          <h2>復習問題はありません 🎉</h2>
-          <p>すべて正解しています。素晴らしいです！</p>
+      <QuizLayout title="復習モード">
+        <p>復習する問題はありません 🎉</p>
 
-          <button
-            className="button button-main"
-            onClick={() => router.push('/select-mode')}
-          >
-            TOPへ戻る
-          </button>
-        </div>
-      </div>
+        <Button
+          variant="main"
+          onClick={() => router.push(`/select-mode?type=${urlType}`)}
+        >
+          クイズ選択へ戻る
+        </Button>
+      </QuizLayout>
     )
   }
 
@@ -61,64 +85,55 @@ export default function ReviewPage() {
     if (index + 1 < quiz.length) {
       setIndex(i => i + 1)
     } else {
-      router.push('/select-mode')
+      router.push(`/select-mode?type=${urlType}`)
     }
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <p>
-          復習問題 {index + 1} / {quiz.length}
-        </p>
+    <QuizLayout title="復習モード">
+      <p>
+        問題 {index + 1} / {quiz.length}
+      </p>
 
-        <h2>{q.question}</h2>
+      <h2 className="text-lg font-medium mt-2 mb-4">
+        {q.question}
+      </h2>
 
-        {q.choices.map((c, i) => {
-          let className = 'button button-choice'
-
-          if (showAnswer) {
-            if (i === q.correctIndex) className += ' correct'
-            else if (i === selected) className += ' wrong'
-          }
-
-          return (
-            <button
-              key={i}
-              className={className}
-              onClick={() => handleAnswer(i)}
-            >
-              {c}
-            </button>
-          )
-        })}
-
-        {showAnswer && (
-          <div className="card">
-            <p>
-              {selected === q.correctIndex
-                ? '⭕ 正解！'
-                : '❌ 不正解'}
-            </p>
-
-            {q.explanation && <p>{q.explanation}</p>}
-
-            <button
-              className="button button-main"
-              onClick={nextQuestion}
-            >
-              {index + 1 < quiz.length ? '次の問題へ' : 'TOPへ戻る'}
-            </button>
-          </div>
-        )}
+      <div className="flex flex-col gap-3">
+        {q.choices.map((c, i) => (
+          <Button
+            key={i}
+            variant="choice"
+            isCorrect={showAnswer && i === q.correctIndex}
+            isWrong={showAnswer && i === selected && i !== q.correctIndex}
+            onClick={() => handleAnswer(i)}
+          >
+            {c}
+          </Button>
+        ))}
       </div>
 
-      <button
-        className="button button-accent"
-        onClick={() => router.push('/select-mode')}
-      >
-        TOPへ戻る
-      </button>
-    </div>
+      {showAnswer && (
+        <div className="mt-4 p-3 bg-gray-100 rounded">
+          <p className="font-semibold">
+            {selected === q.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
+          </p>
+
+          {q.explanation && (
+            <p className="mt-2">{q.explanation}</p>
+          )}
+
+          <Button
+            variant="main"
+            onClick={nextQuestion}
+            className="mt-3"
+          >
+            {index + 1 < quiz.length
+              ? '次の問題へ'
+              : 'クイズ選択へ戻る'}
+          </Button>
+        </div>
+      )}
+    </QuizLayout>
   )
 }
