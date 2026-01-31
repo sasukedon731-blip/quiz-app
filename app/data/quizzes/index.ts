@@ -1,19 +1,13 @@
-import { questions as gaikokuLicenseQuestions } from './gaikoku-license'
-import { questions as japaneseN4Questions } from './japanese-n4'
-import type { Question } from '../types'
+import { gaikokuLicense } from './gaikoku-license'
+import { japaneseN4 } from './japanese-n4'
 
-export type Quiz = {
-  title: string
-  questions: Question[]
-}
-
-export const quizzes: Record<string, Quiz> = {
+export const quizzes = {
   gaikoku: {
-    title: '外国免許切替',
-    questions: gaikokuLicenseQuestions
+    title: '外国免許切替クイズ',
+    questions: gaikokuLicense,
   },
-  japaneseN4: {
-    title: '日本語N4',
-    questions: japaneseN4Questions
-  }
+  n4: {
+    title: '日本語N4クイズ',
+    questions: japaneseN4,
+  },
 }
