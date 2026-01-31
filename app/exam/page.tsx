@@ -1,12 +1,13 @@
-import { quizzes } from '@/app/data/quizzes'
-import ExamClient from './ExamClient'
+import { quizzes, type QuizType } from '@/app/data/quizzes'
 
 type Props = {
-  searchParams: { type?: string }
+  searchParams: {
+    type?: QuizType
+  }
 }
 
 export default function ExamPage({ searchParams }: Props) {
-  const type = searchParams.type ?? 'gaikoku'
+  const type: QuizType = searchParams.type ?? 'gaikoku'
   const quiz = quizzes[type]
 
   if (!quiz) {
@@ -15,8 +16,8 @@ export default function ExamPage({ searchParams }: Props) {
 
   return (
     <ExamClient
-      title={quiz.title}
-      questions={quiz.questions}
+      title={type === 'gaikoku' ? '外国免許切替' : '日本語N4'}
+      questions={quiz}
     />
   )
 }
