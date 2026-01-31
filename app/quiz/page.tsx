@@ -6,7 +6,7 @@ type Props = {
 }
 
 export default function QuizPage({ searchParams }: Props) {
-  const type: QuizType = searchParams.type ?? 'gaikoku'
+  const type: QuizType = searchParams.type ?? 'gaikoku-license'
   const quiz = quizzes[type]
 
   if (!quiz) {
