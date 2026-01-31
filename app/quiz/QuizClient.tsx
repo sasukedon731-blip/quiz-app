@@ -1,26 +1,25 @@
 'use client'
 
-import { useSearchParams, useRouter } from 'next/navigation'
-import { quizzes } from '../data/quizzes'
-import QuizLayout from '../components/QuizLayout'
-import Button from '../components/Button'
-import type { Question } from '../data/types'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import QuizLayout from '@/app/components/QuizLayout'
+import Button from '@/app/components/Button'
+import type { Question } from '@/app/data/types'
 
-export default function QuizClient() {
-  const searchParams = useSearchParams()
+type Quiz = {
+  title: string
+  questions: Question[]
+}
+
+type Props = {
+  quiz: Quiz
+}
+
+export default function QuizClient({ quiz }: Props) {
   const router = useRouter()
-
-  const type = searchParams.get('type') ?? 'gaikoku'
-  const quiz = quizzes[type]
-
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
-
-  if (!quiz) {
-    return <p>クイズが見つかりません</p>
-  }
 
   const current = quiz.questions[index]
 
@@ -60,9 +59,7 @@ export default function QuizClient() {
 
       {selected !== null && (
         <>
-          <p>
-            {selected === current.correctIndex ? '⭕ 正解' : '❌ 不正解'}
-          </p>
+          <p>{selected === current.correctIndex ? '⭕ 正解' : '❌ 不正解'}</p>
           <Button variant="main" onClick={next}>
             次へ
           </Button>

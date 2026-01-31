@@ -1,7 +1,12 @@
+import { quizzes } from '@/app/data/quizzes'
 import NormalClient from './NormalClient'
 
-export const dynamic = 'force-dynamic'
+export default function NormalPage() {
+  const quiz = quizzes.gaikoku
 
-export default function Page() {
-  return <NormalClient />
+  if (!quiz) {
+    return <div>クイズが見つかりません</div>
+  }
+
+  return <NormalClient questions={quiz.questions} />
 }
