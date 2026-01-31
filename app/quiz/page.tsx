@@ -1,5 +1,5 @@
 import QuizClient from './QuizClient'
 
-export default function Page() {
+export default function QuizPage() {
   return <QuizClient />
 }
