@@ -1,3 +1,5 @@
+'use client'
+
 import ExamClient from './ExamClient'
 import { quizzes, type QuizType } from '@/app/data/quizzes'
 
@@ -18,7 +20,7 @@ export default function ExamPage({ searchParams }: Props) {
   return (
     <ExamClient
       title={type === 'gaikoku' ? '外国免許切替' : '日本語N4'}
-      questions={quiz}
+      questions={quiz} // quiz は Question[] 型なので問題なし
     />
   )
 }

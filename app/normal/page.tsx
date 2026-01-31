@@ -8,5 +8,6 @@ export default function NormalPage() {
     return <div>クイズが見つかりません</div>
   }
 
-  return <NormalClient questions={quiz.questions} />
+  // Question[] をそのまま渡す
+  return <NormalClient questions={quiz} />
 }
