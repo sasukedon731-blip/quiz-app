@@ -1,6 +1,9 @@
 import type { Question } from "../types"
 
-export const questions: Question[] = [
+export const gaikoku: Question[] = [
+  // 外国免許の問題
+
+
   {
     id: 1,
     question: "日本で車はどちら側を通行しますか？",

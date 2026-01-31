@@ -1,6 +1,6 @@
 import type { Question } from "../types"
 
-export const questions: Question[] = [
+export const japaneseN4: Question[] = [
   // ===== 文法問題（1〜40） =====
   {
     id: 1,
