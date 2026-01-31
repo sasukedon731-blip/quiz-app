@@ -1,3 +1,4 @@
+import ExamClient from './ExamClient'
 import { quizzes, type QuizType } from '@/app/data/quizzes'
 
 type Props = {
