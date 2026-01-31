@@ -7,7 +7,7 @@ export const questions: Question[] = [
     question: "わたしは まいにち がっこうへ（　）います。",
     choices: ["いき", "いく", "いって", "いきます"],
     correctIndex: 3,
-    explanation: "「まいにち〜ます」の形なので「いきます」が正しいです。"
+    explanation: "「まいにち〜ます」の文なので「いきます」が正しいです。"
   },
   {
     id: 2,
@@ -35,14 +35,14 @@ export const questions: Question[] = [
     question: "にほんごは（　）ですが、たのしいです。",
     choices: ["むずかしい", "むずかしく", "むずかし", "むずかしかった"],
     correctIndex: 0,
-    explanation: "「〜ですが」の前は普通形を使います。"
+    explanation: "「〜ですが」の前は普通形です。"
   },
   {
     id: 6,
     question: "えきまで あるいて（　）かかります。",
     choices: ["5ふん", "5ふんを", "5ふんに", "5ふんで"],
     correctIndex: 3,
-    explanation: "時間がかかる場合は「〜で」を使います。"
+    explanation: "時間がかかるときは「〜で」を使います。"
   },
   {
     id: 7,
@@ -92,14 +92,14 @@ export const questions: Question[] = [
     question: "しゅくだいは もう（　）います。",
     choices: ["やる", "やった", "やって", "やってい"],
     correctIndex: 2,
-    explanation: "完了は「〜ている」を使います。"
+    explanation: "完了は「〜ている」で表します。"
   },
   {
     id: 14,
     question: "この えきは にぎやか（　）ないです。",
     choices: ["で", "に", "な", "の"],
     correctIndex: 0,
-    explanation: "な形容詞の否定は「〜ではないです」です。"
+    explanation: "な形容詞の否定は「〜ではない」です。"
   },
   {
     id: 15,
@@ -153,10 +153,10 @@ export const questions: Question[] = [
   },
   {
     id: 22,
-    question: "この へやは ひろく（　）です。",
-    choices: ["て", "てき", "てい", "ていく"],
-    correctIndex: 2,
-    explanation: "形容詞＋「〜ている」で状態を表します。"
+    question: "この へやは ひろ（　）です。",
+    choices: ["く", "い", "くて", "かった"],
+    correctIndex: 0,
+    explanation: "い形容詞は「ひろくです」となります。"
   },
   {
     id: 23,
@@ -170,7 +170,7 @@ export const questions: Question[] = [
     question: "この かさは かるい（　）、べんりです。",
     choices: ["から", "ので", "けど", "のに"],
     correctIndex: 0,
-    explanation: "理由を表すときは「から」が自然です。"
+    explanation: "理由を表すときは「から」を使います。"
   },
   {
     id: 25,
@@ -184,14 +184,14 @@ export const questions: Question[] = [
     question: "きょうは いそがしい（　）、あした にします。",
     choices: ["から", "ので", "けど", "のに"],
     correctIndex: 0,
-    explanation: "理由を表すため「から」を使います。"
+    explanation: "理由なので「から」が自然です。"
   },
   {
     id: 27,
     question: "あめが ふって（　）、いきません。",
     choices: ["も", "は", "を", "に"],
     correctIndex: 0,
-    explanation: "条件＋結果で「〜ても」を使います。"
+    explanation: "「〜ても」で逆接を表します。"
   },
   {
     id: 28,
@@ -202,7 +202,7 @@ export const questions: Question[] = [
   },
   {
     id: 29,
-    question: "にほんに きて 3ねんに（　）なります。",
+    question: "にほんに きて 3ねん（　）なります。",
     choices: ["も", "が", "を", "で"],
     correctIndex: 0,
     explanation: "期間の強調には「も」を使います。"
@@ -212,22 +212,22 @@ export const questions: Question[] = [
     question: "わたしは えいごが はなせ（　）。",
     choices: ["ます", "る", "て", "た"],
     correctIndex: 1,
-    explanation: "可能形の普通形は「る」で終わります。"
+    explanation: "可能形の普通形は「る」です。"
   },
 
   {
     id: 31,
     question: "でんしゃが こなくて こまっ（　）います。",
-    choices: ["た", "て", "で", "と"],
-    correctIndex: 0,
-    explanation: "困った状態なので「〜ている」を使います。"
+    choices: ["て", "た", "で", "と"],
+    correctIndex: 1,
+    explanation: "困った状態なので「困っています」となります。"
   },
   {
     id: 32,
     question: "この みちは くるまが おおく（　）。",
     choices: ["て", "で", "に", "を"],
     correctIndex: 1,
-    explanation: "理由や状況を表す「〜で」です。"
+    explanation: "理由・状況を表す「〜で」です。"
   },
   {
     id: 33,
@@ -248,7 +248,7 @@ export const questions: Question[] = [
     question: "わたしは にく（　）たべません。",
     choices: ["を", "が", "は", "も"],
     correctIndex: 2,
-    explanation: "対比や否定では「は」を使います。"
+    explanation: "否定のときは「は」を使います。"
   },
   {
     id: 36,
@@ -262,14 +262,14 @@ export const questions: Question[] = [
     question: "この ケーキは あま（　）すぎます。",
     choices: ["く", "い", "くて", "かった"],
     correctIndex: 0,
-    explanation: "形容詞＋「すぎる」は「く＋すぎる」です。"
+    explanation: "い形容詞＋すぎるは「く＋すぎる」です。"
   },
   {
     id: 38,
     question: "あしたは いそがしい（　）、いけません。",
     choices: ["から", "ので", "けど", "のに"],
     correctIndex: 0,
-    explanation: "理由を表すため「から」を使います。"
+    explanation: "理由を表す「から」です。"
   },
   {
     id: 39,
@@ -292,14 +292,14 @@ export const questions: Question[] = [
     question: "Aさんは まいあさ 6じに おきます。なぜですか？",
     choices: ["がっこうが ちかいから", "しごとが はやいから", "ねるのが はやいから", "あさごはんが すきだから"],
     correctIndex: 1,
-    explanation: "仕事が早いため、6時に起きます。"
+    explanation: "仕事が早いためです。"
   },
   {
     id: 42,
     question: "Bさんは きのう びょういんに いきました。どうしてですか？",
     choices: ["ともだちに あうため", "かぜを ひいたから", "しごとだから", "ひまだから"],
     correctIndex: 1,
-    explanation: "かぜをひいたため病院に行きました。"
+    explanation: "かぜをひいたからです。"
   },
   {
     id: 43,
@@ -313,21 +313,21 @@ export const questions: Question[] = [
     question: "Cさんは なにで かいしゃへ いきますか？",
     choices: ["くるま", "でんしゃ", "じてんしゃ", "あるいて"],
     correctIndex: 1,
-    explanation: "電車で会社に行きます。"
+    explanation: "電車で行きます。"
   },
   {
     id: 45,
     question: "この こうえんは だれの ためですか？",
     choices: ["こども", "おとな", "かぞく", "みんな"],
     correctIndex: 3,
-    explanation: "みんなのための公園です。"
+    explanation: "みんなのためです。"
   },
   {
     id: 46,
     question: "Dさんは なにを かいましたか？",
     choices: ["くつ", "かばん", "ほん", "ふく"],
     correctIndex: 0,
-    explanation: "靴を買いました。"
+    explanation: "くつを買いました。"
   },
   {
     id: 47,
@@ -355,6 +355,6 @@ export const questions: Question[] = [
     question: "Fさんは なぜ いそいで いますか？",
     choices: ["でんしゃに のるため", "ねむいから", "ひまだから", "あめだから"],
     correctIndex: 0,
-    explanation: "電車に乗るため急いでいます。"
+    explanation: "電車に乗るためです。"
   }
 ]
