@@ -1,10 +1,9 @@
-import type { Question } from "../types"
+import type { Quiz } from '../types'
 
-export const gaikoku: Question[] = [
-  // 外国免許の問題
-
-
-  {
+export const gaikokuQuiz: Quiz = {
+  title: '外国免許切替',
+  questions: [
+    {
     id: 1,
     question: "日本で車はどちら側を通行しますか？",
     choices: ["右側", "左側", "真ん中", "決まりはない"],
@@ -355,3 +354,4 @@ export const gaikoku: Question[] = [
     explanation: "他者を思いやる気持ちが安全運転につながります。"
   }
 ]
+}

@@ -4,20 +4,20 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Question } from '@/app/data/types'
+import type { Quiz } from '@/app/data/types'
 
 type Props = {
-  questions: Question[]
+  quiz: Quiz
 }
 
-export default function NormalClient({ questions }: Props) {
+export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
 
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
 
-  const current = questions[index]
+  const current = quiz.questions[index]
 
   const answer = (i: number) => {
     if (selected !== null) return
@@ -29,7 +29,7 @@ export default function NormalClient({ questions }: Props) {
 
   const next = () => {
     setSelected(null)
-    if (index + 1 < questions.length) {
+    if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
     } else {
       router.push('/')
@@ -37,9 +37,9 @@ export default function NormalClient({ questions }: Props) {
   }
 
   return (
-    <QuizLayout title="通常モード">
+    <QuizLayout title={quiz.title}>
       <p className="mb-2">
-        {index + 1} / {questions.length}
+        {index + 1} / {quiz.questions.length}
       </p>
 
       <h2 className="mb-4">{current.question}</h2>

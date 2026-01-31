@@ -1,12 +1,12 @@
-import { quizzes } from '@/app/data/quizzes'
+import { quizzes, type QuizType } from '@/app/data/quizzes'
 import QuizClient from './QuizClient'
 
 type Props = {
-  searchParams: { type?: string }
+  searchParams: { type?: QuizType }
 }
 
 export default function QuizPage({ searchParams }: Props) {
-  const type = searchParams.type ?? 'gaikoku'
+  const type: QuizType = searchParams.type ?? 'gaikoku'
   const quiz = quizzes[type]
 
   if (!quiz) {
@@ -14,6 +14,9 @@ export default function QuizPage({ searchParams }: Props) {
   }
 
   return (
-    <QuizClient quiz={quiz} />
+    <QuizClient
+      title={quiz.title}
+      questions={quiz.questions}
+    />
   )
 }

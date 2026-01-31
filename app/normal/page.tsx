@@ -1,13 +1,12 @@
-import { quizzes } from '@/app/data/quizzes'
 import NormalClient from './NormalClient'
+import { quizzes } from '@/app/data/quizzes'
 
 export default function NormalPage() {
-  const quiz = quizzes.gaikoku
+  const quiz = quizzes['gaikoku-license']
 
   if (!quiz) {
     return <div>クイズが見つかりません</div>
   }
 
-  // Question[] をそのまま渡す
-  return <NormalClient questions={quiz} />
+  return <NormalClient quiz={quiz} />
 }

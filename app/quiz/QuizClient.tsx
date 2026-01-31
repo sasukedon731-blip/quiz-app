@@ -6,22 +6,18 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import type { Question } from '@/app/data/types'
 
-type Quiz = {
+type Props = {
   title: string
   questions: Question[]
 }
 
-type Props = {
-  quiz: Quiz
-}
-
-export default function QuizClient({ quiz }: Props) {
+export default function QuizClient({ title, questions }: Props) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
 
-  const current = quiz.questions[index]
+  const current = questions[index]
 
   const answer = (i: number) => {
     if (selected !== null) return
@@ -33,7 +29,7 @@ export default function QuizClient({ quiz }: Props) {
 
   const next = () => {
     setSelected(null)
-    if (index + 1 < quiz.questions.length) {
+    if (index + 1 < questions.length) {
       setIndex(i => i + 1)
     } else {
       router.push('/')
@@ -41,8 +37,8 @@ export default function QuizClient({ quiz }: Props) {
   }
 
   return (
-    <QuizLayout title={quiz.title}>
-      <p>{index + 1} / {quiz.questions.length}</p>
+    <QuizLayout title={title}>
+      <p>{index + 1} / {questions.length}</p>
 
       <h2>{current.question}</h2>
 

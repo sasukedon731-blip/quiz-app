@@ -1,8 +1,9 @@
-import type { Question } from "../types"
+import type { Quiz } from '../types'
 
-export const japaneseN4: Question[] = [
-  // ===== 文法問題（1〜40） =====
-  {
+export const japaneseN4Quiz: Quiz = {
+  title: '日本語N4',
+  questions: [
+    {
     id: 1,
     question: "わたしは まいにち がっこうへ（　）います。",
     choices: ["いき", "いく", "いって", "いきます"],
@@ -358,3 +359,4 @@ export const japaneseN4: Question[] = [
     explanation: "電車に乗るためです。"
   }
 ]
+}

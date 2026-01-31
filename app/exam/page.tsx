@@ -1,7 +1,6 @@
-'use client'
-
 import ExamClient from './ExamClient'
-import { quizzes, type QuizType } from '@/app/data/quizzes'
+import { quizzes } from '@/app/data/quizzes'
+import { QuizType } from '@/app/data/types'
 
 type Props = {
   searchParams: {
@@ -10,17 +9,8 @@ type Props = {
 }
 
 export default function ExamPage({ searchParams }: Props) {
-  const type: QuizType = searchParams.type ?? 'gaikoku'
-  const quiz = quizzes[type]
+  const quizType = searchParams.type ?? 'gaikoku-license'
+  const quiz = quizzes[quizType]
 
-  if (!quiz) {
-    return <div>クイズが見つかりません</div>
-  }
-
-  return (
-    <ExamClient
-      title={type === 'gaikoku' ? '外国免許切替' : '日本語N4'}
-      questions={quiz} // quiz は Question[] 型なので問題なし
-    />
-  )
+  return <ExamClient quiz={quiz} />
 }
