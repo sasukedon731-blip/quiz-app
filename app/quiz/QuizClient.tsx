@@ -1,66 +1,33 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import QuizLayout from '@/app/components/QuizLayout'
+import type { Quiz } from '@/app/data/types'
 import Button from '@/app/components/Button'
-import type { Question } from '@/app/data/types'
 
 type Props = {
-  title: string
-  questions: Question[]
+  quiz: Quiz
+  quizType: string
 }
 
-export default function QuizClient({ title, questions }: Props) {
+export default function QuizClient({ quiz, quizType }: Props) {
   const router = useRouter()
-  const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
-
-  const current = questions[index]
-
-  const answer = (i: number) => {
-    if (selected !== null) return
-    setSelected(i)
-    if (i === current.correctIndex) {
-      setScore(s => s + 1)
-    }
-  }
-
-  const next = () => {
-    setSelected(null)
-    if (index + 1 < questions.length) {
-      setIndex(i => i + 1)
-    } else {
-      router.push('/')
-    }
-  }
 
   return (
-    <QuizLayout title={title}>
-      <p>{index + 1} / {questions.length}</p>
+    <div>
+      <h1>{quiz.title}</h1>
+      <p>全{quiz.questions.length}問</p>
 
-      <h2>{current.question}</h2>
+      <Button onClick={() => router.push(`/normal?type=${quizType}`)}>
+        通常問題
+      </Button>
 
-      {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          disabled={selected !== null}
-          onClick={() => answer(i)}
-        >
-          {c}
-        </Button>
-      ))}
+      <Button onClick={() => router.push(`/exam?type=${quizType}`)}>
+        模擬試験
+      </Button>
 
-      {selected !== null && (
-        <>
-          <p>{selected === current.correctIndex ? '⭕ 正解' : '❌ 不正解'}</p>
-          <Button variant="main" onClick={next}>
-            次へ
-          </Button>
-        </>
-      )}
-    </QuizLayout>
+      <Button onClick={() => router.push(`/review?type=${quizType}`)}>
+        復習モード
+      </Button>
+    </div>
   )
 }

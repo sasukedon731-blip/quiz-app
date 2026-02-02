@@ -1,23 +1,20 @@
+// app/quiz/page.tsx
 import { quizzes } from '@/app/data/quizzes'
-import type { QuizType } from '@/app/data/types'
 import QuizClient from './QuizClient'
+import type { QuizType } from '@/app/data/types'
 
 type Props = {
-  searchParams: { type?: QuizType }
+  searchParams: {
+    type?: QuizType
+  }
 }
 
 export default function QuizPage({ searchParams }: Props) {
-  const type: QuizType = searchParams.type ?? 'gaikoku-license'
-  const quiz = quizzes[type]
+  const quizType = searchParams.type
 
-  if (!quiz) {
+  if (!quizType || !quizzes[quizType]) {
     return <p>クイズが見つかりません</p>
   }
 
-  return (
-    <QuizClient
-      title={quiz.title}
-      questions={quiz.questions}
-    />
-  )
+  return <QuizClient quiz={quizzes[quizType]} quizType={quizType} />
 }

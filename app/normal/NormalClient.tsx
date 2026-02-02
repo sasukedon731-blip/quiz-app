@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Quiz } from '@/app/data/types'
+import type { Quiz, QuizType } from '@/app/data/types'
 
 type Props = {
   quiz: Quiz
+  quizType: QuizType
 }
 
-export default function NormalClient({ quiz }: Props) {
+export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
   const [index, setIndex] = useState(0)
@@ -32,7 +33,7 @@ export default function NormalClient({ quiz }: Props) {
     if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
     } else {
-      router.push('/')
+      router.push(`/quiz?type=${quizType}`)
     }
   }
 
@@ -62,6 +63,15 @@ export default function NormalClient({ quiz }: Props) {
           次へ
         </Button>
       )}
+
+      {/* 👇 ここを足すだけ */}
+      <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
+        クイズトップに戻る
+      </Button>
+
+      <Button variant="accent" onClick={() => router.push('/')}>
+        中断
+      </Button>
     </QuizLayout>
   )
 }
