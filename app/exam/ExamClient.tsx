@@ -1,49 +1,86 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Quiz } from '@/app/data/types'
+import type { Quiz, QuizType, Question } from '@/app/data/types'
+
+const EXAM_SECONDS = 20 * 60
 
 type Props = {
   quiz: Quiz
-  quizType: 'gaikoku-license' | 'japanese-n4'
+  quizType: QuizType
 }
-
-const EXAM_TIME = 20 * 60 // 20分（秒）
 
 export default function ExamClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
+  const wrongKey = `wrong-${quizType}`
+  const examProgressKey = `exam-progress-${quizType}`
+
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [timeLeft, setTimeLeft] = useState(EXAM_TIME)
+  const [score, setScore] = useState(0)
+  const [wrong, setWrong] = useState<Question[]>([])
+  const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS)
   const [finished, setFinished] = useState(false)
 
-  const current = quiz.questions[index]
+  // 中断復帰（模擬）
+  useEffect(() => {
+    const saved = localStorage.getItem(examProgressKey)
+    if (!saved) return
+    try {
+      const data = JSON.parse(saved) as {
+        index: number
+        score: number
+        secondsLeft: number
+        wrong: Question[]
+      }
+      if (typeof data.index === 'number') setIndex(data.index)
+      if (typeof data.score === 'number') setScore(data.score)
+      if (typeof data.secondsLeft === 'number') setSecondsLeft(data.secondsLeft)
+      if (Array.isArray(data.wrong)) setWrong(data.wrong)
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // タイマー
   useEffect(() => {
     if (finished) return
-    if (timeLeft <= 0) {
-      setFinished(true)
-      return
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft(t => t - 1)
+    const t = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          clearInterval(t)
+          setFinished(true)
+          return 0
+        }
+        return s - 1
+      })
     }, 1000)
+    return () => clearInterval(t)
+  }, [finished])
 
-    return () => clearInterval(timer)
-  }, [timeLeft, finished])
+  const current = quiz.questions[index]
+
+  const mmss = useMemo(() => {
+    const m = Math.floor(secondsLeft / 60)
+    const s = secondsLeft % 60
+    return `${m}:${String(s).padStart(2, '0')}`
+  }, [secondsLeft])
 
   const answer = (i: number) => {
-    if (selected !== null) return
+    if (selected !== null || finished) return
     setSelected(i)
+    if (i === current.correctIndex) {
+      setScore(v => v + 1)
+    } else {
+      setWrong(list => [...list, current])
+    }
   }
 
   const next = () => {
+    if (finished) return
     setSelected(null)
     if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
@@ -52,17 +89,33 @@ export default function ExamClient({ quiz, quizType }: Props) {
     }
   }
 
-  const quit = () => {
-    router.push(`/select-mode?type=${quizType}`)
+  const saveAndExit = () => {
+    localStorage.setItem(
+      examProgressKey,
+      JSON.stringify({ index, score, secondsLeft, wrong })
+    )
+    localStorage.setItem(wrongKey, JSON.stringify(wrong))
+    router.push(`/quiz?type=${quizType}`)
+  }
+
+  const finish = () => {
+    localStorage.removeItem(examProgressKey)
+    localStorage.setItem(wrongKey, JSON.stringify(wrong))
+    setFinished(true)
   }
 
   if (finished) {
     return (
-      <QuizLayout title={`${quiz.title}（模擬試験）`}>
-        <h2>試験終了</h2>
+      <QuizLayout title={`${quiz.title}（模擬試験 結果）`}>
+        <p className="mb-2">スコア：{score} / {quiz.questions.length}</p>
+        <p className="mb-4">残り時間：{mmss}</p>
 
-        <Button variant="main" onClick={quit}>
-          クイズトップに戻る
+        <Button variant="main" onClick={() => router.push(`/review?type=${quizType}`)}>
+          間違えた問題を復習する
+        </Button>
+
+        <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
+          クイズトップへ
         </Button>
       </QuizLayout>
     )
@@ -70,10 +123,12 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`}>
-      <p>
-        {index + 1} / {quiz.questions.length}　
-        残り時間：{Math.floor(timeLeft / 60)}:
-        {String(timeLeft % 60).padStart(2, '0')}
+      <p className="mb-2">
+        残り時間：{mmss}
+      </p>
+
+      <p className="mb-2">
+        {index + 1} / {quiz.questions.length}
       </p>
 
       <h2 className="mb-4">{current.question}</h2>
@@ -82,8 +137,8 @@ export default function ExamClient({ quiz, quizType }: Props) {
         <Button
           key={i}
           variant="choice"
-          disabled={selected !== null}
           onClick={() => answer(i)}
+          disabled={selected !== null}
           isCorrect={selected !== null && i === current.correctIndex}
           isWrong={selected !== null && i === selected && i !== current.correctIndex}
         >
@@ -92,16 +147,29 @@ export default function ExamClient({ quiz, quizType }: Props) {
       ))}
 
       {selected !== null && (
-        <div style={{ marginTop: 16 }}>
-          <Button variant="main" onClick={next}>
-            次へ
-          </Button>
+        <div className="mt-4">
+          <p className="mb-2">
+            {selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
+          </p>
 
-          <Button variant="accent" onClick={quit}>
-            中断する
+          {current.explanation && (
+            <p className="mb-4">{current.explanation}</p>
+          )}
+
+          <Button variant="main" onClick={next}>
+            {index + 1 < quiz.questions.length ? '次へ' : '結果を見る'}
           </Button>
         </div>
       )}
+
+      <div className="mt-6" style={{ display: 'grid', gap: 12 }}>
+        <Button variant="accent" onClick={saveAndExit}>
+          中断する
+        </Button>
+        <Button variant="success" onClick={finish}>
+          ここで終了して結果へ
+        </Button>
+      </div>
     </QuizLayout>
   )
 }

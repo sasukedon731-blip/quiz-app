@@ -9,11 +9,11 @@ type Props = {
 }
 
 export default function ExamPage({ searchParams }: Props) {
-  const quizType: QuizType = searchParams.type ?? 'gaikoku-license'
+  const quizType = searchParams.type ?? 'gaikoku-license'
   const quiz = quizzes[quizType]
 
   if (!quiz) {
-    return <div>クイズが見つかりません</div>
+    return <div className="container">クイズが見つかりません</div>
   }
 
   return <ExamClient quiz={quiz} quizType={quizType} />

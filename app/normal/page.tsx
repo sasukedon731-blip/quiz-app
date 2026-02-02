@@ -10,14 +10,14 @@ type Props = {
 
 export default function NormalPage({ searchParams }: Props) {
   if (!searchParams.type) {
-    return <div>クイズ種別がありません</div>
+    return <div className="container">クイズ種別がありません</div>
   }
 
   const quizType = searchParams.type
   const quiz = quizzes[quizType]
 
   if (!quiz) {
-    return <div>クイズが見つかりません</div>
+    return <div className="container">クイズが見つかりません</div>
   }
 
   return <NormalClient quiz={quiz} quizType={quizType} />
