@@ -1,25 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Question } from '@/app/data/types'
+import type { Question, QuizType } from '@/app/data/types'
 
-const STORAGE_KEY = 'wrongQuestions'
+const STORAGE_KEY = (quizType: QuizType) =>
+  `wrongQuestions-${quizType}`
 
 export default function ReviewClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const quizType = (searchParams.get('type') ??
+    'gaikoku-license') as QuizType
 
   const [quiz, setQuiz] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
 
   useEffect(() => {
-    const json = localStorage.getItem(STORAGE_KEY)
+    const json = localStorage.getItem(STORAGE_KEY(quizType))
 
     if (!json) {
-      router.push('/select-mode')
+      router.push(`/select-mode?type=${quizType}`)
       return
     }
 
@@ -27,15 +32,15 @@ export default function ReviewClient() {
       const data: Question[] = JSON.parse(json)
 
       if (data.length === 0) {
-        router.push('/select-mode')
+        router.push(`/select-mode?type=${quizType}`)
         return
       }
 
       setQuiz(data)
     } catch {
-      router.push('/select-mode')
+      router.push(`/select-mode?type=${quizType}`)
     }
-  }, [router])
+  }, [quizType, router])
 
   if (quiz.length === 0) {
     return <p className="container">読み込み中...</p>
@@ -50,10 +55,11 @@ export default function ReviewClient() {
 
   const next = () => {
     setSelected(null)
+
     if (index + 1 < quiz.length) {
       setIndex(i => i + 1)
     } else {
-      router.push('/select-mode')
+      router.push(`/quiz?type=${quizType}`)
     }
   }
 
@@ -94,7 +100,9 @@ export default function ReviewClient() {
 
           <Button
             variant="accent"
-            onClick={() => router.push('/select-mode')}
+            onClick={() =>
+              router.push(`/select-mode?type=${quizType}`)
+            }
           >
             中断する
           </Button>

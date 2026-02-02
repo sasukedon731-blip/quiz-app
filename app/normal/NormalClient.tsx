@@ -6,49 +6,46 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import type { Quiz, QuizType } from '@/app/data/types'
 
-const STORAGE_KEY = 'wrongQuestions'
-
 type Props = {
   quiz: Quiz
   quizType: QuizType
 }
+
+const STORAGE_KEY = (quizType: QuizType) =>
+  `wrongQuestions-${quizType}`
 
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
 
   const current = quiz.questions[index]
 
-  // 回答処理
   const answer = (i: number) => {
     if (selected !== null) return
     setSelected(i)
-
-    if (i === current.correctIndex) {
-      setScore(s => s + 1)
-    }
   }
 
-  // 次の問題
   const next = () => {
     setSelected(null)
 
     if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
     } else {
-      // 全問終了 → クイズトップへ
       router.push(`/quiz?type=${quizType}`)
     }
   }
 
-  // 中断処理（残り問題を復習へ保存）
   const interrupt = () => {
     const remaining = quiz.questions.slice(index)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining))
-    router.push('/select-mode?type=' + quizType)
+
+    localStorage.setItem(
+      STORAGE_KEY(quizType),
+      JSON.stringify(remaining)
+    )
+
+    router.push(`/select-mode?type=${quizType}`)
   }
 
   return (
