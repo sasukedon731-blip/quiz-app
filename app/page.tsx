@@ -44,7 +44,7 @@ export default function HomePage() {
         {/* 外国免許切替 */}
         <Button
           variant="main"
-          onClick={() => router.push('/select-mode?type=gaikoku')}
+          onClick={() => router.push('/select-mode?type=gaikoku-license')}
         >
           外国免許切替クイズ
         </Button>
