@@ -1,6 +1,6 @@
 import type { Quiz } from '../types'
 
-export const japaneseN4Quiz: Quiz = {
+const japaneseN4: Quiz = {
   title: '日本語N4',
   questions: [
     {

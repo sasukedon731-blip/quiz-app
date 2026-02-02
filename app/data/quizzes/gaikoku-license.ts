@@ -1,6 +1,6 @@
 import type { Quiz } from '../types'
 
-export const gaikokuQuiz: Quiz = {
+const gaikokuLicense: Quiz = {
   title: '外国免許切替',
   questions: [
     {
