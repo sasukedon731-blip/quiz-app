@@ -15,12 +15,11 @@ export default function ReviewClient() {
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
 
-  // 復習問題読み込み（localStorage）
   useEffect(() => {
     const json = localStorage.getItem(STORAGE_KEY)
 
     if (!json) {
-      router.push('/')
+      router.push('/select-mode')
       return
     }
 
@@ -28,13 +27,13 @@ export default function ReviewClient() {
       const data: Question[] = JSON.parse(json)
 
       if (data.length === 0) {
-        router.push('/')
+        router.push('/select-mode')
         return
       }
 
       setQuiz(data)
     } catch {
-      router.push('/')
+      router.push('/select-mode')
     }
   }, [router])
 
@@ -54,7 +53,7 @@ export default function ReviewClient() {
     if (index + 1 < quiz.length) {
       setIndex(i => i + 1)
     } else {
-      router.push('/')
+      router.push('/select-mode')
     }
   }
 
@@ -90,7 +89,14 @@ export default function ReviewClient() {
           )}
 
           <Button variant="main" onClick={next}>
-            {index + 1 < quiz.length ? '次の問題へ' : 'TOPへ戻る'}
+            {index + 1 < quiz.length ? '次の問題へ' : 'クイズトップへ'}
+          </Button>
+
+          <Button
+            variant="accent"
+            onClick={() => router.push('/select-mode')}
+          >
+            中断する
           </Button>
         </div>
       )}
