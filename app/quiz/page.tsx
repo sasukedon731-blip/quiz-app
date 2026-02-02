@@ -1,4 +1,5 @@
-import { quizzes, type QuizType } from '@/app/data/quizzes'
+import { quizzes } from '@/app/data/quizzes'
+import type { QuizType } from '@/app/data/types'
 import QuizClient from './QuizClient'
 
 type Props = {

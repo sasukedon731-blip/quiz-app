@@ -360,3 +360,4 @@ const japaneseN4: Quiz = {
   }
 ]
 }
+export default japaneseN4

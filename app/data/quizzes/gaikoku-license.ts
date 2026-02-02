@@ -355,3 +355,4 @@ const gaikokuLicense: Quiz = {
   }
 ]
 }
+export default gaikokuLicense
