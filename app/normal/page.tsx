@@ -9,17 +9,12 @@ type Props = {
 }
 
 export default function NormalPage({ searchParams }: Props) {
-  const type: QuizType = searchParams.type ?? 'gaikoku-license'
-  const quiz = quizzes[type]
+  const quizType = searchParams.type ?? 'gaikoku-license'
+  const quiz = quizzes[quizType]
 
   if (!quiz) {
     return <div>クイズが見つかりません</div>
   }
 
-  return (
-    <NormalClient
-      quiz={quiz}
-      quizType={type}   // ← ★これが足りなかった
-    />
-  )
+  return <NormalClient quiz={quiz} quizType={quizType} />
 }

@@ -1,7 +1,13 @@
 import ReviewClient from './ReviewClient'
+import { QuizType } from '@/app/data/types'
 
-export const dynamic = 'force-dynamic'
+type Props = {
+  searchParams: {
+    type?: QuizType
+  }
+}
 
-export default function Page() {
-  return <ReviewClient />
+export default function ReviewPage({ searchParams }: Props) {
+  const quizType = searchParams.type ?? 'gaikoku-license'
+  return <ReviewClient quizType={quizType} />
 }

@@ -1,30 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Quiz, QuizType } from '@/app/data/types'
+import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 type Props = {
   quiz: Quiz
   quizType: QuizType
 }
 
-const STORAGE_KEY = (quizType: QuizType) =>
-  `wrongQuestions-${quizType}`
-
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
+  const progressKey = `progress-${quizType}`
+  const wrongKey = `wrong-${quizType}`
+
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+  const [wrong, setWrong] = useState<Question[]>([])
+
+  // 🔹 中断復帰
+  useEffect(() => {
+    const saved = localStorage.getItem(progressKey)
+    if (saved) {
+      const { index } = JSON.parse(saved)
+      setIndex(index)
+    }
+  }, [progressKey])
 
   const current = quiz.questions[index]
 
   const answer = (i: number) => {
     if (selected !== null) return
     setSelected(i)
+
+    if (i !== current.correctIndex) {
+      setWrong(w => [...w, current])
+    }
   }
 
   const next = () => {
@@ -33,28 +47,23 @@ export default function NormalClient({ quiz, quizType }: Props) {
     if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
     } else {
+      localStorage.removeItem(progressKey)
+      localStorage.setItem(wrongKey, JSON.stringify(wrong))
       router.push(`/quiz?type=${quizType}`)
     }
   }
 
   const interrupt = () => {
-    const remaining = quiz.questions.slice(index)
-
-    localStorage.setItem(
-      STORAGE_KEY(quizType),
-      JSON.stringify(remaining)
-    )
-
-    router.push(`/select-mode?type=${quizType}`)
+    localStorage.setItem(progressKey, JSON.stringify({ index }))
+    localStorage.setItem(wrongKey, JSON.stringify(wrong))
+    router.push(`/quiz?type=${quizType}`)
   }
 
   return (
     <QuizLayout title={quiz.title}>
-      <p className="mb-2">
-        {index + 1} / {quiz.questions.length}
-      </p>
+      <p>{index + 1} / {quiz.questions.length}</p>
 
-      <h2 className="mb-4">{current.question}</h2>
+      <h2>{current.question}</h2>
 
       {current.choices.map((c, i) => (
         <Button
@@ -70,26 +79,18 @@ export default function NormalClient({ quiz, quizType }: Props) {
       ))}
 
       {selected !== null && (
-        <div className="mt-4">
-          <p className="mb-2">
-            {selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
-          </p>
-
-          {current.explanation && (
-            <p className="mb-4">{current.explanation}</p>
-          )}
-
-          <Button variant="main" onClick={next}>
-            {index + 1 < quiz.questions.length ? '次へ' : 'クイズトップへ'}
-          </Button>
-        </div>
+        <Button variant="main" onClick={next}>
+          次へ
+        </Button>
       )}
 
-      <div className="mt-6">
-        <Button variant="accent" onClick={interrupt}>
-          中断する
-        </Button>
-      </div>
+      <Button variant="accent" onClick={interrupt}>
+        中断する
+      </Button>
+
+      <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
+        クイズトップに戻る
+      </Button>
     </QuizLayout>
   )
 }
