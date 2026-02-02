@@ -6,6 +6,8 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import type { Quiz, QuizType } from '@/app/data/types'
 
+const STORAGE_KEY = 'wrongQuestions'
+
 type Props = {
   quiz: Quiz
   quizType: QuizType
@@ -20,21 +22,33 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   const current = quiz.questions[index]
 
+  // 回答処理
   const answer = (i: number) => {
     if (selected !== null) return
     setSelected(i)
+
     if (i === current.correctIndex) {
       setScore(s => s + 1)
     }
   }
 
+  // 次の問題
   const next = () => {
     setSelected(null)
+
     if (index + 1 < quiz.questions.length) {
       setIndex(i => i + 1)
     } else {
+      // 全問終了 → クイズトップへ
       router.push(`/quiz?type=${quizType}`)
     }
+  }
+
+  // 中断処理（残り問題を復習へ保存）
+  const interrupt = () => {
+    const remaining = quiz.questions.slice(index)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining))
+    router.push('/select-mode?type=' + quizType)
   }
 
   return (
@@ -59,19 +73,26 @@ export default function NormalClient({ quiz, quizType }: Props) {
       ))}
 
       {selected !== null && (
-        <Button variant="main" onClick={next}>
-          次へ
-        </Button>
+        <div className="mt-4">
+          <p className="mb-2">
+            {selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
+          </p>
+
+          {current.explanation && (
+            <p className="mb-4">{current.explanation}</p>
+          )}
+
+          <Button variant="main" onClick={next}>
+            {index + 1 < quiz.questions.length ? '次へ' : 'クイズトップへ'}
+          </Button>
+        </div>
       )}
 
-      {/* 👇 ここを足すだけ */}
-      <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
-        クイズトップに戻る
-      </Button>
-
-      <Button variant="accent" onClick={() => router.push('/')}>
-        中断
-      </Button>
+      <div className="mt-6">
+        <Button variant="accent" onClick={interrupt}>
+          中断する
+        </Button>
+      </div>
     </QuizLayout>
   )
 }

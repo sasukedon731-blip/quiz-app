@@ -1,6 +1,6 @@
 import NormalClient from './NormalClient'
 import { quizzes } from '@/app/data/quizzes'
-import type { QuizType } from '@/app/data/types'
+import { QuizType } from '@/app/data/types'
 
 type Props = {
   searchParams: {
@@ -9,12 +9,17 @@ type Props = {
 }
 
 export default function NormalPage({ searchParams }: Props) {
-  const quizType: QuizType = searchParams.type ?? 'gaikoku-license'
-  const quiz = quizzes[quizType]
+  const type: QuizType = searchParams.type ?? 'gaikoku-license'
+  const quiz = quizzes[type]
 
   if (!quiz) {
     return <div>クイズが見つかりません</div>
   }
 
-  return <NormalClient quiz={quiz} quizType={quizType} />
+  return (
+    <NormalClient
+      quiz={quiz}
+      quizType={type}   // ← ★これが足りなかった
+    />
+  )
 }
