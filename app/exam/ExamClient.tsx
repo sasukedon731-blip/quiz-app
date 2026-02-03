@@ -20,19 +20,16 @@ type Answer = {
 
 export default function ExamClient({ quiz, quizType }: Props) {
   const router = useRouter()
-
   const total = quiz.questions.length
 
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-
-  // 各設問の回答を貯める（解説表示は最後だけ）
+  const [locked, setLocked] = useState(false) // 連打防止
   const [answers, setAnswers] = useState<Answer[]>([])
 
   // タイマー
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
 
-  // 試験が終了したか（全問 or 時間切れ）
+  // 終了フラグ
   const [finished, setFinished] = useState(false)
 
   const current = quiz.questions[index]
@@ -41,14 +38,19 @@ export default function ExamClient({ quiz, quizType }: Props) {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  // タイマー進行
+  // 中断（※正誤は見せない）
+  const interrupt = () => {
+    goModeSelect()
+  }
+
+  // タイマー進行（試験中だけ）
   useEffect(() => {
     if (finished) return
     const id = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(id)
-          setFinished(true) // 時間切れ → 結果表示へ
+          setFinished(true) // 時間切れ → 結果へ
           return 0
         }
         return t - 1
@@ -57,7 +59,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
     return () => clearInterval(id)
   }, [finished])
 
-  // mm:ss 表示
+  // mm:ss
   const timeLabel = useMemo(() => {
     const m = Math.floor(timeLeft / 60)
     const s = timeLeft % 60
@@ -66,33 +68,30 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
   const answer = (i: number) => {
     if (finished) return
-    if (selected !== null) return
-
-    setSelected(i)
+    if (locked) return
+    setLocked(true)
 
     const ok = i === current.correctIndex
 
-    // 回答を保存（順番通りに積む）
+    // 回答を保存（順番どおり）
     setAnswers(prev => [...prev, { selectedIndex: i, isCorrect: ok }])
 
-    // 模擬試験は“解説を出さずに”次へ進める（少しだけ間を置くと気持ちいい）
+    // ✅ ここが重要：試験中は正誤表示なしで次へ進む
     setTimeout(() => {
-      setSelected(null)
-
       if (index + 1 < total) {
         setIndex(v => v + 1)
+        setLocked(false)
       } else {
-        setFinished(true) // 全問終了 → 結果表示へ
+        setFinished(true) // 全問終了 → 結果へ
       }
-    }, 250)
+    }, 200)
   }
 
-  // 結果計算
   const correctCount = useMemo(() => {
     return answers.filter(a => a.isCorrect).length
   }, [answers])
 
-  // finished=true の結果画面
+  // ✅ 結果画面（最後にまとめて正誤＆解説）
   if (finished) {
     return (
       <QuizLayout title={`${quiz.title}（模擬試験 結果）`}>
@@ -100,12 +99,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
           <div className="text-lg font-bold">
             結果：{correctCount} / {answers.length} 問正解
           </div>
-          <div className="mt-1 text-sm">
-            残り時間：{timeLabel}（時間切れの場合は 00:00）
-          </div>
+          <div className="mt-1 text-sm">残り時間：{timeLabel}</div>
         </div>
 
-        {/* ✅ 全問分：正誤＋解説（まとめて表示） */}
         <div className="space-y-4">
           {quiz.questions.slice(0, answers.length).map((q, idx) => {
             const a = answers[idx]
@@ -156,7 +152,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
     )
   }
 
-  // 試験中画面（解説は出さない）
+  // ✅ 試験中画面（絶対に正答を見せない）
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`}>
       <div className="flex items-center justify-between">
@@ -168,21 +164,21 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
       <h2>{current.question}</h2>
 
+      {/* ✅ 重要：isCorrect / isWrong を渡さない（正答が見えなくなる） */}
       {current.choices.map((c, i) => (
         <Button
           key={i}
           variant="choice"
           onClick={() => answer(i)}
-          disabled={selected !== null}
-          // 試験中は正誤の色も出さない（出すと答えがバレるため）
+          disabled={locked}
         >
           {c}
         </Button>
       ))}
 
       <div className="mt-4">
-        <Button variant="accent" onClick={goModeSelect}>
-          モード選択に戻る
+        <Button variant="accent" onClick={interrupt}>
+          中断してモード選択へ
         </Button>
       </div>
     </QuizLayout>
