@@ -4,160 +4,169 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Quiz, QuizType, Question } from '@/app/data/types'
+import type { Quiz, QuizType } from '@/app/data/types'
 
-const EXAM_SECONDS = 20 * 60
+const EXAM_TIME_SEC = 20 * 60 // 20分（必要なら変更）
 
 type Props = {
   quiz: Quiz
   quizType: QuizType
 }
 
+type Answer = {
+  selectedIndex: number
+  isCorrect: boolean
+}
+
 export default function ExamClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
-  // ✅ 既存キーに合わせる（Normalと揃えるなら後で統一してOK）
-  const wrongKey = `wrong-${quizType}`
-  const examProgressKey = `exam-progress-${quizType}`
+  const total = quiz.questions.length
 
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
-  const [wrong, setWrong] = useState<Question[]>([])
-  const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS)
+
+  // 各設問の回答を貯める（解説表示は最後だけ）
+  const [answers, setAnswers] = useState<Answer[]>([])
+
+  // タイマー
+  const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
+
+  // 試験が終了したか（全問 or 時間切れ）
   const [finished, setFinished] = useState(false)
 
-  // ✅ 「モード選択に戻る」を一箇所にまとめる
+  const current = quiz.questions[index]
+
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  // ✅ 中断復帰（模擬）
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(examProgressKey)
-      if (!saved) return
-
-      const data = JSON.parse(saved) as {
-        index: unknown
-        score: unknown
-        secondsLeft: unknown
-        wrong: unknown
-      }
-
-      if (typeof data.index === 'number') setIndex(data.index)
-      if (typeof data.score === 'number') setScore(data.score)
-      if (typeof data.secondsLeft === 'number') setSecondsLeft(data.secondsLeft)
-      if (Array.isArray(data.wrong)) setWrong(data.wrong as Question[])
-    } catch {
-      // 壊れていたら削除して落ちないようにする
-      localStorage.removeItem(examProgressKey)
-      localStorage.removeItem(wrongKey)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // ✅ タイマー
+  // タイマー進行
   useEffect(() => {
     if (finished) return
-
-    const t = setInterval(() => {
-      setSecondsLeft(s => {
-        if (s <= 1) {
-          clearInterval(t)
-          setFinished(true)
+    const id = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(id)
+          setFinished(true) // 時間切れ → 結果表示へ
           return 0
         }
-        return s - 1
+        return t - 1
       })
     }, 1000)
-
-    return () => clearInterval(t)
+    return () => clearInterval(id)
   }, [finished])
 
-  const current = quiz.questions[index]
-
-  const mmss = useMemo(() => {
-    const m = Math.floor(secondsLeft / 60)
-    const s = secondsLeft % 60
-    return `${m}:${String(s).padStart(2, '0')}`
-  }, [secondsLeft])
+  // mm:ss 表示
+  const timeLabel = useMemo(() => {
+    const m = Math.floor(timeLeft / 60)
+    const s = timeLeft % 60
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  }, [timeLeft])
 
   const answer = (i: number) => {
-    if (selected !== null || finished) return
+    if (finished) return
+    if (selected !== null) return
 
     setSelected(i)
 
-    if (i === current.correctIndex) {
-      setScore(v => v + 1)
-    } else {
-      setWrong(list => [...list, current])
-    }
+    const ok = i === current.correctIndex
+
+    // 回答を保存（順番通りに積む）
+    setAnswers(prev => [...prev, { selectedIndex: i, isCorrect: ok }])
+
+    // 模擬試験は“解説を出さずに”次へ進める（少しだけ間を置くと気持ちいい）
+    setTimeout(() => {
+      setSelected(null)
+
+      if (index + 1 < total) {
+        setIndex(v => v + 1)
+      } else {
+        setFinished(true) // 全問終了 → 結果表示へ
+      }
+    }, 250)
   }
 
-  const next = () => {
-    if (finished) return
+  // 結果計算
+  const correctCount = useMemo(() => {
+    return answers.filter(a => a.isCorrect).length
+  }, [answers])
 
-    setSelected(null)
-
-    if (index + 1 < quiz.questions.length) {
-      const nextIndex = index + 1
-      setIndex(nextIndex)
-
-      // ✅ 進捗も随時保存（万一のリロードに強く）
-      localStorage.setItem(
-        examProgressKey,
-        JSON.stringify({ index: nextIndex, score, secondsLeft, wrong })
-      )
-      localStorage.setItem(wrongKey, JSON.stringify(wrong))
-    } else {
-      setFinished(true)
-    }
-  }
-
-  const saveAndExit = () => {
-    // ✅ 中断保存してモード選択へ戻る
-    localStorage.setItem(
-      examProgressKey,
-      JSON.stringify({ index, score, secondsLeft, wrong })
-    )
-    localStorage.setItem(wrongKey, JSON.stringify(wrong))
-    goModeSelect()
-  }
-
-  const finish = () => {
-    // ✅ 終了 → 結果へ（ページ内で表示される）
-    localStorage.removeItem(examProgressKey)
-    localStorage.setItem(wrongKey, JSON.stringify(wrong))
-    setFinished(true)
-  }
-
+  // finished=true の結果画面
   if (finished) {
     return (
       <QuizLayout title={`${quiz.title}（模擬試験 結果）`}>
-        <p className="mb-2">スコア：{score} / {quiz.questions.length}</p>
-        <p className="mb-4">残り時間：{mmss}</p>
+        <div className="mb-4 rounded-lg border p-3">
+          <div className="text-lg font-bold">
+            結果：{correctCount} / {answers.length} 問正解
+          </div>
+          <div className="mt-1 text-sm">
+            残り時間：{timeLabel}（時間切れの場合は 00:00）
+          </div>
+        </div>
 
-        <Button variant="main" onClick={() => router.push(`/review?type=${quizType}`)}>
-          間違えた問題を復習する
-        </Button>
+        {/* ✅ 全問分：正誤＋解説（まとめて表示） */}
+        <div className="space-y-4">
+          {quiz.questions.slice(0, answers.length).map((q, idx) => {
+            const a = answers[idx]
+            const ok = a?.isCorrect
 
-        <Button variant="accent" onClick={goModeSelect}>
-          モード選択に戻る
-        </Button>
+            return (
+              <div key={idx} className="rounded-lg border p-3">
+                <div className="text-sm">
+                  {idx + 1} / {total}
+                </div>
+
+                <div className="mt-1 font-semibold">{q.question}</div>
+
+                <div
+                  className={`mt-2 text-lg font-bold ${
+                    ok ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {ok ? '正解！' : '不正解'}
+                </div>
+
+                {!ok && a && (
+                  <div className="mt-2 text-sm text-red-700">
+                    あなたの回答：{q.choices[a.selectedIndex]}
+                  </div>
+                )}
+
+                <div className="mt-2 text-sm font-semibold text-green-700">
+                  正解：{q.choices[q.correctIndex]}
+                </div>
+
+                {q.explanation && (
+                  <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+                    {q.explanation}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mt-6">
+          <Button variant="main" onClick={goModeSelect}>
+            モード選択に戻る
+          </Button>
+        </div>
       </QuizLayout>
     )
   }
 
+  // 試験中画面（解説は出さない）
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`}>
-      <p className="mb-2">残り時間：{mmss}</p>
+      <div className="flex items-center justify-between">
+        <p>
+          {index + 1} / {total}
+        </p>
+        <p className="font-bold">{timeLabel}</p>
+      </div>
 
-      <p className="mb-2">
-        {index + 1} / {quiz.questions.length}
-      </p>
-
-      <h2 className="mb-4">{current.question}</h2>
+      <h2>{current.question}</h2>
 
       {current.choices.map((c, i) => (
         <Button
@@ -165,36 +174,15 @@ export default function ExamClient({ quiz, quizType }: Props) {
           variant="choice"
           onClick={() => answer(i)}
           disabled={selected !== null}
-          isCorrect={selected !== null && i === current.correctIndex}
-          isWrong={selected !== null && i === selected && i !== current.correctIndex}
+          // 試験中は正誤の色も出さない（出すと答えがバレるため）
         >
           {c}
         </Button>
       ))}
 
-      {selected !== null && (
-        <div className="mt-4">
-          <p className="mb-2">
-            {selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'}
-          </p>
-
-          {current.explanation && (
-            <p className="mb-4">{current.explanation}</p>
-          )}
-
-          <Button variant="main" onClick={next}>
-            {index + 1 < quiz.questions.length ? '次へ' : '結果を見る'}
-          </Button>
-        </div>
-      )}
-
-      <div className="mt-6" style={{ display: 'grid', gap: 12 }}>
-        <Button variant="accent" onClick={saveAndExit}>
-          中断してモード選択へ
-        </Button>
-
-        <Button variant="success" onClick={finish}>
-          ここで終了して結果へ
+      <div className="mt-4">
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
         </Button>
       </div>
     </QuizLayout>
