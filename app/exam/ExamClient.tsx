@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Quiz, QuizType } from '@/app/data/types'
+import type { Quiz, QuizType, Question } from '@/app/data/types'
 
-const EXAM_TIME_SEC = 20 * 60 // 20分（必要なら変更）
+const EXAM_TIME_SEC = 20 * 60 // 20分
+const EXAM_QUESTION_COUNT = 30
+
+const STORAGE_EXAM_SESSION_KEY = 'exam-session'
 
 type Props = {
   quiz: Quiz
@@ -18,48 +21,140 @@ type Answer = {
   isCorrect: boolean
 }
 
+// ✅ Fisher–Yates shuffle（破壊しない）
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+function shuffleQuestionChoices(q: Question): Question {
+  const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
+  const shuffled = shuffleArray(choicesWithIndex)
+  const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
+
+  return {
+    ...q,
+    choices: shuffled.map(x => x.text),
+    correctIndex: newCorrectIndex,
+  }
+}
+
+function buildRandomExamQuestions(all: Question[]): Question[] {
+  const withShuffledChoices = all.map(shuffleQuestionChoices)
+  const shuffledQuestions = shuffleArray(withShuffledChoices)
+  return shuffledQuestions.slice(0, Math.min(EXAM_QUESTION_COUNT, shuffledQuestions.length))
+}
+
 export default function ExamClient({ quiz, quizType }: Props) {
   const router = useRouter()
-  const total = quiz.questions.length
 
+  const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
-  const [locked, setLocked] = useState(false) // 連打防止
+  const [locked, setLocked] = useState(false)
   const [answers, setAnswers] = useState<Answer[]>([])
-
-  // タイマー
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
-
-  // 終了フラグ
   const [finished, setFinished] = useState(false)
 
-  const current = quiz.questions[index]
+  const total = questions.length
+  const current = questions[index]
 
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  // 中断（※正誤は見せない）
-  const interrupt = () => {
-    goModeSelect()
-  }
+  // ✅ 初期化（セッション復元 or 新規作成）
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
+      if (raw) {
+        const s = JSON.parse(raw)
+        if (Array.isArray(s?.questions) && s.questions.length > 0) {
+          setQuestions(s.questions)
+          if (typeof s.index === 'number') setIndex(s.index)
+          if (Array.isArray(s.answers)) setAnswers(s.answers)
+          if (typeof s.timeLeft === 'number') setTimeLeft(s.timeLeft)
+          if (typeof s.finished === 'boolean') setFinished(s.finished)
+          return
+        }
+      }
 
-  // タイマー進行（試験中だけ）
+      // 新規開始
+      const rnd = buildRandomExamQuestions(quiz.questions)
+      setQuestions(rnd)
+      setIndex(0)
+      setAnswers([])
+      setTimeLeft(EXAM_TIME_SEC)
+      setFinished(false)
+
+      localStorage.setItem(
+        `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
+        JSON.stringify({
+          questions: rnd,
+          index: 0,
+          answers: [],
+          timeLeft: EXAM_TIME_SEC,
+          finished: false,
+        })
+      )
+    } catch {
+      localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
+      const rnd = buildRandomExamQuestions(quiz.questions)
+      setQuestions(rnd)
+      setIndex(0)
+      setAnswers([])
+      setTimeLeft(EXAM_TIME_SEC)
+      setFinished(false)
+      localStorage.setItem(
+        `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
+        JSON.stringify({
+          questions: rnd,
+          index: 0,
+          answers: [],
+          timeLeft: EXAM_TIME_SEC,
+          finished: false,
+        })
+      )
+    }
+  }, [quizType, quiz.questions])
+
+  // ✅ セッション保存（状態が変わったら更新）
+  useEffect(() => {
+    if (questions.length === 0) return
+    localStorage.setItem(
+      `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
+      JSON.stringify({
+        questions,
+        index,
+        answers,
+        timeLeft,
+        finished,
+      })
+    )
+  }, [questions, index, answers, timeLeft, finished, quizType])
+
+  // タイマー（試験中のみ）
   useEffect(() => {
     if (finished) return
+    if (questions.length === 0) return
+
     const id = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(id)
-          setFinished(true) // 時間切れ → 結果へ
+          setFinished(true)
           return 0
         }
         return t - 1
       })
     }, 1000)
-    return () => clearInterval(id)
-  }, [finished])
 
-  // mm:ss
+    return () => clearInterval(id)
+  }, [finished, questions.length])
+
   const timeLabel = useMemo(() => {
     const m = Math.floor(timeLeft / 60)
     const s = timeLeft % 60
@@ -72,17 +167,14 @@ export default function ExamClient({ quiz, quizType }: Props) {
     setLocked(true)
 
     const ok = i === current.correctIndex
-
-    // 回答を保存（順番どおり）
     setAnswers(prev => [...prev, { selectedIndex: i, isCorrect: ok }])
 
-    // ✅ ここが重要：試験中は正誤表示なしで次へ進む
     setTimeout(() => {
       if (index + 1 < total) {
         setIndex(v => v + 1)
         setLocked(false)
       } else {
-        setFinished(true) // 全問終了 → 結果へ
+        setFinished(true)
       }
     }, 200)
   }
@@ -91,24 +183,43 @@ export default function ExamClient({ quiz, quizType }: Props) {
     return answers.filter(a => a.isCorrect).length
   }, [answers])
 
-  // ✅ 結果画面（最後にまとめて正誤＆解説）
+  const interrupt = () => {
+    // セッション保存は useEffect がやってくれるので、そのまま戻る
+    goModeSelect()
+  }
+
+  // 読み込み中
+  if (questions.length === 0) {
+    return (
+      <QuizLayout title={`${quiz.title}（模擬試験）`}>
+        <p>読み込み中...</p>
+      </QuizLayout>
+    )
+  }
+
+  // 結果画面（まとめて正誤＋解説）
   if (finished) {
     return (
       <QuizLayout title={`${quiz.title}（模擬試験 結果）`}>
         <div className="mb-4 rounded-lg border p-3">
           <div className="text-lg font-bold">
-            結果：{correctCount} / {answers.length} 問正解
+            結果：{correctCount} / {answers.length} 問正解（全{total}問）
           </div>
           <div className="mt-1 text-sm">残り時間：{timeLabel}</div>
         </div>
 
         <div className="space-y-4">
-          {quiz.questions.slice(0, answers.length).map((q, idx) => {
+          {questions.slice(0, answers.length).map((q, idx) => {
             const a = answers[idx]
             const ok = a?.isCorrect
 
             return (
-              <div key={idx} className="rounded-lg border p-3">
+              <div
+                key={idx}
+                className={`rounded-lg border-2 p-3 ${
+                  ok ? 'border-green-300' : 'border-red-300'
+                }`}
+              >
                 <div className="text-sm">
                   {idx + 1} / {total}
                 </div>
@@ -116,11 +227,11 @@ export default function ExamClient({ quiz, quizType }: Props) {
                 <div className="mt-1 font-semibold">{q.question}</div>
 
                 <div
-                  className={`mt-2 text-lg font-bold ${
-                    ok ? 'text-green-600' : 'text-red-600'
+                  className={`mt-3 rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
+                    ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                   }`}
                 >
-                  {ok ? '正解！' : '不正解'}
+                  {ok ? '⭕ 正解！' : '❌ 不正解'}
                 </div>
 
                 {!ok && a && (
@@ -143,18 +254,36 @@ export default function ExamClient({ quiz, quizType }: Props) {
           })}
         </div>
 
-        <div className="mt-6">
-          <Button variant="main" onClick={goModeSelect}>
+        <div className="mt-6 space-y-2">
+          <Button
+            variant="main"
+            onClick={() => {
+              // ✅ 終了後は次回のためにセッション削除（新しくランダム30問を引く）
+              localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
+              goModeSelect()
+            }}
+          >
             モード選択に戻る
+          </Button>
+
+          <Button
+            variant="accent"
+            onClick={() => {
+              // ✅ もう一回（新しいランダム30問）
+              localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
+              router.push(`/exam?type=${quizType}`)
+            }}
+          >
+            もう一度（新しい30問）
           </Button>
         </div>
       </QuizLayout>
     )
   }
 
-  // ✅ 試験中画面（絶対に正答を見せない）
+  // 試験中（正解が絶対に見えない）
   return (
-    <QuizLayout title={`${quiz.title}（模擬試験）`}>
+    <QuizLayout title={`${quiz.title}（模擬試験：${total}問）`}>
       <div className="flex items-center justify-between">
         <p>
           {index + 1} / {total}
@@ -164,14 +293,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
       <h2>{current.question}</h2>
 
-      {/* ✅ 重要：isCorrect / isWrong を渡さない（正答が見えなくなる） */}
+      {/* ✅ isCorrect/isWrong を渡さない → 試験中に正解がバレない */}
       {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          onClick={() => answer(i)}
-          disabled={locked}
-        >
+        <Button key={i} variant="choice" onClick={() => answer(i)} disabled={locked}>
           {c}
         </Button>
       ))}
