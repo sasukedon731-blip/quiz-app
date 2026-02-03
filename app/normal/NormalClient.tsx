@@ -95,7 +95,9 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   return (
     <QuizLayout title={quiz.title}>
-      <p>{index + 1} / {quiz.questions.length}</p>
+      <p>
+        {index + 1} / {quiz.questions.length}
+      </p>
 
       <h2>{current.question}</h2>
 
@@ -111,6 +113,25 @@ export default function NormalClient({ quiz, quizType }: Props) {
           {c}
         </Button>
       ))}
+
+      {/* ✅ 回答後：正誤テキスト + 正解 + 解説 */}
+      {selected !== null && (
+        <div className="mt-4 rounded-lg border p-3">
+          <div className="font-semibold">
+            {selected === current.correctIndex ? '正解！' : '不正解'}
+          </div>
+
+          <div className="mt-2 text-sm">
+            正解：{current.choices[current.correctIndex]}
+          </div>
+
+          {current.explanation && (
+            <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+              {current.explanation}
+            </div>
+          )}
+        </div>
+      )}
 
       {selected !== null && (
         <Button variant="main" onClick={next}>
