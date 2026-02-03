@@ -1,9 +1,7 @@
 'use client'
 
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import QuizClient from './QuizClient'
-import { quizzes } from '@/app/data/quizzes'
+import { useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { QuizType } from '@/app/data/types'
 
 function isQuizType(v: string): v is QuizType {
@@ -11,17 +9,19 @@ function isQuizType(v: string): v is QuizType {
 }
 
 function Inner() {
+  const router = useRouter()
   const sp = useSearchParams()
-  const raw = sp.get('type')
+  const type = sp.get('type')
 
-  if (!raw || !isQuizType(raw)) {
-    return <div className="container">クイズ種別がありません</div>
-  }
+  useEffect(() => {
+    if (type && isQuizType(type)) {
+      router.replace(`/select-mode?type=${type}`)
+    } else {
+      router.replace('/')
+    }
+  }, [router, type])
 
-  const quiz = quizzes[raw]
-  if (!quiz) return <div className="container">クイズがありません</div>
-
-  return <QuizClient quiz={quiz} quizType={raw} />
+  return <div className="container">移動中...</div>
 }
 
 export default function Page() {

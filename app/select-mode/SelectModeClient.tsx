@@ -4,15 +4,21 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Button from '@/app/components/Button'
 import type { QuizType } from '@/app/data/types'
 
+function isQuizType(v: string): v is QuizType {
+  return v === 'gaikoku-license' || v === 'japanese-n4'
+}
+
 export default function SelectModeClient() {
   const router = useRouter()
   const params = useSearchParams()
 
-  const quizType = params.get('type') as QuizType | null
+  const raw = params.get('type')
 
-  if (!quizType) {
+  if (!raw || !isQuizType(raw)) {
     return <div className="container">クイズ種別がありません</div>
   }
+
+  const quizType = raw
 
   return (
     <div className="container">
@@ -30,8 +36,9 @@ export default function SelectModeClient() {
         復習問題
       </Button>
 
-      <Button onClick={() => router.push(`/quiz?type=${quizType}`)}>
-        クイズトップに戻る
+      {/* ✅ 旧「クイズトップ(/quiz)」は廃止して HOME に戻す */}
+      <Button onClick={() => router.push(`/`)}>
+        HOMEに戻る
       </Button>
     </div>
   )
