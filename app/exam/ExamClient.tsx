@@ -16,6 +16,7 @@ type Props = {
 export default function ExamClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
+  // ✅ 既存キーに合わせる（Normalと揃えるなら後で統一してOK）
   const wrongKey = `wrong-${quizType}`
   const examProgressKey = `exam-progress-${quizType}`
 
@@ -26,28 +27,40 @@ export default function ExamClient({ quiz, quizType }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS)
   const [finished, setFinished] = useState(false)
 
-  // 中断復帰（模擬）
+  // ✅ 「モード選択に戻る」を一箇所にまとめる
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
+
+  // ✅ 中断復帰（模擬）
   useEffect(() => {
-    const saved = localStorage.getItem(examProgressKey)
-    if (!saved) return
     try {
+      const saved = localStorage.getItem(examProgressKey)
+      if (!saved) return
+
       const data = JSON.parse(saved) as {
-        index: number
-        score: number
-        secondsLeft: number
-        wrong: Question[]
+        index: unknown
+        score: unknown
+        secondsLeft: unknown
+        wrong: unknown
       }
+
       if (typeof data.index === 'number') setIndex(data.index)
       if (typeof data.score === 'number') setScore(data.score)
       if (typeof data.secondsLeft === 'number') setSecondsLeft(data.secondsLeft)
-      if (Array.isArray(data.wrong)) setWrong(data.wrong)
-    } catch {}
+      if (Array.isArray(data.wrong)) setWrong(data.wrong as Question[])
+    } catch {
+      // 壊れていたら削除して落ちないようにする
+      localStorage.removeItem(examProgressKey)
+      localStorage.removeItem(wrongKey)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // タイマー
+  // ✅ タイマー
   useEffect(() => {
     if (finished) return
+
     const t = setInterval(() => {
       setSecondsLeft(s => {
         if (s <= 1) {
@@ -58,6 +71,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
         return s - 1
       })
     }, 1000)
+
     return () => clearInterval(t)
   }, [finished])
 
@@ -71,7 +85,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
   const answer = (i: number) => {
     if (selected !== null || finished) return
+
     setSelected(i)
+
     if (i === current.correctIndex) {
       setScore(v => v + 1)
     } else {
@@ -81,24 +97,36 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
   const next = () => {
     if (finished) return
+
     setSelected(null)
+
     if (index + 1 < quiz.questions.length) {
-      setIndex(i => i + 1)
+      const nextIndex = index + 1
+      setIndex(nextIndex)
+
+      // ✅ 進捗も随時保存（万一のリロードに強く）
+      localStorage.setItem(
+        examProgressKey,
+        JSON.stringify({ index: nextIndex, score, secondsLeft, wrong })
+      )
+      localStorage.setItem(wrongKey, JSON.stringify(wrong))
     } else {
       setFinished(true)
     }
   }
 
   const saveAndExit = () => {
+    // ✅ 中断保存してモード選択へ戻る
     localStorage.setItem(
       examProgressKey,
       JSON.stringify({ index, score, secondsLeft, wrong })
     )
     localStorage.setItem(wrongKey, JSON.stringify(wrong))
-    router.push(`/quiz?type=${quizType}`)
+    goModeSelect()
   }
 
   const finish = () => {
+    // ✅ 終了 → 結果へ（ページ内で表示される）
     localStorage.removeItem(examProgressKey)
     localStorage.setItem(wrongKey, JSON.stringify(wrong))
     setFinished(true)
@@ -114,8 +142,8 @@ export default function ExamClient({ quiz, quizType }: Props) {
           間違えた問題を復習する
         </Button>
 
-        <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
-          クイズトップへ
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
         </Button>
       </QuizLayout>
     )
@@ -123,9 +151,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`}>
-      <p className="mb-2">
-        残り時間：{mmss}
-      </p>
+      <p className="mb-2">残り時間：{mmss}</p>
 
       <p className="mb-2">
         {index + 1} / {quiz.questions.length}
@@ -164,8 +190,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
       <div className="mt-6" style={{ display: 'grid', gap: 12 }}>
         <Button variant="accent" onClick={saveAndExit}>
-          中断する
+          中断してモード選択へ
         </Button>
+
         <Button variant="success" onClick={finish}>
           ここで終了して結果へ
         </Button>

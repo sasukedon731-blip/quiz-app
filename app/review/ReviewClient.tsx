@@ -18,16 +18,27 @@ export default function ReviewClient({ quizType }: Props) {
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
 
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
+
   useEffect(() => {
-    const saved = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
-    if (saved) {
-      const data: Question[] = JSON.parse(saved)
-      if (data.length === 0) {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
+      if (!saved) {
         setQuestions([])
         return
       }
-      setQuestions(data)
-    } else {
+
+      const data = JSON.parse(saved)
+      if (Array.isArray(data)) {
+        setQuestions(data as Question[])
+      } else {
+        setQuestions([])
+      }
+    } catch {
+      // 壊れていたら消して落ちないようにする
+      localStorage.removeItem(`${STORAGE_WRONG_KEY}-${quizType}`)
       setQuestions([])
     }
   }, [quizType])
@@ -36,8 +47,9 @@ export default function ReviewClient({ quizType }: Props) {
     return (
       <QuizLayout title="復習モード">
         <p>復習する問題はありません</p>
-        <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
-          クイズトップに戻る
+
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
         </Button>
       </QuizLayout>
     )
@@ -52,11 +64,12 @@ export default function ReviewClient({ quizType }: Props) {
 
   const next = () => {
     setSelected(null)
+
     if (index + 1 < questions.length) {
       setIndex(prev => prev + 1)
     } else {
-      // 復習終了後にトップへ
-      router.push(`/quiz?type=${quizType}`)
+      // 復習終了後はモード選択へ戻る（動線統一）
+      goModeSelect()
     }
   }
 
@@ -85,10 +98,16 @@ export default function ReviewClient({ quizType }: Props) {
           {current.explanation && <p className="mt-2">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
-            {index + 1 < questions.length ? '次の問題へ' : 'クイズトップに戻る'}
+            {index + 1 < questions.length ? '次の問題へ' : 'モード選択に戻る'}
           </Button>
         </div>
       )}
+
+      <div className="mt-4">
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
+        </Button>
+      </div>
     </QuizLayout>
   )
 }

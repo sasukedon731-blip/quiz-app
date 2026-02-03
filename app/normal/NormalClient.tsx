@@ -23,10 +23,26 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   // 🔹 中断復帰
   useEffect(() => {
-    const saved = localStorage.getItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-    if (saved) {
-      const { index } = JSON.parse(saved)
-      setIndex(index)
+    try {
+      const saved = localStorage.getItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (typeof parsed?.index === 'number') {
+          setIndex(parsed.index)
+        }
+      }
+
+      const savedWrong = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
+      if (savedWrong) {
+        const parsedWrong = JSON.parse(savedWrong)
+        if (Array.isArray(parsedWrong)) {
+          setWrong(parsedWrong)
+        }
+      }
+    } catch {
+      // 壊れたデータがあっても落とさない
+      localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
+      localStorage.removeItem(`${STORAGE_WRONG_KEY}-${quizType}`)
     }
   }, [quizType])
 
@@ -42,16 +58,31 @@ export default function NormalClient({ quiz, quizType }: Props) {
     }
   }
 
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
+
   const next = () => {
     setSelected(null)
 
     if (index + 1 < quiz.questions.length) {
-      setIndex(prev => prev + 1)
+      const nextIndex = index + 1
+      setIndex(nextIndex)
+
+      // 進捗も随時保存（万一のリロードに強く）
+      localStorage.setItem(
+        `${STORAGE_PROGRESS_KEY}-${quizType}`,
+        JSON.stringify({ index: nextIndex })
+      )
+      localStorage.setItem(
+        `${STORAGE_WRONG_KEY}-${quizType}`,
+        JSON.stringify(wrong)
+      )
     } else {
       // 全問終了
       localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
       localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
-      router.push(`/quiz?type=${quizType}`)
+      goModeSelect()
     }
   }
 
@@ -59,7 +90,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
     // 中断保存
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
     localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
-    router.push(`/select-mode?type=${quizType}`)
+    goModeSelect()
   }
 
   return (
@@ -83,16 +114,17 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
       {selected !== null && (
         <Button variant="main" onClick={next}>
-          {index + 1 < quiz.questions.length ? '次へ' : 'クイズトップに戻る'}
+          {index + 1 < quiz.questions.length ? '次へ' : 'モード選択に戻る'}
         </Button>
       )}
 
       <div className="mt-4">
         <Button variant="accent" onClick={interrupt}>
-          中断する
+          中断してモード選択へ
         </Button>
-        <Button variant="accent" onClick={() => router.push(`/quiz?type=${quizType}`)}>
-          クイズトップに戻る
+
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
         </Button>
       </div>
     </QuizLayout>
