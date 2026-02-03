@@ -1,34 +1,33 @@
-export const dynamic = 'force-dynamic'
+'use client'
 
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import QuizClient from './QuizClient'
 import { quizzes } from '@/app/data/quizzes'
 import type { QuizType } from '@/app/data/types'
-
-type Props = {
-  searchParams?: {
-    type?: string
-  }
-}
 
 function isQuizType(v: string): v is QuizType {
   return v === 'gaikoku-license' || v === 'japanese-n4'
 }
 
-// /quiz は「クイズトップ」ページ
-// Server Component で searchParams を受け取り、Client に渡します
-export default function QuizPage({ searchParams }: Props) {
-  const raw = searchParams?.type
+function Inner() {
+  const sp = useSearchParams()
+  const raw = sp.get('type')
 
   if (!raw || !isQuizType(raw)) {
     return <div className="container">クイズ種別がありません</div>
   }
 
-  const quizType = raw
-  const quiz = quizzes[quizType]
+  const quiz = quizzes[raw]
+  if (!quiz) return <div className="container">クイズがありません</div>
 
-  if (!quiz) {
-    return <div className="container">クイズがありません</div>
-  }
+  return <QuizClient quiz={quiz} quizType={raw} />
+}
 
-  return <QuizClient quiz={quiz} quizType={quizType} />
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="container">読み込み中...</div>}>
+      <Inner />
+    </Suspense>
+  )
 }

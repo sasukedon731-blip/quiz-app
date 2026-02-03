@@ -1,32 +1,33 @@
-export const dynamic = 'force-dynamic'
+'use client'
 
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import NormalClient from './NormalClient'
 import { quizzes } from '@/app/data/quizzes'
 import type { QuizType } from '@/app/data/types'
-
-type Props = {
-  searchParams?: {
-    type?: string
-  }
-}
 
 function isQuizType(v: string): v is QuizType {
   return v === 'gaikoku-license' || v === 'japanese-n4'
 }
 
-export default function NormalPage({ searchParams }: Props) {
-  const rawType = searchParams?.type
+function Inner() {
+  const sp = useSearchParams()
+  const raw = sp.get('type')
 
-  if (!rawType || !isQuizType(rawType)) {
+  if (!raw || !isQuizType(raw)) {
     return <div className="container">クイズ種別がありません</div>
   }
 
-  const quizType = rawType
-  const quiz = quizzes[quizType]
+  const quiz = quizzes[raw]
+  if (!quiz) return <div className="container">クイズが見つかりません</div>
 
-  if (!quiz) {
-    return <div className="container">クイズが見つかりません</div>
-  }
+  return <NormalClient quiz={quiz} quizType={raw} />
+}
 
-  return <NormalClient quiz={quiz} quizType={quizType} />
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="container">読み込み中...</div>}>
+      <Inner />
+    </Suspense>
+  )
 }
