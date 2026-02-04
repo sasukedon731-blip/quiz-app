@@ -1,14 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
+// ✅ Firestore保存用
+import { auth } from '@/app/lib/firebase'
+import { db } from '@/app/lib/firestore'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+
 const EXAM_TIME_SEC = 20 * 60 // 20分
 const EXAM_QUESTION_COUNT = 30
-
 const STORAGE_EXAM_SESSION_KEY = 'exam-session'
 
 type Props = {
@@ -58,6 +62,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
   const [answers, setAnswers] = useState<Answer[]>([])
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
   const [finished, setFinished] = useState(false)
+
+  // ✅ 二重保存防止
+  const savedRef = useRef(false)
 
   const total = questions.length
   const current = questions[index]
@@ -183,6 +190,42 @@ export default function ExamClient({ quiz, quizType }: Props) {
     return answers.filter(a => a.isCorrect).length
   }, [answers])
 
+  // ✅ 終了したら Firestore に結果保存（1回だけ）
+  useEffect(() => {
+    const save = async () => {
+      if (!finished) return
+      if (savedRef.current) return
+      if (questions.length === 0) return
+
+      // 未ログインなら保存しない（mypageはログイン前提なので通常ここは通らない）
+      const u = auth.currentUser
+      if (!u) return
+
+      savedRef.current = true
+
+      const totalCount = questions.length
+      const score = correctCount
+      const accuracy = totalCount ? Math.round((score / totalCount) * 100) : 0
+
+      try {
+        await addDoc(collection(db, 'users', u.uid, 'results'), {
+          quizType,          // "gaikoku-license" / "japanese-n4"
+          mode: 'exam',
+          score,
+          total: totalCount,
+          accuracy,
+          createdAt: serverTimestamp(),
+        })
+      } catch (e) {
+        // 保存失敗したら、次回の再表示で再保存できるように戻す
+        savedRef.current = false
+        console.error('結果保存失敗', e)
+      }
+    }
+
+    save()
+  }, [finished, quizType, questions.length, correctCount, db])
+
   const interrupt = () => {
     // セッション保存は useEffect がやってくれるので、そのまま戻る
     goModeSelect()
@@ -258,7 +301,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
           <Button
             variant="main"
             onClick={() => {
-              // ✅ 終了後は次回のためにセッション削除（新しくランダム30問を引く）
+              // 終了後は次回のためにセッション削除（新しくランダム30問を引く）
               localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
               goModeSelect()
             }}
@@ -269,7 +312,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
           <Button
             variant="accent"
             onClick={() => {
-              // ✅ もう一回（新しいランダム30問）
+              // もう一回（新しいランダム30問）
               localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
               router.push(`/exam?type=${quizType}`)
             }}
@@ -293,7 +336,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
       <h2>{current.question}</h2>
 
-      {/* ✅ isCorrect/isWrong を渡さない → 試験中に正解がバレない */}
+      {/* isCorrect/isWrong を渡さない → 試験中に正解がバレない */}
       {current.choices.map((c, i) => (
         <Button key={i} variant="choice" onClick={() => answer(i)} disabled={locked}>
           {c}

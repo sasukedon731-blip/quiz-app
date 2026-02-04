@@ -12,6 +12,9 @@ const STORAGE_WRONG_KEY = 'wrong'
 // ✅ ランダムセッション（問題順＋選択肢順）保存キー
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
 
+// ✅ 学習回数（標準問題）保存キー
+const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
+
 type Props = {
   quiz: Quiz
   quizType: QuizType
@@ -31,7 +34,6 @@ function shuffleArray<T>(arr: T[]): T[] {
 function shuffleQuestionChoices(q: Question): Question {
   const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
   const shuffled = shuffleArray(choicesWithIndex)
-
   const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
 
   return {
@@ -78,6 +80,11 @@ function playBeep(freq: number, durationMs: number, type: OscillatorType = 'sine
   }
 }
 
+function todayKey() {
+  // YYYY-MM-DD
+  return new Date().toISOString().slice(0, 10)
+}
+
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
@@ -87,9 +94,43 @@ export default function NormalClient({ quiz, quizType }: Props) {
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [wrong, setWrong] = useState<Question[]>([])
+
+  // ✅ 正誤保持（表示用）
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
 
+  // ✅ 二重クリック/二重再生ガード
   const answeringRef = useRef(false)
+
+  // ✅ 学習回数の二重カウント防止（devのStrictMode対策）
+  const countedRef = useRef(false)
+
+  // ✅ 標準問題を開いた回数を記録（教材別）
+  useEffect(() => {
+    if (countedRef.current) return
+    countedRef.current = true
+
+    try {
+      const key = `${STORAGE_STUDY_PROGRESS_PREFIX}-${quizType}`
+      const today = todayKey()
+
+      const raw = localStorage.getItem(key)
+      let data = raw
+        ? JSON.parse(raw)
+        : { totalSessions: 0, todaySessions: 0, lastStudyDate: today }
+
+      if (data.lastStudyDate !== today) {
+        data.todaySessions = 0
+        data.lastStudyDate = today
+      }
+
+      data.totalSessions += 1
+      data.todaySessions += 1
+
+      localStorage.setItem(key, JSON.stringify(data))
+    } catch {
+      // 壊れていても落とさない
+    }
+  }, [quizType])
 
   // 🔹 初期化（セッション復元 or 新規作成）
   useEffect(() => {
@@ -133,6 +174,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
       localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
       localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
       localStorage.removeItem(`${STORAGE_WRONG_KEY}-${quizType}`)
+
       const rnd = buildRandomQuestions(quiz.questions)
       setQuestions(rnd)
       localStorage.setItem(
@@ -162,10 +204,11 @@ export default function NormalClient({ quiz, quizType }: Props) {
     const ok = i === current.correctIndex
     setIsCorrect(ok)
 
+    // ✅ 正解音／不正解音
     if (ok) {
-      playBeep(880, 130, 'sine')
+      playBeep(880, 130, 'sine') // 正解：高め
     } else {
-      playBeep(220, 180, 'square')
+      playBeep(220, 180, 'square') // 不正解：低め
       setWrong(prev => [...prev, current])
     }
 
@@ -186,6 +229,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
       const nextIndex = index + 1
       setIndex(nextIndex)
 
+      // 進捗保存
       localStorage.setItem(
         `${STORAGE_PROGRESS_KEY}-${quizType}`,
         JSON.stringify({ index: nextIndex })
@@ -195,6 +239,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
       // 全問終了
       localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
       localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
+
       // ✅ この回が終わったら、次回は新しくランダムにしたいのでセッションを消す
       localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
       goModeSelect()
@@ -202,6 +247,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
   }
 
   const interrupt = () => {
+    // 中断保存
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
     localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
     goModeSelect()
@@ -228,6 +274,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
         </Button>
       ))}
 
+      {/* ✅ 回答後：正誤（目立つ）＋正解＋解説 */}
       {selected !== null && (
         <div className="mt-4 rounded-lg border p-3">
           <div
