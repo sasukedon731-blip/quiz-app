@@ -6,6 +6,10 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
+import { useAuth } from '@/app/lib/useAuth'
+import { db } from '@/app/lib/firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+
 const STORAGE_PROGRESS_KEY = 'progress'
 const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
@@ -47,6 +51,7 @@ function buildRandomQuestions(questions: Question[]): Question[] {
 }
 
 function todayKey() {
+  // NOTE: 既存仕様を崩さないため現状維持（UTCズレが気になるなら後でJSTに統一）
   return new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 }
 
@@ -115,8 +120,9 @@ function writeProgress(quizType: QuizType, p: StudyProgress) {
  * ✅ 全問完了した時だけ呼ぶ
  * - todaySessions / totalSessions を +1
  * - streak を更新（同日2回目は増やさない）
+ * - 変更後の progress を return（Firestore保存に使う）
  */
-function incrementOnComplete(quizType: QuizType) {
+function incrementOnComplete(quizType: QuizType): StudyProgress {
   const today = todayKey()
   const p = readProgress(quizType)
 
@@ -145,11 +151,34 @@ function incrementOnComplete(quizType: QuizType) {
   }
 
   writeProgress(quizType, p)
+  return p
+}
+
+async function saveProgressToFirestore(params: {
+  uid: string
+  quizType: QuizType
+  progress: StudyProgress
+}) {
+  const { uid, quizType, progress } = params
+  const ref = doc(db, 'users', uid, 'progress', quizType)
+
+  // 管理画面で一覧しやすいように uid/quizType も入れておく（mergeで安全）
+  await setDoc(
+    ref,
+    {
+      uid,
+      quizType,
+      ...progress,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  )
 }
 // --------------------------------
 
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
+  const { user } = useAuth()
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
@@ -231,7 +260,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  const next = () => {
+  const next = async () => {
     setSelected(null)
     setIsCorrect(null)
 
@@ -246,8 +275,18 @@ export default function NormalClient({ quiz, quizType }: Props) {
     // ✅ 全問終了 → 学習回数 +1 & streak更新（1回だけ）
     if (!countedRef.current) {
       countedRef.current = true
-      incrementOnComplete(quizType)
+      const progress = incrementOnComplete(quizType)
       playBeep(1046, 160, 'triangle') // 🎉っぽい音
+
+      // ✅ Firestoreにも保存（管理者が見れる）
+      // user がまだ取得できていない場合はスキップ（完了フローは止めない）
+      try {
+        if (user?.uid) {
+          await saveProgressToFirestore({ uid: user.uid, quizType, progress })
+        }
+      } catch (e) {
+        console.error('progress firestore 保存失敗', e)
+      }
     }
 
     // 終了処理
