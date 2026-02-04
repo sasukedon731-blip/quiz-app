@@ -1,26 +1,36 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { collection, getDocs } from "firebase/firestore"
-import { db } from "../lib/firebase"
 import { useAuth } from "../lib/useAuth"
-import { getUserRole, ensureUserProfile } from "../lib/firestore"
+import { db } from "../lib/firebase"
+import { ensureUserProfile, getUserRole } from "../lib/firestore"
 
-type UserDoc = {
-  uid: string
+type UserRole = "admin" | "user"
+
+type UserDocData = {
   email?: string | null
   displayName?: string | null
-  role?: "admin" | "user"
+  role?: UserRole
+  // 他に users/{uid} に入れているフィールドがあれば追加してOK
+}
+
+type Row = {
+  uid: string // ★ doc.id を必ず使う
+  email: string | null
+  displayName: string | null
+  role: UserRole | null
 }
 
 export default function AdminPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  const [users, setUsers] = useState<UserDoc[]>([])
+  const [rows, setRows] = useState<Row[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState("")
 
   useEffect(() => {
     if (loading) return
@@ -35,39 +45,54 @@ export default function AdminPage() {
       setReady(false)
 
       try {
-        // ① 自分の users/{uid} を保証（なければ作る）
+        // ① 自分の users/{uid} を保証（なければ作成）
         await ensureUserProfile({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
         })
 
-        // ② admin 判定（自分の users/{uid}.role を見る）
+        // ② admin 判定
         const role = await getUserRole(user.uid)
         if (role !== "admin") {
           router.replace("/")
           return
         }
 
-        // ③ ユーザー一覧取得（ここが Rules に引っかかりやすい）
+        // ③ users 一覧取得
         const snap = await getDocs(collection(db, "users"))
-        const list = snap.docs.map((d) => d.data() as UserDoc)
-        setUsers(list)
+
+        // ★ここが重要：doc.id を uid として使う
+        const list: Row[] = snap.docs.map((d) => {
+          const data = d.data() as UserDocData
+          return {
+            uid: d.id,
+            email: data.email ?? null,
+            displayName: data.displayName ?? null,
+            role: data.role ?? null,
+          }
+        })
+
+        setRows(list)
       } catch (e: any) {
         console.error(e)
-        setError(
-          e?.code
-            ? `${e.code}: ${e.message ?? ""}`
-            : e?.message ?? "不明なエラー"
-        )
+        setError(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "不明なエラー")
       } finally {
-        // ✅ ここが無いと「読み込み中」固定になる
         setReady(true)
       }
     }
 
     init()
   }, [user, loading, router])
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    if (!needle) return rows
+    return rows.filter((r) => {
+      const s = `${r.displayName ?? ""} ${r.email ?? ""} ${r.uid}`.toLowerCase()
+      return s.includes(needle)
+    })
+  }, [rows, q])
 
   if (loading || !ready) {
     return <p style={{ textAlign: "center" }}>読み込み中…</p>
@@ -85,17 +110,14 @@ export default function AdminPage() {
             border: "1px solid #fca5a5",
             background: "#fef2f2",
             color: "#991b1b",
-            fontWeight: 700,
+            fontWeight: 800,
             whiteSpace: "pre-wrap",
           }}
         >
-          エラーが発生しました：
+          エラー：
           {"\n"}
           {error}
-          {"\n\n"}
-          ✅ 多い原因：Firestore Security Rules で users 一覧の read が許可されていません
         </div>
-
         <button
           onClick={() => router.push("/")}
           style={{
@@ -117,45 +139,71 @@ export default function AdminPage() {
     <div style={{ maxWidth: 900, margin: "30px auto", padding: 16 }}>
       <h1>管理者ページ</h1>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ border: "1px solid #ccc", padding: 8 }}>名前</th>
-            <th style={{ border: "1px solid #ccc", padding: 8 }}>メール</th>
-            <th style={{ border: "1px solid #ccc", padding: 8 }}>UID</th>
-            <th style={{ border: "1px solid #ccc", padding: 8 }}>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.uid}>
-              <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                {u.displayName ?? "-"}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                {u.email ?? "-"}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 8, fontSize: 12 }}>
-                {u.uid}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                <button
-                  onClick={() => router.push(`/admin/${u.uid}`)}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                    cursor: "pointer",
-                    background: "#fff",
-                  }}
-                >
-                  詳細
-                </button>
-              </td>
+      <div style={{ display: "flex", gap: 10, margin: "12px 0 18px" }}>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="検索（名前 / メール / UID）"
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
+        />
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          戻る
+        </button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p>users コレクションにドキュメントがありません。</p>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>名前</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>メール</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>UID(doc id)</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>role</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((u) => (
+              <tr key={u.uid}>
+                <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.displayName ?? "-"}</td>
+                <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.email ?? "-"}</td>
+                <td style={{ border: "1px solid #ccc", padding: 8, fontSize: 12 }}>{u.uid}</td>
+                <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.role ?? "-"}</td>
+                <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                  <button
+                    onClick={() => router.push(`/admin/${u.uid}`)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      cursor: "pointer",
+                      background: "#fff",
+                    }}
+                  >
+                    詳細
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
