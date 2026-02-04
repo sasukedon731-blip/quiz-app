@@ -17,36 +17,53 @@ type UserDoc = {
 export default function AdminPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+
   const [users, setUsers] = useState<UserDoc[]>([])
   const [ready, setReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (loading) return
+
     if (!user) {
       router.replace("/login")
       return
     }
 
     const init = async () => {
-      // 自分の users/{uid} を保証
-      await ensureUserProfile({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      })
+      setError(null)
+      setReady(false)
 
-      // admin チェック
-      const role = await getUserRole(user.uid)
-      if (role !== "admin") {
-        router.replace("/")
-        return
+      try {
+        // ① 自分の users/{uid} を保証（なければ作る）
+        await ensureUserProfile({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        })
+
+        // ② admin 判定（自分の users/{uid}.role を見る）
+        const role = await getUserRole(user.uid)
+        if (role !== "admin") {
+          router.replace("/")
+          return
+        }
+
+        // ③ ユーザー一覧取得（ここが Rules に引っかかりやすい）
+        const snap = await getDocs(collection(db, "users"))
+        const list = snap.docs.map((d) => d.data() as UserDoc)
+        setUsers(list)
+      } catch (e: any) {
+        console.error(e)
+        setError(
+          e?.code
+            ? `${e.code}: ${e.message ?? ""}`
+            : e?.message ?? "不明なエラー"
+        )
+      } finally {
+        // ✅ ここが無いと「読み込み中」固定になる
+        setReady(true)
       }
-
-      // ユーザー一覧取得
-      const snap = await getDocs(collection(db, "users"))
-      const list = snap.docs.map(d => d.data() as UserDoc)
-      setUsers(list)
-      setReady(true)
     }
 
     init()
@@ -54,6 +71,46 @@ export default function AdminPage() {
 
   if (loading || !ready) {
     return <p style={{ textAlign: "center" }}>読み込み中…</p>
+  }
+
+  if (error) {
+    return (
+      <div style={{ maxWidth: 720, margin: "30px auto", padding: 16 }}>
+        <h1>管理者ページ</h1>
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            borderRadius: 10,
+            border: "1px solid #fca5a5",
+            background: "#fef2f2",
+            color: "#991b1b",
+            fontWeight: 700,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          エラーが発生しました：
+          {"\n"}
+          {error}
+          {"\n\n"}
+          ✅ 多い原因：Firestore Security Rules で users 一覧の read が許可されていません
+        </div>
+
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            marginTop: 16,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          TOPへ戻る
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -70,7 +127,7 @@ export default function AdminPage() {
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
+          {users.map((u) => (
             <tr key={u.uid}>
               <td style={{ border: "1px solid #ccc", padding: 8 }}>
                 {u.displayName ?? "-"}
@@ -89,6 +146,7 @@ export default function AdminPage() {
                     borderRadius: 6,
                     border: "1px solid #ccc",
                     cursor: "pointer",
+                    background: "#fff",
                   }}
                 >
                   詳細
