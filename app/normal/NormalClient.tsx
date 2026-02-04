@@ -8,11 +8,7 @@ import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 const STORAGE_PROGRESS_KEY = 'progress'
 const STORAGE_WRONG_KEY = 'wrong'
-
-// ✅ ランダムセッション（問題順＋選択肢順）保存キー
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
-
-// ✅ 学習回数（標準問題）保存キー
 const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
 
 type Props = {
@@ -20,7 +16,16 @@ type Props = {
   quizType: QuizType
 }
 
-// ✅ Fisher–Yates shuffle（破壊しない）
+type StudyProgress = {
+  totalSessions: number
+  todaySessions: number
+  lastStudyDate: string
+  streak: number
+  streakUpdatedDate: string
+  bestStreak: number
+}
+
+// ---------- util ----------
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -30,120 +35,138 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a
 }
 
-// ✅ 1問の choices をシャッフルし、correctIndex を更新
 function shuffleQuestionChoices(q: Question): Question {
   const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
   const shuffled = shuffleArray(choicesWithIndex)
   const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
-
-  return {
-    ...q,
-    choices: shuffled.map(x => x.text),
-    correctIndex: newCorrectIndex,
-  }
+  return { ...q, choices: shuffled.map(x => x.text), correctIndex: newCorrectIndex }
 }
 
-// ✅ 問題順も choices も両方ランダム化
 function buildRandomQuestions(questions: Question[]): Question[] {
-  const randomized = questions.map(shuffleQuestionChoices)
-  return shuffleArray(randomized)
+  return shuffleArray(questions.map(shuffleQuestionChoices))
 }
 
-// ✅ 音素材なしで「ピッ」音を出す（Web Audio API）
+function todayKey() {
+  return new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+}
+
+function addDays(ymd: string, delta: number) {
+  const d = new Date(`${ymd}T00:00:00.000Z`)
+  d.setUTCDate(d.getUTCDate() + delta)
+  return d.toISOString().slice(0, 10)
+}
+
+// 音（素材不要）
 function playBeep(freq: number, durationMs: number, type: OscillatorType = 'sine') {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new AudioCtx()
-
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
-
     osc.type = type
     osc.frequency.value = freq
-
     const now = ctx.currentTime
     gain.gain.setValueAtTime(0.0001, now)
     gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
     gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000)
-
     osc.connect(gain)
     gain.connect(ctx.destination)
-
     osc.start(now)
     osc.stop(now + durationMs / 1000 + 0.02)
+    osc.onended = () => ctx.close().catch(() => {})
+  } catch {}
+}
 
-    osc.onended = () => {
-      ctx.close().catch(() => {})
+function readProgress(quizType: QuizType): StudyProgress {
+  const key = `${STORAGE_STUDY_PROGRESS_PREFIX}-${quizType}`
+  const today = todayKey()
+  const base: StudyProgress = {
+    totalSessions: 0,
+    todaySessions: 0,
+    lastStudyDate: today,
+    streak: 0,
+    streakUpdatedDate: '',
+    bestStreak: 0,
+  }
+
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return base
+    const d = JSON.parse(raw) as Partial<StudyProgress>
+    return {
+      totalSessions: typeof d.totalSessions === 'number' ? d.totalSessions : 0,
+      todaySessions: typeof d.todaySessions === 'number' ? d.todaySessions : 0,
+      lastStudyDate: typeof d.lastStudyDate === 'string' ? d.lastStudyDate : today,
+      streak: typeof d.streak === 'number' ? d.streak : 0,
+      streakUpdatedDate: typeof d.streakUpdatedDate === 'string' ? d.streakUpdatedDate : '',
+      bestStreak: typeof d.bestStreak === 'number' ? d.bestStreak : 0,
     }
   } catch {
-    // 失敗しても落とさない
+    return base
   }
 }
 
-function todayKey() {
-  // YYYY-MM-DD
-  return new Date().toISOString().slice(0, 10)
+function writeProgress(quizType: QuizType, p: StudyProgress) {
+  const key = `${STORAGE_STUDY_PROGRESS_PREFIX}-${quizType}`
+  localStorage.setItem(key, JSON.stringify(p))
 }
+
+/**
+ * ✅ 全問完了した時だけ呼ぶ
+ * - todaySessions / totalSessions を +1
+ * - streak を更新（同日2回目は増やさない）
+ */
+function incrementOnComplete(quizType: QuizType) {
+  const today = todayKey()
+  const p = readProgress(quizType)
+
+  // 日付が変わってたら todaySessions をリセット
+  if (p.lastStudyDate !== today) {
+    p.todaySessions = 0
+    p.lastStudyDate = today
+  }
+
+  p.totalSessions += 1
+  p.todaySessions += 1
+
+  // streak は「その日初めて完了した時だけ」更新
+  if (p.streakUpdatedDate !== today) {
+    const yesterday = addDays(today, -1)
+
+    if (p.streakUpdatedDate === yesterday) {
+      // 昨日も学習完了してた → 連続
+      p.streak = (p.streak || 0) + 1
+    } else {
+      // 途切れた or 初回
+      p.streak = 1
+    }
+    p.streakUpdatedDate = today
+    p.bestStreak = Math.max(p.bestStreak || 0, p.streak)
+  }
+
+  writeProgress(quizType, p)
+}
+// --------------------------------
 
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
 
-  // ✅ この回の「ランダム済み問題」
   const [questions, setQuestions] = useState<Question[]>([])
-
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [wrong, setWrong] = useState<Question[]>([])
-
-  // ✅ 正誤保持（表示用）
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
 
-  // ✅ 二重クリック/二重再生ガード
   const answeringRef = useRef(false)
-
-  // ✅ 学習回数の二重カウント防止（devのStrictMode対策）
   const countedRef = useRef(false)
 
-  // ✅ 標準問題を開いた回数を記録（教材別）
-  useEffect(() => {
-    if (countedRef.current) return
-    countedRef.current = true
-
-    try {
-      const key = `${STORAGE_STUDY_PROGRESS_PREFIX}-${quizType}`
-      const today = todayKey()
-
-      const raw = localStorage.getItem(key)
-      let data = raw
-        ? JSON.parse(raw)
-        : { totalSessions: 0, todaySessions: 0, lastStudyDate: today }
-
-      if (data.lastStudyDate !== today) {
-        data.todaySessions = 0
-        data.lastStudyDate = today
-      }
-
-      data.totalSessions += 1
-      data.todaySessions += 1
-
-      localStorage.setItem(key, JSON.stringify(data))
-    } catch {
-      // 壊れていても落とさない
-    }
-  }, [quizType])
-
-  // 🔹 初期化（セッション復元 or 新規作成）
   useEffect(() => {
     try {
-      // 1) ランダムセッション復元
       const sessionRaw = localStorage.getItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
       if (sessionRaw) {
         const session = JSON.parse(sessionRaw)
-        if (Array.isArray(session?.questions) && session.questions.length > 0) {
-          setQuestions(session.questions)
-        }
+        if (Array.isArray(session?.questions)) setQuestions(session.questions)
       } else {
-        // 2) 新規ランダムセッション作成
         const rnd = buildRandomQuestions(quiz.questions)
         setQuestions(rnd)
         localStorage.setItem(
@@ -152,29 +175,19 @@ export default function NormalClient({ quiz, quizType }: Props) {
         )
       }
 
-      // 3) 進捗復元
       const saved = localStorage.getItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (typeof parsed?.index === 'number') {
-          setIndex(parsed.index)
-        }
+        if (typeof parsed?.index === 'number') setIndex(parsed.index)
       }
 
-      // 4) wrong復元
       const savedWrong = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
       if (savedWrong) {
         const parsedWrong = JSON.parse(savedWrong)
-        if (Array.isArray(parsedWrong)) {
-          setWrong(parsedWrong)
-        }
+        if (Array.isArray(parsedWrong)) setWrong(parsedWrong)
       }
     } catch {
-      // 壊れたデータは破棄して新規に
       localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
-      localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-      localStorage.removeItem(`${STORAGE_WRONG_KEY}-${quizType}`)
-
       const rnd = buildRandomQuestions(quiz.questions)
       setQuestions(rnd)
       localStorage.setItem(
@@ -200,21 +213,18 @@ export default function NormalClient({ quiz, quizType }: Props) {
     answeringRef.current = true
 
     setSelected(i)
-
     const ok = i === current.correctIndex
     setIsCorrect(ok)
 
-    // ✅ 正解音／不正解音
-    if (ok) {
-      playBeep(880, 130, 'sine') // 正解：高め
-    } else {
-      playBeep(220, 180, 'square') // 不正解：低め
+    if (ok) playBeep(880, 120, 'sine')
+    else {
+      playBeep(220, 160, 'square')
       setWrong(prev => [...prev, current])
     }
 
     setTimeout(() => {
       answeringRef.current = false
-    }, 200)
+    }, 150)
   }
 
   const goModeSelect = () => {
@@ -228,26 +238,27 @@ export default function NormalClient({ quiz, quizType }: Props) {
     if (index + 1 < questions.length) {
       const nextIndex = index + 1
       setIndex(nextIndex)
-
-      // 進捗保存
-      localStorage.setItem(
-        `${STORAGE_PROGRESS_KEY}-${quizType}`,
-        JSON.stringify({ index: nextIndex })
-      )
+      localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index: nextIndex }))
       localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
-    } else {
-      // 全問終了
-      localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-      localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
-
-      // ✅ この回が終わったら、次回は新しくランダムにしたいのでセッションを消す
-      localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
-      goModeSelect()
+      return
     }
+
+    // ✅ 全問終了 → 学習回数 +1 & streak更新（1回だけ）
+    if (!countedRef.current) {
+      countedRef.current = true
+      incrementOnComplete(quizType)
+      playBeep(1046, 160, 'triangle') // 🎉っぽい音
+    }
+
+    // 終了処理
+    localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
+    localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
+    localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
+
+    goModeSelect()
   }
 
   const interrupt = () => {
-    // 中断保存
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
     localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
     goModeSelect()
@@ -274,11 +285,10 @@ export default function NormalClient({ quiz, quizType }: Props) {
         </Button>
       ))}
 
-      {/* ✅ 回答後：正誤（目立つ）＋正解＋解説 */}
       {selected !== null && (
         <div className="mt-4 rounded-lg border p-3">
           <div
-            className={`mt-2 rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
+            className={`rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
               isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}
           >
@@ -305,17 +315,13 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
       {selected !== null && (
         <Button variant="main" onClick={next}>
-          {index + 1 < questions.length ? '次へ' : 'モード選択に戻る'}
+          {index + 1 < questions.length ? '次へ' : '🎉 完了してモード選択へ'}
         </Button>
       )}
 
       <div className="mt-4">
         <Button variant="accent" onClick={interrupt}>
           中断してモード選択へ
-        </Button>
-
-        <Button variant="accent" onClick={goModeSelect}>
-          モード選択に戻る
         </Button>
       </div>
     </QuizLayout>
