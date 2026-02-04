@@ -1,3 +1,4 @@
+// app/lib/useAuth.ts
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -9,8 +10,8 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // 同一セッションで何度も作成処理が走らないようにガード
-  const ensuredRef = useRef<string | null>(null)
+  // 同じ uid で何度も ensure が走らないようにする
+  const ensuredUidRef = useRef<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -18,15 +19,13 @@ export function useAuth() {
       setLoading(false)
 
       if (!u) {
-        ensuredRef.current = null
+        ensuredUidRef.current = null
         return
       }
 
-      // 既に同じuidで作成済みならスキップ
-      if (ensuredRef.current === u.uid) return
-      ensuredRef.current = u.uid
+      if (ensuredUidRef.current === u.uid) return
+      ensuredUidRef.current = u.uid
 
-      // users/{uid} を必ず作る（存在するなら何もしない）
       try {
         await ensureUserProfile({
           uid: u.uid,
@@ -35,7 +34,7 @@ export function useAuth() {
         })
       } catch (e) {
         console.error("ensureUserProfile failed", e)
-        // 失敗してもログイン自体は継続させる
+        // ログイン自体は止めない
       }
     })
 

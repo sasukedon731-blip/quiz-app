@@ -1,25 +1,15 @@
 // app/lib/firestore.ts
-// Firestore 操作ユーティリティ（Firebase初期化はしない！）
+"use client"
 
 import { db } from "./firebase"
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
   setDoc,
+  updateDoc,
+  serverTimestamp,
 } from "firebase/firestore"
 
-// ✅ 互換のため export（既存の import { db } from "../lib/firestore" を壊さない）
-export { db }
-
-// --------------------
-// Types
-// --------------------
 export type UserRole = "admin" | "user"
 
 export type UserProfile = {
@@ -28,25 +18,14 @@ export type UserProfile = {
   displayName: string | null
   role: UserRole
   createdAt?: any
+  updatedAt?: any
 }
-
-export type QuizResultDoc = {
-  score: number
-  total: number
-  createdAt: { seconds: number } | null
-  quizType?: string
-  mode?: string
-  // 他にも保存している項目があれば追加してOK（互換のため）
-  [k: string]: any
-}
-
-// --------------------
-// User profile / role
-// --------------------
 
 /**
- * users/{uid} が無ければ作成する（roleは user）
- * ※ admin判定をFirestore roleで行うための土台
+ * ✅ users/{uid} を必ず用意する
+ * - 無ければ作る
+ * - あれば「足りない情報(email/displayName/uid)だけ補完」する
+ * - role は絶対に変更しない（adminが消えない）
  */
 export async function ensureUserProfile(params: {
   uid: string
@@ -56,59 +35,50 @@ export async function ensureUserProfile(params: {
   const ref = doc(db, "users", params.uid)
   const snap = await getDoc(ref)
 
-  if (snap.exists()) return
+  const email = params.email ?? null
+  const displayName = params.displayName ?? null
 
-  const payload: UserProfile = {
-    uid: params.uid,
-    email: params.email ?? null,
-    displayName: params.displayName ?? null,
-    role: "user",
-    createdAt: serverTimestamp(),
+  // --- 初回：users/{uid} が無い場合は作る ---
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      uid: params.uid,
+      email,
+      displayName,
+      role: "user" as UserRole, // 初期は user。あとで手動で admin にしてOK
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    return
   }
 
-  await setDoc(ref, payload)
+  // --- 既存：足りない情報だけ補完（roleは触らない） ---
+  const data = snap.data() as Partial<UserProfile>
+  const patch: Record<string, any> = {}
+
+  // uidフィールドが無い場合だけ入れる（doc.idは既にuidだが、整合性のため）
+  if (data.uid == null || data.uid === "") patch.uid = params.uid
+
+  // email が空なら補完（ただし params.email がある時だけ）
+  if ((data.email == null || data.email === "") && email) patch.email = email
+
+  // displayName が空なら補完（ただし params.displayName がある時だけ）
+  if ((data.displayName == null || data.displayName === "") && displayName) {
+    patch.displayName = displayName
+  }
+
+  if (Object.keys(patch).length > 0) {
+    patch.updatedAt = serverTimestamp()
+    await updateDoc(ref, patch)
+  }
 }
 
 /**
- * users/{uid}.role を取得（無ければ user）
+ * ✅ 管理者判定に使う：users/{uid}.role を読む
  */
 export async function getUserRole(uid: string): Promise<UserRole> {
   const ref = doc(db, "users", uid)
   const snap = await getDoc(ref)
   if (!snap.exists()) return "user"
-
-  const role = snap.data()?.role
+  const role = (snap.data() as any)?.role
   return role === "admin" ? "admin" : "user"
-}
-
-/**
- * users/{uid} のプロフィール取得（無ければ null）
- */
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const ref = doc(db, "users", uid)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return null
-  return snap.data() as UserProfile
-}
-
-// --------------------
-// Results (exam etc.)
-// --------------------
-
-/**
- * users/{uid}/results 最新 n 件を取得
- * （mypage でも admin でも再利用できる）
- */
-export async function getLatestResults(uid: string, n = 50) {
-  const q = query(
-    collection(db, "users", uid, "results"),
-    orderBy("createdAt", "desc"),
-    limit(n)
-  )
-  const snapshot = await getDocs(q)
-
-  return snapshot.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as QuizResultDoc),
-  }))
 }
