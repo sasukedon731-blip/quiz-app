@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth } from "@/app/lib/useAuth"
 import { db } from "@/app/lib/firebase"
 import { ensureUserProfile, getUserRole } from "@/app/lib/firestore"
@@ -107,14 +100,30 @@ export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // ✅ デバッグ情報（UIにも出す）
+  const [debug, setDebug] = useState<{
+    projectId: string
+    authUid: string
+    authEmail: string
+    myRole: string
+    usersCount: number
+    userIdsPreview: string[]
+  } | null>(null)
+
   const [q, setQ] = useState("")
   const [showOnlyNotStudiedToday, setShowOnlyNotStudiedToday] = useState(false)
 
   const today = jstDayKey()
 
-  const loadUsers = async (currentAdminUid: string) => {
-    // users 一覧
+  const loadUsers = async (currentAdminUid: string, myRole: string) => {
+    // ✅ users 一覧
     const snap = await getDocs(collection(db, "users"))
+
+    // ✅ 切り分けログ（ここが一番重要）
+    console.log("[AdminPage] users snap.size =", snap.size)
+    console.log("[AdminPage] user ids =", snap.docs.map((d) => d.id))
+
     const baseList: Row[] = snap.docs.map((d) => {
       const data = d.data() as UserDocData
       return {
@@ -145,6 +154,17 @@ export default function AdminPage() {
     )
 
     setRows(enriched)
+
+    // ✅ UI側にも「見えてるDBがどこか」「何件取れてるか」表示（間違い防止）
+    const projectId = ((db as any).app?.options?.projectId ?? "") as string
+    setDebug({
+      projectId: projectId || "(unknown)",
+      authUid: currentAdminUid,
+      authEmail: user?.email ?? "",
+      myRole,
+      usersCount: snap.size,
+      userIdsPreview: snap.docs.slice(0, 10).map((d) => d.id), // 先頭10件だけ
+    })
   }
 
   useEffect(() => {
@@ -159,21 +179,31 @@ export default function AdminPage() {
       setReady(false)
 
       try {
+        // ✅ ここで「users/{自分uid} が必ずある」状態にする（admin判定の前提）
         await ensureUserProfile({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
         })
 
+        // ✅ 自分のrole確認
         const role = await getUserRole(user.uid)
+
+        // ✅ 重要ログ：プロジェクトIDと自分のrole
+        const projectId = ((db as any).app?.options?.projectId ?? "") as string
+        console.log("[AdminPage] Firebase projectId:", projectId)
+        console.log("[AdminPage] Auth uid:", user.uid, "email:", user.email)
+        console.log("[AdminPage] my role:", role)
+
         if (role !== "admin") {
           router.replace("/")
           return
         }
 
-        await loadUsers(user.uid)
+        await loadUsers(user.uid, role)
       } catch (e: any) {
-        console.error(e)
+        // ✅ 握りつぶさず必ず見える化
+        console.error("[AdminPage] init error:", e)
         setError(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "不明なエラー")
       } finally {
         setReady(true)
@@ -181,6 +211,7 @@ export default function AdminPage() {
     }
 
     init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading, router])
 
   const filtered = useMemo(() => {
@@ -211,7 +242,7 @@ export default function AdminPage() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 720, margin: "30px auto", padding: 16 }}>
+      <div style={{ maxWidth: 900, margin: "30px auto", padding: 16 }}>
         <h1>管理者ページ</h1>
         <div
           style={{
@@ -229,6 +260,9 @@ export default function AdminPage() {
           {"\n"}
           {error}
         </div>
+        <p style={{ marginTop: 10, color: "#666" }}>
+          ※ Console にも詳細ログを出しています（projectId / users 件数など）
+        </p>
       </div>
     )
   }
@@ -255,7 +289,8 @@ export default function AdminPage() {
 
     try {
       await setUserRole(targetUid, "admin")
-      await loadUsers(user.uid)
+      const role = await getUserRole(user.uid)
+      await loadUsers(user.uid, role)
       alert("admin に変更しました")
     } catch (e: any) {
       console.error(e)
@@ -275,7 +310,8 @@ export default function AdminPage() {
 
     try {
       await setUserRole(targetUid, "user")
-      await loadUsers(user.uid)
+      const role = await getUserRole(user.uid)
+      await loadUsers(user.uid, role)
       alert("user に変更しました")
     } catch (e: any) {
       console.error(e)
@@ -286,6 +322,30 @@ export default function AdminPage() {
   return (
     <div style={{ maxWidth: 1200, margin: "30px auto", padding: 16 }}>
       <h1>管理者ページ</h1>
+
+      {/* ✅ デバッグ表示（間違い防止：どのDBを見てるかが一目で分かる） */}
+      {debug && (
+        <div
+          style={{
+            margin: "12px 0",
+            padding: 12,
+            borderRadius: 10,
+            border: "1px solid #c7d2fe",
+            background: "#eef2ff",
+            color: "#1e3a8a",
+            fontWeight: 800,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          <div>DEBUG</div>
+          <div>projectId: {debug.projectId}</div>
+          <div>authUid: {debug.authUid}</div>
+          <div>authEmail: {debug.authEmail}</div>
+          <div>myRole: {debug.myRole}</div>
+          <div>usersCount(from getDocs users): {debug.usersCount}</div>
+          <div>userIdsPreview: {debug.userIdsPreview.join(", ")}</div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, margin: "12px 0 12px", flexWrap: "wrap" }}>
         <input
