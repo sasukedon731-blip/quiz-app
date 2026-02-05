@@ -5,7 +5,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth"
-import { auth } from "../lib/firebase"
+import { auth } from "@/app/lib/firebase"
 import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {

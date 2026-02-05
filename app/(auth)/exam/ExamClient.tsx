@@ -8,7 +8,7 @@ import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 // ✅ Firestore保存用
 import { auth } from '@/app/lib/firebase'
-import { db } from '@/app/lib/firestore'
+import { db } from '@/app/lib/firebase'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
 const EXAM_TIME_SEC = 20 * 60 // 20分

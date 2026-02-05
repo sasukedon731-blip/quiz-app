@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged, signOut, User } from "firebase/auth"
-import { auth } from "../lib/firebase"
+import { auth, db } from "@/app/lib/firebase"
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"
-import { db } from "../lib/firebase"
 
 type QuizResult = {
   score: number

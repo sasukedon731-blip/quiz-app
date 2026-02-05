@@ -11,9 +11,9 @@ import {
   orderBy,
   query,
 } from "firebase/firestore"
-import { useAuth } from "../../lib/useAuth"
-import { db } from "../../lib/firebase"
-import { getUserRole } from "../../lib/firestore"
+import { useAuth } from "@/app/lib/useAuth"
+import { db } from "@/app/lib/firebase"
+import { getUserRole } from "@/app/lib/firestore"
 
 type QuizResult = {
   score: number
