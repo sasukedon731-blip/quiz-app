@@ -1,25 +1,36 @@
+// app/(auth)/layout.tsx
 "use client"
 
-import { ReactNode, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../lib/useAuth"
+import { useAuth } from "@/app/lib/useAuth"
+import { ensureUserProfile } from "@/app/lib/firestore"
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, loading } = useAuth()
 
   useEffect(() => {
     if (loading) return
     if (!user) {
-      // ✅ 未ログインは必ず login
       router.replace("/login")
+      return
     }
+
+    ;(async () => {
+      try {
+        await ensureUserProfile({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        })
+      } catch (e) {
+        console.error("ensureUserProfile failed:", e)
+      }
+    })()
   }, [user, loading, router])
 
-  if (loading) {
-    return <p style={{ textAlign: "center", marginTop: 40 }}>読み込み中…</p>
-  }
-
+  if (loading) return <p style={{ textAlign: "center" }}>読み込み中…</p>
   if (!user) return null
 
   return <>{children}</>

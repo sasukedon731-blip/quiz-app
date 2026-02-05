@@ -1,27 +1,34 @@
 // app/lib/firestore.ts
 "use client"
 
-export { db } from "./firebase"
-import { db } from "./firebase"
+import { db } from "@/app/lib/firebase"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 
 export type UserRole = "admin" | "user"
 
-export async function ensureUserProfile(params: {
+type EnsureParams = {
   uid: string
   email?: string | null
   displayName?: string | null
-}) {
-  const ref = doc(db, "users", params.uid)
-  const snap = await getDoc(ref)
+}
 
+/**
+ * ✅ users/{uid} を必ず「実在するドキュメント」として作る/補正する
+ * - 初回：role/user を含めて作成（空ドキュメント問題を根絶）
+ * - 既存：roleは触らず、email/displayName/updatedAt を安全に merge
+ */
+export async function ensureUserProfile(params: EnsureParams) {
+  const { uid } = params
   const email = params.email ?? null
   const displayName = params.displayName ?? null
 
+  const ref = doc(db, "users", uid)
+  const snap = await getDoc(ref)
+
   if (!snap.exists()) {
-    // 初回作成（roleは user で作る。後から手動で admin にしてOK）
+    // ✅ 初回作成：必ずフィールドを入れて “存在するドキュメント” にする
     await setDoc(ref, {
-      uid: params.uid,
+      uid,
       email,
       displayName,
       role: "user" as UserRole,
@@ -31,12 +38,12 @@ export async function ensureUserProfile(params: {
     return
   }
 
-  // 既存：role は触らず、email/displayName を「merge」で追記/更新する
-  // ※ これなら、以前 role だけ入れていたドキュメントにも確実に入る
+  // ✅ 既存：roleは変更しない（事故防止）
+  // ただし、email/displayName が入っていなければ補完してOK
   await setDoc(
     ref,
     {
-      uid: params.uid,
+      uid,
       ...(email ? { email } : {}),
       ...(displayName ? { displayName } : {}),
       updatedAt: serverTimestamp(),
@@ -45,6 +52,9 @@ export async function ensureUserProfile(params: {
   )
 }
 
+/**
+ * ✅ 自分のrole取得（存在しない場合は user 扱い）
+ */
 export async function getUserRole(uid: string): Promise<UserRole> {
   const ref = doc(db, "users", uid)
   const snap = await getDoc(ref)
