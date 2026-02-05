@@ -1,6 +1,7 @@
 // app/lib/firestore.ts
 "use client"
 
+export { db } from "./firebase"
 import { db } from "./firebase"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 
