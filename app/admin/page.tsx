@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { collection, doc, getDoc, getDocs } from "firebase/firestore"
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore"
 import { useAuth } from "../lib/useAuth"
 import { db } from "../lib/firebase"
 import { ensureUserProfile, getUserRole } from "../lib/firestore"
@@ -29,13 +36,12 @@ type Row = {
   email: string | null
   displayName: string | null
   role: UserRole | null
-  progress: Record<string, StudyProgress | null> // quizType -> progress or null
+  progress: Record<string, StudyProgress | null>
 }
 
 const QUIZ_TYPES = ["gaikoku-license", "japanese-n4"] as const
 
 function jstDayKey(d = new Date()) {
-  // "YYYY-MM-DD" (JST)
   try {
     return new Intl.DateTimeFormat("sv-SE", {
       timeZone: "Asia/Tokyo",
@@ -81,6 +87,19 @@ async function fetchProgress(uid: string, quizType: string): Promise<StudyProgre
   }
 }
 
+// ✅ role の更新（adminのみ可能：Rulesで制御）
+async function setUserRole(targetUid: string, role: UserRole) {
+  const ref = doc(db, "users", targetUid)
+  await setDoc(
+    ref,
+    {
+      role,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  )
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
@@ -91,9 +110,45 @@ export default function AdminPage() {
   const [q, setQ] = useState("")
   const [showOnlyNotStudiedToday, setShowOnlyNotStudiedToday] = useState(false)
 
+  const today = jstDayKey()
+
+  const loadUsers = async (currentAdminUid: string) => {
+    // users 一覧
+    const snap = await getDocs(collection(db, "users"))
+    const baseList: Row[] = snap.docs.map((d) => {
+      const data = d.data() as UserDocData
+      return {
+        uid: d.id,
+        email: data.email ?? null,
+        displayName: data.displayName ?? null,
+        role: data.role ?? null,
+        progress: {
+          "gaikoku-license": null,
+          "japanese-n4": null,
+        },
+      }
+    })
+
+    // progress を並列取得（ユーザー数×教材数 read）
+    const enriched = await Promise.all(
+      baseList.map(async (u) => {
+        const progEntries = await Promise.all(
+          QUIZ_TYPES.map(async (t) => [t, await fetchProgress(u.uid, t)] as const)
+        )
+        const progress: Record<string, StudyProgress | null> = {
+          "gaikoku-license": null,
+          "japanese-n4": null,
+        }
+        for (const [t, p] of progEntries) progress[t] = p
+        return { ...u, progress }
+      })
+    )
+
+    setRows(enriched)
+  }
+
   useEffect(() => {
     if (loading) return
-
     if (!user) {
       router.replace("/login")
       return
@@ -104,52 +159,19 @@ export default function AdminPage() {
       setReady(false)
 
       try {
-        // 自分の users/{uid} を保証（なければ作る）
         await ensureUserProfile({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
         })
 
-        // admin 判定
         const role = await getUserRole(user.uid)
         if (role !== "admin") {
           router.replace("/")
           return
         }
 
-        // users 一覧取得（doc.id を uid として使う）
-        const snap = await getDocs(collection(db, "users"))
-        const baseList: Row[] = snap.docs.map((d) => {
-          const data = d.data() as UserDocData
-          return {
-            uid: d.id,
-            email: data.email ?? null,
-            displayName: data.displayName ?? null,
-            role: data.role ?? null,
-            progress: {
-              "gaikoku-license": null,
-              "japanese-n4": null,
-            },
-          }
-        })
-
-        // progress を並列取得（ユーザー数 × quizType数 だけ read します）
-        const enriched = await Promise.all(
-          baseList.map(async (u) => {
-            const progEntries = await Promise.all(
-              QUIZ_TYPES.map(async (t) => [t, await fetchProgress(u.uid, t)] as const)
-            )
-            const progress: Record<string, StudyProgress | null> = {
-              "gaikoku-license": null,
-              "japanese-n4": null,
-            }
-            for (const [t, p] of progEntries) progress[t] = p
-            return { ...u, progress }
-          })
-        )
-
-        setRows(enriched)
+        await loadUsers(user.uid)
       } catch (e: any) {
         console.error(e)
         setError(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "不明なエラー")
@@ -160,8 +182,6 @@ export default function AdminPage() {
 
     init()
   }, [user, loading, router])
-
-  const today = jstDayKey()
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -176,7 +196,6 @@ export default function AdminPage() {
 
     if (showOnlyNotStudiedToday) {
       list = list.filter((r) => {
-        // どちらの教材も今日の学習がなければ「未学習」
         const g = r.progress["gaikoku-license"]
         const n = r.progress["japanese-n4"]
         const didG = (g?.lastStudyDate ?? "") === today && (g?.todaySessions ?? 0) > 0
@@ -188,9 +207,7 @@ export default function AdminPage() {
     return list
   }, [rows, q, showOnlyNotStudiedToday, today])
 
-  if (loading || !ready) {
-    return <p style={{ textAlign: "center" }}>読み込み中…</p>
-  }
+  if (loading || !ready) return <p style={{ textAlign: "center" }}>読み込み中…</p>
 
   if (error) {
     return (
@@ -212,19 +229,6 @@ export default function AdminPage() {
           {"\n"}
           {error}
         </div>
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            marginTop: 16,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #ccc",
-            background: "#fff",
-            cursor: "pointer",
-          }}
-        >
-          TOPへ戻る
-        </button>
       </div>
     )
   }
@@ -241,8 +245,46 @@ export default function AdminPage() {
     }
   }
 
+  const onPromote = async (targetUid: string) => {
+    if (!user) return
+    if (targetUid === user.uid) {
+      alert("自分自身の role 変更はおすすめしません（必要なら可能ですが慎重に）")
+    }
+    const ok = confirm(`UID: ${targetUid}\nこのユーザーを admin にしますか？`)
+    if (!ok) return
+
+    try {
+      await setUserRole(targetUid, "admin")
+      await loadUsers(user.uid)
+      alert("admin に変更しました")
+    } catch (e: any) {
+      console.error(e)
+      alert(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "更新に失敗しました")
+    }
+  }
+
+  const onDemote = async (targetUid: string) => {
+    if (!user) return
+    if (targetUid === user.uid) {
+      const okSelf = confirm("自分を user に戻すと管理画面に入れなくなります。\n本当に実行しますか？")
+      if (!okSelf) return
+    } else {
+      const ok = confirm(`UID: ${targetUid}\nこのユーザーを user に戻しますか？`)
+      if (!ok) return
+    }
+
+    try {
+      await setUserRole(targetUid, "user")
+      await loadUsers(user.uid)
+      alert("user に変更しました")
+    } catch (e: any) {
+      console.error(e)
+      alert(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "更新に失敗しました")
+    }
+  }
+
   return (
-    <div style={{ maxWidth: 1100, margin: "30px auto", padding: 16 }}>
+    <div style={{ maxWidth: 1200, margin: "30px auto", padding: 16 }}>
       <h1>管理者ページ</h1>
 
       <div style={{ display: "flex", gap: 10, margin: "12px 0 12px", flexWrap: "wrap" }}>
@@ -305,6 +347,7 @@ export default function AdminPage() {
               <th style={{ border: "1px solid #ccc", padding: 8 }}>操作</th>
             </tr>
           </thead>
+
           <tbody>
             {filtered.map((u) => {
               const g = cell(u.progress["gaikoku-license"])
@@ -316,7 +359,9 @@ export default function AdminPage() {
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.displayName ?? "-"}</td>
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.email ?? "-"}</td>
                   <td style={{ border: "1px solid #ccc", padding: 8, fontSize: 12 }}>{u.uid}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.role ?? "-"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
+                    {u.role ?? "-"}
+                  </td>
 
                   <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>{g.today}</td>
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>{g.total}</td>
@@ -328,7 +373,7 @@ export default function AdminPage() {
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>{n.streak}</td>
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>{n.last}</td>
 
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                  <td style={{ border: "1px solid #ccc", padding: 8, display: "grid", gap: 6 }}>
                     <button
                       onClick={() => router.push(`/admin/${u.uid}`)}
                       style={{
@@ -341,6 +386,36 @@ export default function AdminPage() {
                     >
                       詳細
                     </button>
+
+                    {u.role !== "admin" ? (
+                      <button
+                        onClick={() => onPromote(u.uid)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          border: "1px solid #16a34a",
+                          cursor: "pointer",
+                          background: "#ecfdf5",
+                          fontWeight: 800,
+                        }}
+                      >
+                        adminにする
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onDemote(u.uid)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          border: "1px solid #ef4444",
+                          cursor: "pointer",
+                          background: "#fef2f2",
+                          fontWeight: 800,
+                        }}
+                      >
+                        userに戻す
+                      </button>
+                    )}
                   </td>
                 </tr>
               )
@@ -350,7 +425,7 @@ export default function AdminPage() {
       )}
 
       <p style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-        ※ progress は users/{`{uid}`}/progress/{`{quizType}`} を参照しています（ユーザー数×教材数だけ read します）
+        ※ 管理者は role のみ変更可能（Rulesで制限） / progress は users/{`{uid}`}/progress/{`{quizType}`} を参照
       </p>
     </div>
   )
