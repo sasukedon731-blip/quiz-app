@@ -1,7 +1,7 @@
-import type { Quiz } from '../types'
+import type { Quiz } from "@/app/data/types"
 
 export const japaneseN4Quiz: Quiz = {
-  title: '日本語N4',
+  title: "日本語検定 N4",
   questions: [
     {
     id: 1,

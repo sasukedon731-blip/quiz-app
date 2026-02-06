@@ -1,7 +1,7 @@
-import type { Quiz } from '../types'
+import type { Quiz } from "@/app/data/types"
 
 export const gaikokuQuiz: Quiz = {
-  title: '外国免許切替',
+  title: "外国免許切替",
   questions: [
     {
     id: 1,
