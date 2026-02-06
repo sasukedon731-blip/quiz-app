@@ -1,22 +1,31 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import QuizLayout from "@/app/components/QuizLayout"
-import Button from "@/app/components/Button"
-import { quizzes } from "@/app/data/quizzes"
-import type { Question, QuizType } from "@/app/data/types"
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import QuizLayout from '@/app/components/QuizLayout'
+import Button from '@/app/components/Button'
+import type { Question, QuizType } from '@/app/data/types'
 
-const STORAGE_KEY = "wrong"
+const STORAGE_WRONG_KEY = 'wrong'
 
 type Props = {
   quizType: QuizType
 }
 
+function isQuestionLike(v: any): v is Question {
+  return (
+    v &&
+    typeof v === 'object' &&
+    typeof v.id === 'number' &&
+    typeof v.question === 'string' &&
+    Array.isArray(v.choices) &&
+    typeof v.correctIndex === 'number'
+  )
+}
+
 export default function ReviewClient({ quizType }: Props) {
   const router = useRouter()
 
-  // ✅ Hooks は必ず最上位・固定順
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -25,41 +34,53 @@ export default function ReviewClient({ quizType }: Props) {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  // ✅ 復習問題の読み込み（ID配列方式）
   useEffect(() => {
+    const key = `${STORAGE_WRONG_KEY}-${quizType}`
+
     try {
-      const raw = localStorage.getItem(`${STORAGE_KEY}-${quizType}`)
-      if (!raw) {
+      const saved = localStorage.getItem(key)
+      if (!saved) {
         setQuestions([])
+        setIndex(0)
+        setSelected(null)
         return
       }
 
-      const ids = JSON.parse(raw)
-      if (!Array.isArray(ids)) {
-        setQuestions([])
+      const data = JSON.parse(saved)
+
+      if (Array.isArray(data)) {
+        const list = data.filter(isQuestionLike) as Question[]
+        // ✅ 念のため重複除去（idで一意にする）
+        const uniq = Array.from(new Map(list.map(q => [q.id, q])).values())
+
+        setQuestions(uniq)
+        setIndex(0)
+        setSelected(null)
         return
       }
 
-      const all = quizzes[quizType]?.questions
-      if (!Array.isArray(all)) {
-        setQuestions([])
-        return
-      }
-
-      const review = all.filter(q => ids.includes(q.id))
-      setQuestions(review)
+      setQuestions([])
       setIndex(0)
       setSelected(null)
     } catch {
+      localStorage.removeItem(key)
       setQuestions([])
       setIndex(0)
       setSelected(null)
     }
   }, [quizType])
 
-  // ---------- 表示分岐（Hooksの後） ----------
+  const current = questions[index]
 
-  if (questions.length === 0) {
+  const answered = selected !== null
+  const isLast = index >= questions.length - 1
+
+  const resultLabel = useMemo(() => {
+    if (!answered || !current) return ''
+    return selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'
+  }, [answered, selected, current])
+
+  if (!questions || questions.length === 0) {
     return (
       <QuizLayout title="復習モード">
         <p>復習する問題はありません</p>
@@ -70,9 +91,16 @@ export default function ReviewClient({ quizType }: Props) {
     )
   }
 
-  const current = questions[index]
-  const answered = selected !== null
-  const isLast = index === questions.length - 1
+  if (!current) {
+    return (
+      <QuizLayout title="復習モード">
+        <p>問題の読み込みに失敗しました</p>
+        <Button variant="accent" onClick={goModeSelect}>
+          モード選択に戻る
+        </Button>
+      </QuizLayout>
+    )
+  }
 
   const answer = (i: number) => {
     if (answered) return
@@ -81,11 +109,8 @@ export default function ReviewClient({ quizType }: Props) {
 
   const next = () => {
     setSelected(null)
-    if (!isLast) {
-      setIndex(prev => prev + 1)
-    } else {
-      goModeSelect()
-    }
+    if (!isLast) setIndex(prev => prev + 1)
+    else goModeSelect()
   }
 
   return (
@@ -111,11 +136,11 @@ export default function ReviewClient({ quizType }: Props) {
 
       {answered && (
         <div className="mt-4">
-          <p>{selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"}</p>
-          {current.explanation && <p className="mt-2">{current.explanation}</p>}
+          <p>{resultLabel}</p>
+          {current.explanation && <p className="mt-2 whitespace-pre-wrap">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
-            {isLast ? "終了（モード選択へ）" : "次へ"}
+            {isLast ? '終了（モード選択へ）' : '次へ'}
           </Button>
         </div>
       )}

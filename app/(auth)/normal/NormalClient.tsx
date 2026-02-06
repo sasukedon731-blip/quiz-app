@@ -180,6 +180,8 @@ export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
   const { user } = useAuth()
 
+  const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
+
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -188,6 +190,25 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   const answeringRef = useRef(false)
   const countedRef = useRef(false)
+
+  // ✅ 追加：最新の wrong を常に持つ（stateの反映遅延対策）
+  const wrongRef = useRef<Question[]>([])
+  useEffect(() => {
+    wrongRef.current = wrong
+  }, [wrong])
+
+  // ✅ 追加：間違いを重複なしで追加し、即 localStorage に保存
+  const pushWrong = (q: Question) => {
+    setWrong(prev => {
+      if (prev.some(x => x.id === q.id)) return prev
+      const next = [...prev, q]
+      wrongRef.current = next
+      try {
+        localStorage.setItem(wrongKey, JSON.stringify(next))
+      } catch {}
+      return next
+    })
+  }
 
   useEffect(() => {
     try {
@@ -210,10 +231,13 @@ export default function NormalClient({ quiz, quizType }: Props) {
         if (typeof parsed?.index === 'number') setIndex(parsed.index)
       }
 
-      const savedWrong = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
+      const savedWrong = localStorage.getItem(wrongKey)
       if (savedWrong) {
         const parsedWrong = JSON.parse(savedWrong)
-        if (Array.isArray(parsedWrong)) setWrong(parsedWrong)
+        if (Array.isArray(parsedWrong)) {
+          setWrong(parsedWrong)
+          wrongRef.current = parsedWrong
+        }
       }
     } catch {
       localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
@@ -224,6 +248,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
         JSON.stringify({ questions: rnd })
       )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType, quiz.questions])
 
   if (questions.length === 0) {
@@ -248,7 +273,8 @@ export default function NormalClient({ quiz, quizType }: Props) {
     if (ok) playBeep(880, 120, 'sine')
     else {
       playBeep(220, 160, 'square')
-      setWrong(prev => [...prev, current])
+      // ✅ 修正：state遅延で取りこぼさない（即保存＆重複なし）
+      pushWrong(current)
     }
 
     setTimeout(() => {
@@ -267,8 +293,10 @@ export default function NormalClient({ quiz, quizType }: Props) {
     if (index + 1 < questions.length) {
       const nextIndex = index + 1
       setIndex(nextIndex)
+
       localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index: nextIndex }))
-      localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
+      // ✅ 修正：必ず最新の wrong を保存
+      localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
       return
     }
 
@@ -291,7 +319,8 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
     // 終了処理
     localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-    localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
+    // ✅ 修正：必ず最新の wrong を保存
+    localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
 
     goModeSelect()
@@ -299,7 +328,8 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   const interrupt = () => {
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
-    localStorage.setItem(`${STORAGE_WRONG_KEY}-${quizType}`, JSON.stringify(wrong))
+    // ✅ 修正：必ず最新の wrong を保存
+    localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     goModeSelect()
   }
 
