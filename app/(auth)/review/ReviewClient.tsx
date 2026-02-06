@@ -23,8 +23,14 @@ function isQuestionLike(v: any): v is Question {
   )
 }
 
+function uniqById(list: Question[]) {
+  return Array.from(new Map(list.map(q => [q.id, q])).values())
+}
+
 export default function ReviewClient({ quizType }: Props) {
   const router = useRouter()
+
+  const storageKey = `${STORAGE_WRONG_KEY}-${quizType}`
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
@@ -34,11 +40,10 @@ export default function ReviewClient({ quizType }: Props) {
     router.push(`/select-mode?type=${quizType}`)
   }
 
+  // 初回ロード：wrong-${quizType}（Question[]）を読む
   useEffect(() => {
-    const key = `${STORAGE_WRONG_KEY}-${quizType}`
-
     try {
-      const saved = localStorage.getItem(key)
+      const saved = localStorage.getItem(storageKey)
       if (!saved) {
         setQuestions([])
         setIndex(0)
@@ -49,11 +54,8 @@ export default function ReviewClient({ quizType }: Props) {
       const data = JSON.parse(saved)
 
       if (Array.isArray(data)) {
-        const list = data.filter(isQuestionLike) as Question[]
-        // ✅ 念のため重複除去（idで一意にする）
-        const uniq = Array.from(new Map(list.map(q => [q.id, q])).values())
-
-        setQuestions(uniq)
+        const list = uniqById((data.filter(isQuestionLike) as Question[]))
+        setQuestions(list)
         setIndex(0)
         setSelected(null)
         return
@@ -63,23 +65,43 @@ export default function ReviewClient({ quizType }: Props) {
       setIndex(0)
       setSelected(null)
     } catch {
-      localStorage.removeItem(key)
+      localStorage.removeItem(storageKey)
       setQuestions([])
       setIndex(0)
       setSelected(null)
     }
-  }, [quizType])
+  }, [storageKey])
 
   const current = questions[index]
-
   const answered = selected !== null
-  const isLast = index >= questions.length - 1
 
-  const resultLabel = useMemo(() => {
-    if (!answered || !current) return ''
-    return selected === current.correctIndex ? '⭕ 正解！' : '❌ 不正解'
-  }, [answered, selected, current])
+  const isCorrect = useMemo(() => {
+    if (!current || selected === null) return false
+    return selected === current.correctIndex
+  }, [current, selected])
 
+  // ✅ 正解した問題を wrong から削除（localStorage & state 両方）
+  const removeCurrentFromWrong = (qid: number) => {
+    // state更新（画面上のリストから消す）
+    setQuestions(prev => {
+      const next = prev.filter(q => q.id !== qid)
+
+      // localStorage も同期
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next))
+      } catch {}
+
+      // index 調整：末尾を消して index がはみ出すのを防ぐ
+      setIndex(i => {
+        const max = Math.max(0, next.length - 1)
+        return Math.min(i, max)
+      })
+
+      return next
+    })
+  }
+
+  // 復習対象なし
   if (!questions || questions.length === 0) {
     return (
       <QuizLayout title="復習モード">
@@ -91,6 +113,7 @@ export default function ReviewClient({ quizType }: Props) {
     )
   }
 
+  // current がない（保険）
   if (!current) {
     return (
       <QuizLayout title="復習モード">
@@ -108,10 +131,44 @@ export default function ReviewClient({ quizType }: Props) {
   }
 
   const next = () => {
+    if (!current) return
+
+    // ✅ 正解なら弱点リストから削除
+    if (isCorrect) {
+      const qid = current.id
+
+      // 先に選択状態をリセット（UI安定）
+      setSelected(null)
+
+      // 削除後の表示を決める
+      // - 削除すると questions が1つ減る
+      // - 「同じ index の次の問題」を見せたい（末尾なら1つ前へ）
+      const willBe = questions.filter(q => q.id !== qid)
+      if (willBe.length === 0) {
+        // 全部克服！
+        try {
+          localStorage.setItem(storageKey, JSON.stringify([]))
+        } catch {}
+        goModeSelect()
+        return
+      }
+
+      // index は removeCurrentFromWrong 内で安全に調整される
+      removeCurrentFromWrong(qid)
+      return
+    }
+
+    // ❌ 不正解は残す：普通に次へ
     setSelected(null)
-    if (!isLast) setIndex(prev => prev + 1)
-    else goModeSelect()
+    if (index + 1 < questions.length) {
+      setIndex(prev => prev + 1)
+    } else {
+      // 最後まで見たらモード選択へ（不正解が残るので次回来るとまた出る）
+      goModeSelect()
+    }
   }
+
+  const isLastNow = index >= questions.length - 1
 
   return (
     <QuizLayout title="復習モード">
@@ -136,11 +193,12 @@ export default function ReviewClient({ quizType }: Props) {
 
       {answered && (
         <div className="mt-4">
-          <p>{resultLabel}</p>
+          <p>{isCorrect ? '⭕ 正解！（この問題は復習リストから消えます）' : '❌ 不正解（復習に残します）'}</p>
           {current.explanation && <p className="mt-2 whitespace-pre-wrap">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
-            {isLast ? '終了（モード選択へ）' : '次へ'}
+            {/* 正解時：削除して次へ。不正解時：次へ or 終了 */}
+            {isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}
           </Button>
         </div>
       )}
