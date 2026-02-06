@@ -1,77 +1,53 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import QuizLayout from "@/app/components/QuizLayout"
 import Button from "@/app/components/Button"
 import { quizzes } from "@/app/data/quizzes"
 import type { Question, QuizType } from "@/app/data/types"
 
-const STORAGE_BASE = "wrong"
+const STORAGE_KEY = "wrong"
 
-type Props = { quizType: QuizType }
-
-function isQuestionLike(v: any): v is Question {
-  return v && typeof v === "object" && typeof v.question === "string" && Array.isArray(v.choices)
+type Props = {
+  quizType: QuizType
 }
 
 export default function ReviewClient({ quizType }: Props) {
   const router = useRouter()
+
+  // ✅ Hooks は必ず最上位・固定順
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
 
-  const goModeSelect = () => router.push(`/select-mode?type=${quizType}`)
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
 
+  // ✅ 復習問題の読み込み（ID配列方式）
   useEffect(() => {
-    const key = `${STORAGE_BASE}-${quizType}`
-
-    // 旧キー互換（念のため）
-    const legacyKeys = [
-      key,
-      "wrongQuestions", // 以前の実装でありがち
-      `wrongQuestions-${quizType}`,
-    ]
-
-    let raw: string | null = null
-    for (const k of legacyKeys) {
-      const v = localStorage.getItem(k)
-      if (v) {
-        raw = v
-        break
-      }
-    }
-
-    if (!raw) {
-      setQuestions([])
-      setIndex(0)
-      setSelected(null)
-      return
-    }
-
     try {
-      const data = JSON.parse(raw)
-
-      // ✅ 1) すでに Question[] を保存している形式（現状互換）
-      if (Array.isArray(data) && data.length > 0 && isQuestionLike(data[0])) {
-        setQuestions(data as Question[])
-        setIndex(0)
-        setSelected(null)
+      const raw = localStorage.getItem(`${STORAGE_KEY}-${quizType}`)
+      if (!raw) {
+        setQuestions([])
         return
       }
 
-      // ✅ 2) ID配列形式（推奨）
-      if (Array.isArray(data) && data.every((x) => typeof x === "number")) {
-        const all = quizzes[quizType].questions as Question[]
-        const review = all.filter((q: any) => data.includes(q.id))
-        setQuestions(review)
-        setIndex(0)
-        setSelected(null)
+      const ids = JSON.parse(raw)
+      if (!Array.isArray(ids)) {
+        setQuestions([])
         return
       }
 
-      // それ以外は不正
-      setQuestions([])
+      const all = quizzes[quizType]?.questions
+      if (!Array.isArray(all)) {
+        setQuestions([])
+        return
+      }
+
+      const review = all.filter(q => ids.includes(q.id))
+      setQuestions(review)
       setIndex(0)
       setSelected(null)
     } catch {
@@ -80,6 +56,8 @@ export default function ReviewClient({ quizType }: Props) {
       setSelected(null)
     }
   }, [quizType])
+
+  // ---------- 表示分岐（Hooksの後） ----------
 
   if (questions.length === 0) {
     return (
@@ -96,11 +74,6 @@ export default function ReviewClient({ quizType }: Props) {
   const answered = selected !== null
   const isLast = index === questions.length - 1
 
-  const resultLabel = useMemo(() => {
-    if (!answered) return ""
-    return selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"
-  }, [answered, selected, current])
-
   const answer = (i: number) => {
     if (answered) return
     setSelected(i)
@@ -108,8 +81,11 @@ export default function ReviewClient({ quizType }: Props) {
 
   const next = () => {
     setSelected(null)
-    if (!isLast) setIndex((p) => p + 1)
-    else goModeSelect()
+    if (!isLast) {
+      setIndex(prev => prev + 1)
+    } else {
+      goModeSelect()
+    }
   }
 
   return (
@@ -135,7 +111,7 @@ export default function ReviewClient({ quizType }: Props) {
 
       {answered && (
         <div className="mt-4">
-          <p>{resultLabel}</p>
+          <p>{selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"}</p>
           {current.explanation && <p className="mt-2">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
