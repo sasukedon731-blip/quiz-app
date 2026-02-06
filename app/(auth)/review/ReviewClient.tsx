@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import QuizLayout from "@/app/components/QuizLayout"
 import Button from "@/app/components/Button"
+import { quizzes } from "@/app/data/quizzes"
 import type { Question, QuizType } from "@/app/data/types"
 
 const STORAGE_WRONG_KEY = "wrong"
@@ -23,45 +24,38 @@ export default function ReviewClient({ quizType }: Props) {
     router.push(`/select-mode?type=${quizType}`)
   }
 
+  // ✅ 正しい復習データ構築
   useEffect(() => {
     try {
-      const key = `${STORAGE_WRONG_KEY}-${quizType}`
-      const saved = localStorage.getItem(key)
-
-      if (!saved) {
+      const raw = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
+      if (!raw) {
         setQuestions([])
-        setIndex(0)
-        setSelected(null)
         return
       }
 
-      const data = JSON.parse(saved)
-
-      if (Array.isArray(data)) {
-        setQuestions(data as Question[])
-      } else {
+      const wrongIds: number[] = JSON.parse(raw)
+      if (!Array.isArray(wrongIds) || wrongIds.length === 0) {
         setQuestions([])
+        return
       }
 
-      // ✅ 読み込み時は状態を初期化（前回の選択が残らない）
+      const all = quizzes[quizType].questions
+      const review = all.filter(q => wrongIds.includes(q.id))
+
+      setQuestions(review)
       setIndex(0)
       setSelected(null)
     } catch {
-      // 壊れていたら消して落ちないようにする
-      localStorage.removeItem(`${STORAGE_WRONG_KEY}-${quizType}`)
       setQuestions([])
       setIndex(0)
       setSelected(null)
     }
   }, [quizType])
 
-  // 復習対象なし
-  if (!questions || questions.length === 0) {
+  if (questions.length === 0) {
     return (
       <QuizLayout title="復習モード">
         <p>復習する問題はありません</p>
-
-        {/* ✅ 戻るボタンはここだけ */}
         <Button variant="accent" onClick={goModeSelect}>
           モード選択に戻る
         </Button>
@@ -70,8 +64,8 @@ export default function ReviewClient({ quizType }: Props) {
   }
 
   const current = questions[index]
-  const isLast = index >= questions.length - 1
   const answered = selected !== null
+  const isLast = index === questions.length - 1
 
   const answer = (i: number) => {
     if (answered) return
@@ -79,15 +73,14 @@ export default function ReviewClient({ quizType }: Props) {
   }
 
   const next = () => {
-    // ✅ 次へ：状態を確実にリセット
     setSelected(null)
 
     if (!isLast) {
-      setIndex((prev) => prev + 1)
+      setIndex(prev => prev + 1)
       return
     }
 
-    // ✅ 最後は終了（モード選択へ）
+    // ✅ 全問終わってから戻る
     goModeSelect()
   }
 
@@ -112,21 +105,17 @@ export default function ReviewClient({ quizType }: Props) {
         </Button>
       ))}
 
-      {/* ✅ 回答後だけ表示：解説 + 次へ/終了（ここに集約） */}
       {answered && (
         <div className="mt-4">
           <p>{selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"}</p>
           {current.explanation && <p className="mt-2">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
-            {!isLast ? "次へ" : "終了（モード選択へ）"}
+            {isLast ? "終了（モード選択へ）" : "次へ"}
           </Button>
         </div>
       )}
 
-      {/* ✅ 戻るボタンは常時出さない（2つになる原因）
-          どうしても常時出したい場合は「未回答の時だけ」にする
-      */}
       {!answered && (
         <div className="mt-4">
           <Button variant="accent" onClick={goModeSelect}>
