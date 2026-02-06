@@ -1,48 +1,77 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import QuizLayout from "@/app/components/QuizLayout"
 import Button from "@/app/components/Button"
 import { quizzes } from "@/app/data/quizzes"
 import type { Question, QuizType } from "@/app/data/types"
 
-const STORAGE_WRONG_KEY = "wrong"
+const STORAGE_BASE = "wrong"
 
-type Props = {
-  quizType: QuizType
+type Props = { quizType: QuizType }
+
+function isQuestionLike(v: any): v is Question {
+  return v && typeof v === "object" && typeof v.question === "string" && Array.isArray(v.choices)
 }
 
 export default function ReviewClient({ quizType }: Props) {
   const router = useRouter()
-
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
 
-  const goModeSelect = () => {
-    router.push(`/select-mode?type=${quizType}`)
-  }
+  const goModeSelect = () => router.push(`/select-mode?type=${quizType}`)
 
-  // ✅ 正しい復習データ構築
   useEffect(() => {
+    const key = `${STORAGE_BASE}-${quizType}`
+
+    // 旧キー互換（念のため）
+    const legacyKeys = [
+      key,
+      "wrongQuestions", // 以前の実装でありがち
+      `wrongQuestions-${quizType}`,
+    ]
+
+    let raw: string | null = null
+    for (const k of legacyKeys) {
+      const v = localStorage.getItem(k)
+      if (v) {
+        raw = v
+        break
+      }
+    }
+
+    if (!raw) {
+      setQuestions([])
+      setIndex(0)
+      setSelected(null)
+      return
+    }
+
     try {
-      const raw = localStorage.getItem(`${STORAGE_WRONG_KEY}-${quizType}`)
-      if (!raw) {
-        setQuestions([])
+      const data = JSON.parse(raw)
+
+      // ✅ 1) すでに Question[] を保存している形式（現状互換）
+      if (Array.isArray(data) && data.length > 0 && isQuestionLike(data[0])) {
+        setQuestions(data as Question[])
+        setIndex(0)
+        setSelected(null)
         return
       }
 
-      const wrongIds: number[] = JSON.parse(raw)
-      if (!Array.isArray(wrongIds) || wrongIds.length === 0) {
-        setQuestions([])
+      // ✅ 2) ID配列形式（推奨）
+      if (Array.isArray(data) && data.every((x) => typeof x === "number")) {
+        const all = quizzes[quizType].questions as Question[]
+        const review = all.filter((q: any) => data.includes(q.id))
+        setQuestions(review)
+        setIndex(0)
+        setSelected(null)
         return
       }
 
-      const all = quizzes[quizType].questions
-      const review = all.filter(q => wrongIds.includes(q.id))
-
-      setQuestions(review)
+      // それ以外は不正
+      setQuestions([])
       setIndex(0)
       setSelected(null)
     } catch {
@@ -67,6 +96,11 @@ export default function ReviewClient({ quizType }: Props) {
   const answered = selected !== null
   const isLast = index === questions.length - 1
 
+  const resultLabel = useMemo(() => {
+    if (!answered) return ""
+    return selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"
+  }, [answered, selected, current])
+
   const answer = (i: number) => {
     if (answered) return
     setSelected(i)
@@ -74,14 +108,8 @@ export default function ReviewClient({ quizType }: Props) {
 
   const next = () => {
     setSelected(null)
-
-    if (!isLast) {
-      setIndex(prev => prev + 1)
-      return
-    }
-
-    // ✅ 全問終わってから戻る
-    goModeSelect()
+    if (!isLast) setIndex((p) => p + 1)
+    else goModeSelect()
   }
 
   return (
@@ -107,7 +135,7 @@ export default function ReviewClient({ quizType }: Props) {
 
       {answered && (
         <div className="mt-4">
-          <p>{selected === current.correctIndex ? "⭕ 正解！" : "❌ 不正解"}</p>
+          <p>{resultLabel}</p>
           {current.explanation && <p className="mt-2">{current.explanation}</p>}
 
           <Button variant="main" onClick={next}>
