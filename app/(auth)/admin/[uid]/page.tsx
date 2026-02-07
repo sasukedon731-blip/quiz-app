@@ -10,6 +10,7 @@ import {
   limit,
   orderBy,
   query,
+  where,
 } from "firebase/firestore"
 import { useAuth } from "@/app/lib/useAuth"
 import { db } from "@/app/lib/firebase"
@@ -18,6 +19,7 @@ import { getUserRole } from "@/app/lib/firestore"
 type QuizResult = {
   score: number
   total: number
+  accuracy?: number
   mode?: string
   quizType?: string
   createdAt?: { seconds: number } | null
@@ -38,26 +40,17 @@ type UserProfile = {
   role?: "admin" | "user"
 }
 
-const QUIZ_TYPES = ["gaikoku-license", "japanese-n4"] as const
+const QUIZ_TYPES = ["gaikoku-license", "japanese-n4", "genba-listening"] as const
+
+function label(t: string) {
+  if (t === "japanese-n4") return "N4"
+  if (t === "genba-listening") return "現場リスニング"
+  return "外国免許"
+}
 
 function formatDateSeconds(seconds?: number) {
   if (!seconds) return "-"
   return new Date(seconds * 1000).toLocaleString()
-}
-
-function jstDayKey(d = new Date()) {
-  // "YYYY-MM-DD" in JST
-  try {
-    return new Intl.DateTimeFormat("sv-SE", {
-      timeZone: "Asia/Tokyo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(d)
-  } catch {
-    const local = new Date(d.getTime() + 9 * 60 * 60 * 1000)
-    return local.toISOString().slice(0, 10)
-  }
 }
 
 function safeProgress(p: any): StudyProgress {
@@ -80,82 +73,62 @@ function safeProgress(p: any): StudyProgress {
   }
 }
 
-async function fetchProgress(uid: string, quizType: string): Promise<StudyProgress | null> {
-  try {
-    const ref = doc(db, "users", uid, "progress", quizType)
-    const snap = await getDoc(ref)
-    if (!snap.exists()) return null
-    return safeProgress(snap.data())
-  } catch (e) {
-    console.error("fetchProgress failed", uid, quizType, e)
-    return null
-  }
-}
-
 export default function AdminUserPage() {
   const router = useRouter()
-  const params = useParams()
-  const uid = String((params as any).uid)
+  const params = useParams<{ uid: string }>()
+  const uid = params?.uid
 
   const { user, loading } = useAuth()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [progress, setProgress] = useState<Record<string, StudyProgress | null>>({
-    "gaikoku-license": null,
-    "japanese-n4": null,
-  })
-
+  const [progress, setProgress] = useState<Record<string, StudyProgress | null>>({})
   const [results, setResults] = useState<QuizResult[]>([])
-  const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
+
+  const [tab, setTab] = useState<"all" | (typeof QUIZ_TYPES)[number]>("all")
 
   useEffect(() => {
     if (loading) return
-
     if (!user) {
       router.replace("/login")
       return
     }
+    if (!uid) return
 
     const init = async () => {
       setError(null)
       setReady(false)
 
       try {
-        // admin判定
         const role = await getUserRole(user.uid)
         if (role !== "admin") {
           router.replace("/")
           return
         }
 
-        // users/{uid} のプロフィール取得
-        const userRef = doc(db, "users", uid)
-        const userSnap = await getDoc(userRef)
-        setProfile(userSnap.exists() ? (userSnap.data() as UserProfile) : null)
+        // profile
+        const profileSnap = await getDoc(doc(db, "users", uid))
+        setProfile(profileSnap.exists() ? (profileSnap.data() as UserProfile) : null)
 
-        // progress 取得（教材別）
-        const progEntries = await Promise.all(
-          QUIZ_TYPES.map(async (t) => [t, await fetchProgress(uid, t)] as const)
+        // progress（教材別）
+        const nextProgress: Record<string, StudyProgress | null> = {}
+        await Promise.all(
+          QUIZ_TYPES.map(async (t) => {
+            const snap = await getDoc(doc(db, "users", uid, "progress", t))
+            nextProgress[t] = snap.exists() ? safeProgress(snap.data()) : null
+          })
         )
-        const prog: Record<string, StudyProgress | null> = {
-          "gaikoku-license": null,
-          "japanese-n4": null,
-        }
-        for (const [t, p] of progEntries) prog[t] = p
-        setProgress(prog)
+        setProgress(nextProgress)
 
-        // results 取得（最新50件）
-        const q = query(
-          collection(db, "users", uid, "results"),
-          orderBy("createdAt", "desc"),
-          limit(50)
-        )
-        const snap = await getDocs(q)
-        const list = snap.docs.map((d) => d.data() as QuizResult)
+        // results（直近100件、教材別はUIでフィルタ）
+        const col = collection(db, "users", uid, "results")
+        const qy = query(col, orderBy("createdAt", "desc"), limit(100))
+        const resSnap = await getDocs(qy)
+
+        const list = resSnap.docs.map((d) => d.data() as QuizResult)
         setResults(list)
       } catch (e: any) {
-        console.error(e)
         setError(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "不明なエラー")
       } finally {
         setReady(true)
@@ -163,44 +136,43 @@ export default function AdminUserPage() {
     }
 
     init()
-  }, [uid, user, loading, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, uid, router])
 
-  const today = jstDayKey()
+  const filteredResults = useMemo(() => {
+    if (tab === "all") return results
+    return results.filter((r) => r.quizType === tab)
+  }, [results, tab])
 
-  const label = (t: string) => (t === "japanese-n4" ? "日本語N4" : "外国免許切替")
-
-  const progCell = (p: StudyProgress | null) => {
-    if (!p) {
-      return { todayCount: 0, total: 0, streak: 0, best: 0, last: "-" }
+  const avgOf = (quizType: string) => {
+    const list = results.filter((r) => r.quizType === quizType)
+    if (list.length === 0) return null
+    let sumScore = 0
+    let sumTotal = 0
+    let sumAcc = 0
+    for (const r of list) {
+      const score = typeof r.score === "number" ? r.score : 0
+      const total = typeof r.total === "number" ? r.total : 0
+      const acc = typeof r.accuracy === "number" ? r.accuracy : total > 0 ? score / total : 0
+      sumScore += score
+      sumTotal += total
+      sumAcc += acc
     }
-    const todayCount = p.lastStudyDate === today ? (p.todaySessions ?? 0) : 0
+    const n = list.length
     return {
-      todayCount,
-      total: p.totalSessions ?? 0,
-      streak: p.streak ?? 0,
-      best: p.bestStreak ?? 0,
-      last: p.lastStudyDate || "-",
+      count: n,
+      avgScore: sumScore / n,
+      avgTotal: sumTotal / n,
+      avgAcc: sumAcc / n,
     }
   }
-
-  const progressSummary = useMemo(() => {
-    const g = progCell(progress["gaikoku-license"])
-    const n = progCell(progress["japanese-n4"])
-    return {
-      todayTotal: g.todayCount + n.todayCount,
-      totalAll: g.total + n.total,
-      currentStreak: Math.max(g.streak, n.streak),
-      bestStreak: Math.max(g.best, n.best),
-    }
-  }, [progress, today])
 
   if (loading || !ready) return <p style={{ textAlign: "center" }}>読み込み中…</p>
 
   if (error) {
     return (
-      <div style={{ maxWidth: 820, margin: "30px auto", padding: 16 }}>
+      <div style={{ maxWidth: 1000, margin: "30px auto", padding: 16 }}>
         <h1>ユーザー詳細</h1>
-        <p>UID: {uid}</p>
         <div
           style={{
             marginTop: 12,
@@ -217,193 +189,131 @@ export default function AdminUserPage() {
           {"\n"}
           {error}
         </div>
-        <button
-          onClick={() => router.push("/admin")}
-          style={{
-            marginTop: 16,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #ccc",
-            background: "#fff",
-            cursor: "pointer",
-            fontWeight: 700,
-          }}
-        >
-          ← 一覧に戻る
-        </button>
       </div>
     )
   }
 
   return (
     <div style={{ maxWidth: 1100, margin: "30px auto", padding: 16 }}>
-      <button
-        onClick={() => router.push("/admin")}
-        style={{
-          marginBottom: 12,
-          padding: "8px 10px",
-          borderRadius: 8,
-          border: "1px solid #ccc",
-          background: "#fff",
-          cursor: "pointer",
-          fontWeight: 700,
-        }}
-      >
-        ← 一覧に戻る
-      </button>
-
       <h1>ユーザー詳細</h1>
-      <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>UID: {uid}</div>
 
-      {/* ✅ プロフィール */}
-      <div
-        style={{
-          marginTop: 14,
-          padding: 14,
-          borderRadius: 12,
-          border: "1px solid #ddd",
-          background: "#fafafa",
-        }}
-      >
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
-          <div style={{ fontSize: 18, fontWeight: 900 }}>
-            {profile?.displayName ?? "-"}
-          </div>
-          <div style={{ color: "#555" }}>{profile?.email ?? "-"}</div>
-          <div
-            style={{
-              marginLeft: "auto",
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid #ccc",
-              background: "#fff",
-              fontWeight: 800,
-              fontSize: 12,
-            }}
-          >
-            role: {profile?.role ?? "-"}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 220px", padding: 12, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-            <div style={{ fontSize: 12, color: "#666" }}>今日の完了回数（合計）</div>
-            <div style={{ fontSize: 26, fontWeight: 900 }}>{progressSummary.todayTotal} 回</div>
-          </div>
-
-          <div style={{ flex: "1 1 220px", padding: 12, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-            <div style={{ fontSize: 12, color: "#666" }}>累計の完了回数（合計）</div>
-            <div style={{ fontSize: 26, fontWeight: 900 }}>{progressSummary.totalAll} 回</div>
-          </div>
-
-          <div style={{ flex: "1 1 220px", padding: 12, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-            <div style={{ fontSize: 12, color: "#666" }}>連続学習日数（現在 / 最高）</div>
-            <div style={{ fontSize: 24, fontWeight: 900 }}>
-              {progressSummary.currentStreak}日 / {progressSummary.bestStreak}日
-            </div>
-          </div>
-        </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+        <button
+          onClick={() => router.push("/admin")}
+          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}
+        >
+          管理画面へ戻る
+        </button>
       </div>
 
-      {/* ✅ 教材別 progress */}
-      <h2 style={{ marginTop: 18 }}>学習進捗（標準問題）</h2>
-
-      <div style={{ display: "grid", gap: 10 }}>
-        {QUIZ_TYPES.map((t) => {
-          const p = progCell(progress[t])
-          const didToday = p.todayCount > 0
-          return (
-            <div
-              key={t}
-              style={{
-                padding: 14,
-                borderRadius: 12,
-                border: "1px solid #ddd",
-                background: didToday ? "#ecfdf5" : "#fff7ed",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ fontWeight: 900 }}>
-                  {label(t)}
-                  <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 800, color: "#444" }}>
-                    （今日: {today}）
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: didToday ? "#065f46" : "#9a3412" }}>
-                  {didToday ? "✅ 今日学習あり" : "🟠 今日未学習"}
-                </div>
-              </div>
-
-              <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ flex: "1 1 180px", padding: 10, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-                  <div style={{ fontSize: 12, color: "#666" }}>今日の完了回数</div>
-                  <div style={{ fontSize: 22, fontWeight: 900 }}>{p.todayCount} 回</div>
-                </div>
-
-                <div style={{ flex: "1 1 180px", padding: 10, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-                  <div style={{ fontSize: 12, color: "#666" }}>累計完了回数</div>
-                  <div style={{ fontSize: 22, fontWeight: 900 }}>{p.total} 回</div>
-                </div>
-
-                <div style={{ flex: "1 1 180px", padding: 10, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-                  <div style={{ fontSize: 12, color: "#666" }}>連続 / 最高</div>
-                  <div style={{ fontSize: 22, fontWeight: 900 }}>
-                    {p.streak}日 / {p.best}日
-                  </div>
-                </div>
-
-                <div style={{ flex: "1 1 220px", padding: 10, borderRadius: 10, border: "1px solid #eee", background: "#fff" }}>
-                  <div style={{ fontSize: 12, color: "#666" }}>最終学習日</div>
-                  <div style={{ fontSize: 18, fontWeight: 900 }}>{p.last}</div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
+      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
+        <div style={{ fontWeight: 900, marginBottom: 6 }}>基本情報</div>
+        <div>名前：{profile?.displayName ?? "-"}</div>
+        <div>メール：{profile?.email ?? "-"}</div>
+        <div>role：{profile?.role ?? "-"}</div>
+        <div style={{ fontSize: 12, opacity: 0.7 }}>UID：{uid}</div>
       </div>
 
-      {/* ✅ results（模擬試験） */}
-      <h2 style={{ marginTop: 18 }}>結果（模擬試験など）</h2>
+      <div style={{ marginTop: 12, border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
+        <div style={{ fontWeight: 900, marginBottom: 8 }}>学習進捗（教材別）</div>
 
-      {results.length === 0 ? (
-        <p>結果がありません</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
               <th style={{ border: "1px solid #ccc", padding: 8 }}>教材</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>モード</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>日時</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>スコア</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>正答率</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>今日</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>累計</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>最終日</th>
+              <th style={{ border: "1px solid #ccc", padding: 8 }}>模擬平均</th>
             </tr>
           </thead>
           <tbody>
-            {results.map((r, i) => {
-              const acc = r.total ? Math.round((r.score / r.total) * 100) : 0
+            {QUIZ_TYPES.map((t) => {
+              const p = progress[t]
+              const a = avgOf(t)
               return (
-                <tr key={i}>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{r.quizType ?? "-"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{r.mode ?? "-"}</td>
+                <tr key={t}>
+                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>{label(t)}</td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.todaySessions ?? 0}</td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.totalSessions ?? 0}</td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.lastStudyDate ?? "-"}</td>
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                    {formatDateSeconds(r.createdAt?.seconds)}
-                  </td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                    {r.score} / {r.total}
-                  </td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
-                    {acc}%
+                    {a ? `${a.avgScore.toFixed(1)}/${a.avgTotal.toFixed(1)}（${Math.round(a.avgAcc * 100)}%）` : "-"}
+                    {a?.count ? <div style={{ fontSize: 12, opacity: 0.7 }}>（{a.count}回）</div> : null}
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-      )}
 
-      <p style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-        ※ progress は users/{`{uid}`}/progress/{`{quizType}`} を参照 / results は users/{`{uid}`}/results を参照
-      </p>
+        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+          ※ 連続（streak）は表示しない設定にしています（データは消していません）
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
+        <div style={{ fontWeight: 900, marginBottom: 10 }}>模擬試験結果（直近100件）</div>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <button
+            onClick={() => setTab("all")}
+            style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #ccc", background: tab === "all" ? "#111" : "#fff", color: tab === "all" ? "#fff" : "#111", cursor: "pointer", fontWeight: 800 }}
+          >
+            ALL
+          </button>
+          {QUIZ_TYPES.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #ccc", background: tab === t ? "#111" : "#fff", color: tab === t ? "#fff" : "#111", cursor: "pointer", fontWeight: 800 }}
+            >
+              {label(t)}
+            </button>
+          ))}
+        </div>
+
+        {filteredResults.length === 0 ? (
+          <p>結果がありません。</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ border: "1px solid #ccc", padding: 8 }}>日時</th>
+                <th style={{ border: "1px solid #ccc", padding: 8 }}>教材</th>
+                <th style={{ border: "1px solid #ccc", padding: 8 }}>点数</th>
+                <th style={{ border: "1px solid #ccc", padding: 8 }}>正答率</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredResults.map((r, idx) => {
+                const acc =
+                  typeof r.accuracy === "number"
+                    ? r.accuracy
+                    : r.total > 0
+                      ? r.score / r.total
+                      : 0
+                return (
+                  <tr key={idx}>
+                    <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                      {formatDateSeconds(r.createdAt?.seconds)}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                      {label(r.quizType ?? "-")}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
+                      {r.score}/{r.total}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                      {Math.round(acc * 100)}%
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }
