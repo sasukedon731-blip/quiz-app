@@ -120,6 +120,9 @@ function writeProgress(quizType: QuizType, p: StudyProgress) {
   localStorage.setItem(key, JSON.stringify(p))
 }
 
+/**
+ * ✅ 全問完了した時だけ呼ぶ
+ */
 function updateProgressOnSessionComplete(quizType: QuizType) {
   const today = todayKey()
   const p = readProgress(quizType)
@@ -157,20 +160,33 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
+  const indexRef = useRef(0)
+
   const [selected, setSelected] = useState<number | null>(null)
   const [showExplanation, setShowExplanation] = useState(false)
   const [correct, setCorrect] = useState(false)
+
+  // ✅ 続きから/はじめから選択
+  // null: 選択待ち（確認画面表示）
+  // 'continue' | 'restart': 選択済み
+  const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
 
   const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
   const wrongRef = useRef<Question[]>([])
 
   useEffect(() => {
-    const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
-    const savedSessionRaw = localStorage.getItem(sessionKey)
+    indexRef.current = index
+  }, [index])
 
-    const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
-    const savedProgressRaw = localStorage.getItem(progressKey)
+  const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
+  const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
 
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
+
+  const startSession = (mode: 'continue' | 'restart') => {
+    // wrong は常に最新を ref で保持（念のためここでも読み込み）
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -182,52 +198,159 @@ export default function NormalClient({ quiz, quizType }: Props) {
       wrongRef.current = []
     }
 
+    if (mode === 'restart') {
+      const built = buildRandomQuestions(quiz.questions)
+      setQuestions(built)
+      setIndex(0)
+      setSelected(null)
+      setShowExplanation(false)
+      setCorrect(false)
+
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
+      localStorage.removeItem(progressKey)
+      return
+    }
+
+    // continue
+    let loadedQuestions: Question[] | null = null
+    const savedSessionRaw = localStorage.getItem(sessionKey)
     if (savedSessionRaw) {
       try {
         const d = JSON.parse(savedSessionRaw) as { questions: Question[] }
-        if (Array.isArray(d.questions) && d.questions.length > 0) {
-          setQuestions(d.questions)
-        } else {
-          const built = buildRandomQuestions(quiz.questions)
-          setQuestions(built)
-          localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
-        }
-      } catch {
-        const built = buildRandomQuestions(quiz.questions)
-        setQuestions(built)
-        localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
-      }
-    } else {
-      const built = buildRandomQuestions(quiz.questions)
-      setQuestions(built)
-      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
-    }
-
-    if (savedProgressRaw) {
-      try {
-        const d = JSON.parse(savedProgressRaw) as { index?: number }
-        if (typeof d.index === 'number') setIndex(d.index)
+        if (Array.isArray(d.questions) && d.questions.length > 0) loadedQuestions = d.questions
       } catch {}
     }
 
+    if (!loadedQuestions) {
+      // sessionが無いなら安全に最初から
+      const built = buildRandomQuestions(quiz.questions)
+      setQuestions(built)
+      setIndex(0)
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
+      localStorage.removeItem(progressKey)
+      return
+    }
+
+    // index
+    let resumeIndex = 0
+    const savedProgressRaw = localStorage.getItem(progressKey)
+    if (savedProgressRaw) {
+      try {
+        const d = JSON.parse(savedProgressRaw) as { index?: number }
+        if (typeof d.index === 'number') resumeIndex = d.index
+      } catch {}
+    }
+
+    // 範囲外なら最初から（壊れ防止）
+    if (resumeIndex < 0 || resumeIndex >= loadedQuestions.length) {
+      resumeIndex = 0
+      localStorage.removeItem(progressKey)
+    }
+
+    setQuestions(loadedQuestions)
+    setIndex(resumeIndex)
+    setSelected(null)
+    setShowExplanation(false)
+    setCorrect(false)
+  }
+
+  // ✅ 初期化：中断があるなら「続き？最初？」を出す
+  useEffect(() => {
+    // 画面切替時に読み上げが残らないように
+    stopSpeak()
+
+    // wrong を読み込み
+    const savedWrongRaw = localStorage.getItem(wrongKey)
+    if (savedWrongRaw) {
+      try {
+        wrongRef.current = JSON.parse(savedWrongRaw) as Question[]
+      } catch {
+        wrongRef.current = []
+      }
+    } else {
+      wrongRef.current = []
+    }
+
+    // 中断 index を確認
+    const savedProgressRaw = localStorage.getItem(progressKey)
+    if (savedProgressRaw) {
+      try {
+        const d = JSON.parse(savedProgressRaw) as { index?: number }
+        if (typeof d.index === 'number' && d.index > 0) {
+          // ✅ 続きの可能性あり → 確認画面
+          setStartChoice(null)
+          return
+        }
+      } catch {}
+    }
+
+    // 中断なし → そのまま開始
+    setStartChoice('restart')
+    startSession('restart')
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizType])
+
+  // ✅ 離脱時も中断保存（stale回避でrefを使う）
+  useEffect(() => {
     const handler = () => {
       try {
-        localStorage.setItem(progressKey, JSON.stringify({ index }))
-        localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+        if (questions.length > 0) {
+          localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current }))
+          localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+        }
       } catch {}
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quizType])
+  }, [questions.length, progressKey, wrongKey])
 
+  // ✅ 確認画面（続き/最初）
+  if (startChoice === null) {
+    return (
+      <QuizLayout title={quiz.title}>
+        <h2 style={{ marginTop: 0 }}>前回の続きがあります</h2>
+        <p style={{ opacity: 0.85 }}>どちらから始めますか？</p>
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+          <Button
+            variant="main"
+            onClick={() => {
+              setStartChoice('continue')
+              startSession('continue')
+            }}
+          >
+            続きから
+          </Button>
+
+          <Button
+            variant="accent"
+            onClick={() => {
+              setStartChoice('restart')
+              startSession('restart')
+            }}
+          >
+            はじめから
+          </Button>
+        </div>
+
+        <div style={{ marginTop: 12, opacity: 0.75, fontSize: 13 }}>
+          ※「はじめから」を選ぶと、通常問題の並びは新しくシャッフルされます
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <Button variant="success" onClick={goModeSelect}>
+            いったん戻る
+          </Button>
+        </div>
+      </QuizLayout>
+    )
+  }
+
+  // startChoice が決まっているのに questions がまだ無いとき（初期化直後）
   if (!questions.length) return null
 
   const current = questions[index]
-
-  const goModeSelect = () => {
-    router.push(`/select-mode?type=${quizType}`)
-  }
 
   const answer = (choiceIndex: number) => {
     if (selected !== null) return
@@ -271,8 +394,9 @@ export default function NormalClient({ quiz, quizType }: Props) {
         )
       }
 
-      localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-      localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
+      // ✅ 完了したら中断情報を消す
+      localStorage.removeItem(progressKey)
+      localStorage.removeItem(sessionKey)
 
       goModeSelect()
       return
@@ -280,12 +404,12 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
     const nextIndex = index + 1
     setIndex(nextIndex)
-    localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index: nextIndex }))
+    localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex }))
   }
 
   const interrupt = () => {
     stopSpeak()
-    localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
+    localStorage.setItem(progressKey, JSON.stringify({ index }))
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     goModeSelect()
   }
@@ -298,6 +422,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
       <h2>{current.question}</h2>
 
+      {/* ✅ MP3がある場合 */}
       {current.audioUrl && (
         <div
           style={{
@@ -312,6 +437,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
         </div>
       )}
 
+      {/* ✅ MP3がない場合：読み上げ（強化UI） */}
       <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
 
       {current.choices.map((c, i) => (
