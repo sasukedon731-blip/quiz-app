@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   collection,
@@ -80,7 +80,8 @@ function safeProgress(p: any): StudyProgress {
     todaySessions: typeof p.todaySessions === "number" ? p.todaySessions : 0,
     lastStudyDate: typeof p.lastStudyDate === "string" ? p.lastStudyDate : "",
     streak: typeof p.streak === "number" ? p.streak : 0,
-    streakUpdatedDate: typeof p.streakUpdatedDate === "string" ? p.streakUpdatedDate : "",
+    streakUpdatedDate:
+      typeof p.streakUpdatedDate === "string" ? p.streakUpdatedDate : "",
     bestStreak: typeof p.bestStreak === "number" ? p.bestStreak : 0,
   }
 }
@@ -133,11 +134,12 @@ async function fetchExamAverage(uid: string, quizType: string): Promise<ExamAvg 
       count += 1
     })
 
-    const avgScore = sumScore / count
-    const avgTotal = sumTotal / count
-    const avgAcc = sumAcc / count
-
-    return { count, avgScore, avgTotal, avgAcc }
+    return {
+      count,
+      avgScore: sumScore / count,
+      avgTotal: sumTotal / count,
+      avgAcc: sumAcc / count,
+    }
   } catch {
     return null
   }
@@ -155,6 +157,23 @@ async function setUserRole(targetUid: string, role: UserRole) {
     { merge: true }
   )
 }
+
+// ✅ 見出しを「最大2行」で省略表示
+const ThText = ({ children }: { children: React.ReactNode }) => (
+  <span
+    style={{
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+      wordBreak: "break-word",
+      lineHeight: 1.2,
+      fontSize: 13,
+    }}
+  >
+    {children}
+  </span>
+)
 
 export default function AdminPage() {
   const router = useRouter()
@@ -323,9 +342,10 @@ export default function AdminPage() {
   const thStyle: React.CSSProperties = {
     border: "1px solid #ccc",
     padding: 8,
-    whiteSpace: "nowrap",
     textAlign: "center",
     background: "#f9fafb",
+    whiteSpace: "normal",
+    overflow: "hidden",
   }
 
   const tdStyle: React.CSSProperties = {
@@ -336,7 +356,12 @@ export default function AdminPage() {
     whiteSpace: "nowrap",
   }
 
-  const tdLeft: React.CSSProperties = { ...tdStyle, textAlign: "left", whiteSpace: "normal" }
+  const tdLeft: React.CSSProperties = {
+    ...tdStyle,
+    textAlign: "left",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
+  }
 
   const onPromote = async (targetUid: string) => {
     if (!user) return
@@ -423,7 +448,6 @@ export default function AdminPage() {
               tableLayout: "fixed",
             }}
           >
-            {/* ✅ 列幅を固定して均等に。崩れた縦見出しを防止 */}
             <colgroup>
               <col style={{ width: 120 }} /> {/* 名前 */}
               <col style={{ width: 240 }} /> {/* メール */}
@@ -451,28 +475,28 @@ export default function AdminPage() {
 
             <thead>
               <tr>
-                <th style={thStyle}>名前</th>
-                <th style={thStyle}>メール</th>
-                <th style={thStyle}>UID</th>
-                <th style={thStyle}>role</th>
+                <th style={thStyle}><ThText>名前</ThText></th>
+                <th style={thStyle}><ThText>メール</ThText></th>
+                <th style={thStyle}><ThText>UID</ThText></th>
+                <th style={thStyle}><ThText>role</ThText></th>
 
                 {QUIZ_TYPES.map((t) => (
                   <th key={`${t}-today`} style={thStyle}>
-                    {label(t)} 今日
+                    <ThText>{label(t)} 今日</ThText>
                   </th>
                 ))}
                 {QUIZ_TYPES.map((t) => (
                   <th key={`${t}-total`} style={thStyle}>
-                    {label(t)} 累計
+                    <ThText>{label(t)} 累計</ThText>
                   </th>
                 ))}
                 {QUIZ_TYPES.map((t) => (
                   <th key={`${t}-avg`} style={thStyle}>
-                    {label(t)} 模擬平均
+                    <ThText>{label(t)} 模擬平均</ThText>
                   </th>
                 ))}
 
-                <th style={thStyle}>操作</th>
+                <th style={thStyle}><ThText>操作</ThText></th>
               </tr>
             </thead>
 
@@ -488,15 +512,20 @@ export default function AdminPage() {
                     <td style={{ ...tdStyle, fontWeight: 800 }}>{u.role ?? "-"}</td>
 
                     {QUIZ_TYPES.map((t) => (
-                      <td key={`${u.uid}-${t}-today`} style={{ ...tdStyle, fontWeight: 800 }}>
+                      <td
+                        key={`${u.uid}-${t}-today`}
+                        style={{ ...tdStyle, fontWeight: 800 }}
+                      >
                         {cell(u.progress[t]).today}
                       </td>
                     ))}
+
                     {QUIZ_TYPES.map((t) => (
                       <td key={`${u.uid}-${t}-total`} style={tdStyle}>
                         {cell(u.progress[t]).total}
                       </td>
                     ))}
+
                     {QUIZ_TYPES.map((t) => (
                       <td key={`${u.uid}-${t}-avg`} style={tdStyle}>
                         {avgText(u.examAvg[t])}
