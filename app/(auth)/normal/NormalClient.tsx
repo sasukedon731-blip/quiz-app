@@ -4,14 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
+import ListeningControls from '@/app/components/ListeningControls'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
-// ✅ 追加：読み上げ（MP3不要）
-import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
+// ✅ 離脱/中断で読み上げ停止
+import { stopSpeak } from '@/app/lib/tts'
 
 const STORAGE_PROGRESS_KEY = 'progress'
 const STORAGE_WRONG_KEY = 'wrong'
@@ -54,8 +55,8 @@ function buildRandomQuestions(questions: Question[]): Question[] {
 }
 
 function todayKey() {
-  // NOTE: 既存仕様を崩さないため現状維持（UTCズレが気になるなら後でJSTに統一）
-  return new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  // NOTE: 既存仕様維持（UTC基準）
+  return new Date().toISOString().slice(0, 10)
 }
 
 function addDays(ymd: string, delta: number) {
@@ -119,246 +120,174 @@ function writeProgress(quizType: QuizType, p: StudyProgress) {
   localStorage.setItem(key, JSON.stringify(p))
 }
 
-/**
- * ✅ 全問完了した時だけ呼ぶ
- * - todaySessions / totalSessions を +1
- * - streak を更新（同日2回目は増やさない）
- * - 変更後の progress を return（Firestore保存に使う）
- */
-function incrementOnComplete(quizType: QuizType): StudyProgress {
+function updateProgressOnSessionComplete(quizType: QuizType) {
   const today = todayKey()
   const p = readProgress(quizType)
 
-  // 日付が変わってたら todaySessions をリセット
-  if (p.lastStudyDate !== today) {
-    p.todaySessions = 0
-    p.lastStudyDate = today
+  const isSameDay = p.lastStudyDate === today
+  const nextTodaySessions = isSameDay ? p.todaySessions + 1 : 1
+
+  const shouldUpdateStreak = p.streakUpdatedDate !== today
+
+  let nextStreak = p.streak
+  if (shouldUpdateStreak) {
+    if (p.lastStudyDate === addDays(today, -1)) nextStreak = p.streak + 1
+    else if (p.lastStudyDate === today) nextStreak = p.streak
+    else nextStreak = 1
   }
 
-  p.totalSessions += 1
-  p.todaySessions += 1
+  const nextBest = Math.max(p.bestStreak, nextStreak)
 
-  // streak は「その日初めて完了した時だけ」更新
-  if (p.streakUpdatedDate !== today) {
-    const yesterday = addDays(today, -1)
-
-    if (p.streakUpdatedDate === yesterday) {
-      // 昨日も学習完了してた → 連続
-      p.streak = (p.streak || 0) + 1
-    } else {
-      // 途切れた or 初回
-      p.streak = 1
-    }
-    p.streakUpdatedDate = today
-    p.bestStreak = Math.max(p.bestStreak || 0, p.streak)
+  const next: StudyProgress = {
+    totalSessions: p.totalSessions + 1,
+    todaySessions: nextTodaySessions,
+    lastStudyDate: today,
+    streak: nextStreak,
+    streakUpdatedDate: shouldUpdateStreak ? today : p.streakUpdatedDate,
+    bestStreak: nextBest,
   }
 
-  writeProgress(quizType, p)
-  return p
+  writeProgress(quizType, next)
+  return next
 }
-
-async function saveProgressToFirestore(params: {
-  uid: string
-  quizType: QuizType
-  progress: StudyProgress
-}) {
-  const { uid, quizType, progress } = params
-  const ref = doc(db, 'users', uid, 'progress', quizType)
-
-  // 管理画面で一覧しやすいように uid/quizType も入れておく（mergeで安全）
-  await setDoc(
-    ref,
-    {
-      uid,
-      quizType,
-      ...progress,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  )
-}
-// --------------------------------
 
 export default function NormalClient({ quiz, quizType }: Props) {
   const router = useRouter()
   const { user } = useAuth()
 
-  const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
-
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [wrong, setWrong] = useState<Question[]>([])
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [showExplanation, setShowExplanation] = useState(false)
+  const [correct, setCorrect] = useState(false)
 
-  const answeringRef = useRef(false)
-  const countedRef = useRef(false)
-
-  // ✅ 追加：最新の wrong を常に持つ（stateの反映遅延対策）
+  const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
   const wrongRef = useRef<Question[]>([])
-  useEffect(() => {
-    wrongRef.current = wrong
-  }, [wrong])
 
-  // ✅ 追加：間違いを重複なしで追加し、即 localStorage に保存
-  const pushWrong = (q: Question) => {
-    setWrong(prev => {
-      if (prev.some(x => x.id === q.id)) return prev
-      const next = [...prev, q]
-      wrongRef.current = next
+  useEffect(() => {
+    const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
+    const savedSessionRaw = localStorage.getItem(sessionKey)
+
+    const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
+    const savedProgressRaw = localStorage.getItem(progressKey)
+
+    const savedWrongRaw = localStorage.getItem(wrongKey)
+    if (savedWrongRaw) {
       try {
-        localStorage.setItem(wrongKey, JSON.stringify(next))
-      } catch {}
-      return next
-    })
-  }
-
-  useEffect(() => {
-    try {
-      const sessionRaw = localStorage.getItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
-      if (sessionRaw) {
-        const session = JSON.parse(sessionRaw)
-        if (Array.isArray(session?.questions)) setQuestions(session.questions)
-      } else {
-        const rnd = buildRandomQuestions(quiz.questions)
-        setQuestions(rnd)
-        localStorage.setItem(
-          `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`,
-          JSON.stringify({ questions: rnd })
-        )
+        wrongRef.current = JSON.parse(savedWrongRaw) as Question[]
+      } catch {
+        wrongRef.current = []
       }
+    } else {
+      wrongRef.current = []
+    }
 
-      const saved = localStorage.getItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (typeof parsed?.index === 'number') setIndex(parsed.index)
-      }
-
-      const savedWrong = localStorage.getItem(wrongKey)
-      if (savedWrong) {
-        const parsedWrong = JSON.parse(savedWrong)
-        if (Array.isArray(parsedWrong)) {
-          setWrong(parsedWrong)
-          wrongRef.current = parsedWrong
+    if (savedSessionRaw) {
+      try {
+        const d = JSON.parse(savedSessionRaw) as { questions: Question[] }
+        if (Array.isArray(d.questions) && d.questions.length > 0) {
+          setQuestions(d.questions)
+        } else {
+          const built = buildRandomQuestions(quiz.questions)
+          setQuestions(built)
+          localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
         }
+      } catch {
+        const built = buildRandomQuestions(quiz.questions)
+        setQuestions(built)
+        localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
       }
-    } catch {
-      localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
-      const rnd = buildRandomQuestions(quiz.questions)
-      setQuestions(rnd)
-      localStorage.setItem(
-        `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`,
-        JSON.stringify({ questions: rnd })
-      )
+    } else {
+      const built = buildRandomQuestions(quiz.questions)
+      setQuestions(built)
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quizType, quiz.questions])
 
-  // ✅ 追加：画面離脱や問題切替時に読み上げが残らないように停止
-  useEffect(() => {
-    stopSpeak()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index])
-
-  useEffect(() => {
-    return () => {
-      stopSpeak()
+    if (savedProgressRaw) {
+      try {
+        const d = JSON.parse(savedProgressRaw) as { index?: number }
+        if (typeof d.index === 'number') setIndex(d.index)
+      } catch {}
     }
-  }, [])
 
-  if (questions.length === 0) {
-    return (
-      <QuizLayout title={quiz.title}>
-        <p>読み込み中...</p>
-      </QuizLayout>
-    )
-  }
+    const handler = () => {
+      try {
+        localStorage.setItem(progressKey, JSON.stringify({ index }))
+        localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+      } catch {}
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizType])
+
+  if (!questions.length) return null
 
   const current = questions[index]
 
-  const answer = (i: number) => {
-    if (selected !== null) return
-    if (answeringRef.current) return
-    answeringRef.current = true
-
-    // ✅ 追加：回答した瞬間に読み上げを止める（音が重ならない）
-    stopSpeak()
-
-    setSelected(i)
-    const ok = i === current.correctIndex
-    setIsCorrect(ok)
-
-    if (ok) playBeep(880, 120, 'sine')
-    else {
-      playBeep(220, 160, 'square')
-      // ✅ 修正：state遅延で取りこぼさない（即保存＆重複なし）
-      pushWrong(current)
-    }
-
-    setTimeout(() => {
-      answeringRef.current = false
-    }, 150)
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
   }
 
-  const goModeSelect = () => {
-    stopSpeak()
-    router.push(`/select-mode?type=${encodeURIComponent(quizType)}`)
+  const answer = (choiceIndex: number) => {
+    if (selected !== null) return
+    setSelected(choiceIndex)
+
+    const isCorrect = choiceIndex === current.correctIndex
+    setCorrect(isCorrect)
+    setShowExplanation(true)
+
+    if (isCorrect) playBeep(880, 120, 'triangle')
+    else playBeep(220, 180, 'sawtooth')
+
+    if (!isCorrect) {
+      const exists = wrongRef.current.some(q => q.id === current.id)
+      if (!exists) {
+        wrongRef.current = [...wrongRef.current, current]
+        localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+      }
+    }
   }
 
   const next = async () => {
-    stopSpeak()
     setSelected(null)
-    setIsCorrect(null)
+    setShowExplanation(false)
 
-    if (index + 1 < questions.length) {
-      const nextIndex = index + 1
-      setIndex(nextIndex)
+    if (index + 1 >= questions.length) {
+      const p = updateProgressOnSessionComplete(quizType)
 
-      localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index: nextIndex }))
-      // ✅ 修正：必ず最新の wrong を保存
-      localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+      if (user) {
+        const ref = doc(db, 'users', user.uid, 'progress', quizType)
+        await setDoc(
+          ref,
+          {
+            totalSessions: p.totalSessions,
+            todaySessions: p.todaySessions,
+            streak: p.streak,
+            bestStreak: p.bestStreak,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+      }
+
+      localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
+      localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
+
+      goModeSelect()
       return
     }
 
-    // ✅ 全問終了 → 学習回数 +1 & streak更新（1回だけ）
-    if (!countedRef.current) {
-      countedRef.current = true
-      const progress = incrementOnComplete(quizType)
-      playBeep(1046, 160, 'triangle') // 🎉っぽい音
-
-      // ✅ Firestoreにも保存（管理者が見れる）
-      // user がまだ取得できていない場合はスキップ（完了フローは止めない）
-      try {
-        if (user?.uid) {
-          await saveProgressToFirestore({ uid: user.uid, quizType, progress })
-        }
-      } catch (e) {
-        console.error('progress firestore 保存失敗', e)
-      }
-    }
-
-    // 終了処理
-    localStorage.removeItem(`${STORAGE_PROGRESS_KEY}-${quizType}`)
-    // ✅ 修正：必ず最新の wrong を保存
-    localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
-    localStorage.removeItem(`${STORAGE_NORMAL_SESSION_KEY}-${quizType}`)
-
-    goModeSelect()
+    const nextIndex = index + 1
+    setIndex(nextIndex)
+    localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index: nextIndex }))
   }
 
   const interrupt = () => {
     stopSpeak()
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
-    // ✅ 修正：必ず最新の wrong を保存
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     goModeSelect()
-  }
-
-  const onListen = () => {
-    // MP3がない前提：listeningText を読み上げ
-    if (current.listeningText) {
-      speak(current.listeningText, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
-    }
   }
 
   return (
@@ -369,8 +298,7 @@ export default function NormalClient({ quiz, quizType }: Props) {
 
       <h2>{current.question}</h2>
 
-      {/* ✅ Listening UI（MP3なくてもOK） */}
-      {(current.audioUrl || current.listeningText) && (
+      {current.audioUrl && (
         <div
           style={{
             margin: '12px 0',
@@ -380,50 +308,11 @@ export default function NormalClient({ quiz, quizType }: Props) {
             background: '#f9fafb',
           }}
         >
-          {current.audioUrl ? (
-            <audio controls src={current.audioUrl} preload="none" />
-          ) : (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={onListen}
-                disabled={!canSpeak()}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: canSpeak() ? 'pointer' : 'not-allowed',
-                  fontWeight: 700,
-                }}
-              >
-                🔊 音声を聞く
-              </button>
-
-              <button
-                type="button"
-                onClick={() => stopSpeak()}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                ⏹ 停止
-              </button>
-
-              {!canSpeak() && (
-                <small style={{ color: '#6b7280' }}>
-                  この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
-                </small>
-              )}
-            </div>
-          )}
+          <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
+
+      <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
 
       {current.choices.map((c, i) => (
         <Button
@@ -438,45 +327,29 @@ export default function NormalClient({ quiz, quizType }: Props) {
         </Button>
       ))}
 
-      {selected !== null && (
-        <div className="mt-4 rounded-lg border p-3">
-          <div
-            className={`rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
-              isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}
-          >
-            {isCorrect ? '⭕ 正解！' : '❌ 不正解'}
+      {showExplanation && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanation}</div>
+
+          <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Button variant="main" onClick={next}>
+              次へ
+            </Button>
+            <Button variant="accent" onClick={interrupt}>
+              中断して戻る
+            </Button>
           </div>
-
-          {!isCorrect && (
-            <div className="mt-2 text-sm text-red-700">
-              あなたの回答：{current.choices[selected]}
-            </div>
-          )}
-
-          <div className="mt-2 text-sm font-semibold text-green-700">
-            正解：{current.choices[current.correctIndex]}
-          </div>
-
-          {current.explanation && (
-            <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
-              {current.explanation}
-            </div>
-          )}
         </div>
       )}
 
-      {selected !== null && (
-        <Button variant="main" onClick={next}>
-          {index + 1 < questions.length ? '次へ' : '🎉 完了してモード選択へ'}
-        </Button>
+      {!showExplanation && (
+        <div style={{ marginTop: 12 }}>
+          <Button variant="accent" onClick={interrupt}>
+            中断して戻る
+          </Button>
+        </div>
       )}
-
-      <div className="mt-4">
-        <Button variant="accent" onClick={interrupt}>
-          中断してモード選択へ
-        </Button>
-      </div>
     </QuizLayout>
   )
 }
