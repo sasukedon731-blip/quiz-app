@@ -1,29 +1,24 @@
-'use client'
+import ReviewClient from "./ReviewClient"
+import { quizzes } from "@/app/data/quizzes"
+import type { QuizType } from "@/app/data/types"
 
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import ReviewClient from './ReviewClient'
-import type { QuizType } from '@/app/data/types'
+export const dynamic = "force-dynamic"
 
-function isQuizType(v: string): v is QuizType {
-  return v === 'gaikoku-license' || v === 'japanese-n4'
-}
+export default function ReviewPage({
+  searchParams,
+}: {
+  searchParams: { type?: string }
+}) {
+  const type = (searchParams.type ?? "") as QuizType
+  const quiz = (quizzes as any)[type]
 
-function Inner() {
-  const sp = useSearchParams()
-  const raw = sp.get('type')
-
-  if (!raw || !isQuizType(raw)) {
-    return <div className="container">クイズ種別がありません</div>
+  if (!quiz) {
+    return (
+      <main className="container">
+        <p style={{ textAlign: "center", marginTop: 40 }}>クイズ種別がありません</p>
+      </main>
+    )
   }
 
-  return <ReviewClient quizType={raw} />
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="container">読み込み中...</div>}>
-      <Inner />
-    </Suspense>
-  )
+  return <ReviewClient quizType={type} />
 }

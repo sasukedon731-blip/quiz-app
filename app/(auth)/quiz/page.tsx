@@ -1,33 +1,24 @@
-'use client'
+import QuizClient from "./QuizClient"
+import { quizzes } from "@/app/data/quizzes"
+import type { QuizType } from "@/app/data/types"
 
-import { useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import type { QuizType } from '@/app/data/types'
+export const dynamic = "force-dynamic"
 
-function isQuizType(v: string): v is QuizType {
-  return v === 'gaikoku-license' || v === 'japanese-n4'
-}
+export default function QuizPage({
+  searchParams,
+}: {
+  searchParams: { type?: string }
+}) {
+  const type = (searchParams.type ?? "") as QuizType
+  const quiz = (quizzes as any)[type]
 
-function Inner() {
-  const router = useRouter()
-  const sp = useSearchParams()
-  const type = sp.get('type')
+  if (!quiz) {
+    return (
+      <main className="container">
+        <p style={{ textAlign: "center", marginTop: 40 }}>クイズ種別がありません</p>
+      </main>
+    )
+  }
 
-  useEffect(() => {
-    if (type && isQuizType(type)) {
-      router.replace(`/select-mode?type=${type}`)
-    } else {
-      router.replace('/')
-    }
-  }, [router, type])
-
-  return <div className="container">移動中...</div>
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="container">読み込み中...</div>}>
-      <Inner />
-    </Suspense>
-  )
+  return <QuizClient quiz={quiz} quizType={type} />
 }
