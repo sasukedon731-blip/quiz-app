@@ -1,8 +1,10 @@
-import type { Quiz, QuizType } from "@/app/data/types"
-import { gaikokuQuiz } from "@/app/data/quizzes/gaikoku-license"
-import { japaneseN4Quiz } from "@/app/data/quizzes/japanese-n4"
+// app/data/quizzes/index.ts
+import { gaikokuQuiz } from "./gaikoku-license"
+import { japaneseN4Quiz } from "./japanese-n4"
+import { genbaListening } from "./genba-listening"
 
-export const quizzes: Record<QuizType, Quiz> = {
+export const quizzes = {
   "gaikoku-license": gaikokuQuiz,
   "japanese-n4": japaneseN4Quiz,
-}
+  "genba-listening": genbaListening,
+} as const

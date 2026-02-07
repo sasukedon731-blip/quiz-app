@@ -10,6 +10,9 @@ import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
+// ✅ 追加：読み上げ（MP3不要）
+import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
+
 const STORAGE_PROGRESS_KEY = 'progress'
 const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
@@ -251,6 +254,18 @@ export default function NormalClient({ quiz, quizType }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType, quiz.questions])
 
+  // ✅ 追加：画面離脱や問題切替時に読み上げが残らないように停止
+  useEffect(() => {
+    stopSpeak()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index])
+
+  useEffect(() => {
+    return () => {
+      stopSpeak()
+    }
+  }, [])
+
   if (questions.length === 0) {
     return (
       <QuizLayout title={quiz.title}>
@@ -265,6 +280,9 @@ export default function NormalClient({ quiz, quizType }: Props) {
     if (selected !== null) return
     if (answeringRef.current) return
     answeringRef.current = true
+
+    // ✅ 追加：回答した瞬間に読み上げを止める（音が重ならない）
+    stopSpeak()
 
     setSelected(i)
     const ok = i === current.correctIndex
@@ -283,10 +301,12 @@ export default function NormalClient({ quiz, quizType }: Props) {
   }
 
   const goModeSelect = () => {
-    router.push(`/select-mode?type=${quizType}`)
+    stopSpeak()
+    router.push(`/select-mode?type=${encodeURIComponent(quizType)}`)
   }
 
   const next = async () => {
+    stopSpeak()
     setSelected(null)
     setIsCorrect(null)
 
@@ -327,10 +347,18 @@ export default function NormalClient({ quiz, quizType }: Props) {
   }
 
   const interrupt = () => {
+    stopSpeak()
     localStorage.setItem(`${STORAGE_PROGRESS_KEY}-${quizType}`, JSON.stringify({ index }))
     // ✅ 修正：必ず最新の wrong を保存
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     goModeSelect()
+  }
+
+  const onListen = () => {
+    // MP3がない前提：listeningText を読み上げ
+    if (current.listeningText) {
+      speak(current.listeningText, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
+    }
   }
 
   return (
@@ -340,6 +368,62 @@ export default function NormalClient({ quiz, quizType }: Props) {
       </p>
 
       <h2>{current.question}</h2>
+
+      {/* ✅ Listening UI（MP3なくてもOK） */}
+      {(current.audioUrl || current.listeningText) && (
+        <div
+          style={{
+            margin: '12px 0',
+            padding: 12,
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            background: '#f9fafb',
+          }}
+        >
+          {current.audioUrl ? (
+            <audio controls src={current.audioUrl} preload="none" />
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={onListen}
+                disabled={!canSpeak()}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #e5e7eb',
+                  background: 'white',
+                  cursor: canSpeak() ? 'pointer' : 'not-allowed',
+                  fontWeight: 700,
+                }}
+              >
+                🔊 音声を聞く
+              </button>
+
+              <button
+                type="button"
+                onClick={() => stopSpeak()}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #e5e7eb',
+                  background: 'white',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                ⏹ 停止
+              </button>
+
+              {!canSpeak() && (
+                <small style={{ color: '#6b7280' }}>
+                  この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
+                </small>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {current.choices.map((c, i) => (
         <Button

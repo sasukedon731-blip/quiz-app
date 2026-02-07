@@ -11,6 +11,9 @@ import { auth } from '@/app/lib/firebase'
 import { db } from '@/app/lib/firebase'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
+// ✅ 追加：読み上げ（MP3不要）
+import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
+
 const EXAM_TIME_SEC = 20 * 60 // 20分
 const EXAM_QUESTION_COUNT = 30
 const STORAGE_EXAM_SESSION_KEY = 'exam-session'
@@ -70,7 +73,8 @@ export default function ExamClient({ quiz, quizType }: Props) {
   const current = questions[index]
 
   const goModeSelect = () => {
-    router.push(`/select-mode?type=${quizType}`)
+    stopSpeak()
+    router.push(`/select-mode?type=${encodeURIComponent(quizType)}`)
   }
 
   // ✅ 初期化（セッション復元 or 新規作成）
@@ -143,6 +147,15 @@ export default function ExamClient({ quiz, quizType }: Props) {
     )
   }, [questions, index, answers, timeLeft, finished, quizType])
 
+  // ✅ 問題切替・終了・画面離脱で読み上げが残らないように停止
+  useEffect(() => {
+    stopSpeak()
+  }, [index])
+
+  useEffect(() => {
+    return () => stopSpeak()
+  }, [])
+
   // タイマー（試験中のみ）
   useEffect(() => {
     if (finished) return
@@ -172,6 +185,9 @@ export default function ExamClient({ quiz, quizType }: Props) {
     if (finished) return
     if (locked) return
     setLocked(true)
+
+    // ✅ 回答したら読み上げ停止（音が残らない）
+    stopSpeak()
 
     const ok = i === current.correctIndex
     setAnswers(prev => [...prev, { selectedIndex: i, isCorrect: ok }])
@@ -209,7 +225,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
 
       try {
         await addDoc(collection(db, 'users', u.uid, 'results'), {
-          quizType,          // "gaikoku-license" / "japanese-n4"
+          quizType, // "gaikoku-license" / "japanese-n4" / "genba-listening"
           mode: 'exam',
           score,
           total: totalCount,
@@ -224,11 +240,19 @@ export default function ExamClient({ quiz, quizType }: Props) {
     }
 
     save()
-  }, [finished, quizType, questions.length, correctCount, db])
+  }, [finished, quizType, questions.length, correctCount])
 
   const interrupt = () => {
+    stopSpeak()
     // セッション保存は useEffect がやってくれるので、そのまま戻る
     goModeSelect()
+  }
+
+  const onListen = () => {
+    // MP3がない前提：listeningText を読み上げ
+    if ((current as any)?.listeningText) {
+      speak((current as any).listeningText as string, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
+    }
   }
 
   // 読み込み中
@@ -259,15 +283,67 @@ export default function ExamClient({ quiz, quizType }: Props) {
             return (
               <div
                 key={idx}
-                className={`rounded-lg border-2 p-3 ${
-                  ok ? 'border-green-300' : 'border-red-300'
-                }`}
+                className={`rounded-lg border-2 p-3 ${ok ? 'border-green-300' : 'border-red-300'}`}
               >
                 <div className="text-sm">
                   {idx + 1} / {total}
                 </div>
 
                 <div className="mt-1 font-semibold">{q.question}</div>
+
+                {/* ✅ 結果画面でも聞ける（任意） */}
+                {(((q as any).audioUrl as string | undefined) || (q as any).listeningText) && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: 10,
+                      borderRadius: 12,
+                      border: '1px solid #e5e7eb',
+                      background: '#f9fafb',
+                    }}
+                  >
+                    {(q as any).audioUrl ? (
+                      <audio controls src={(q as any).audioUrl as string} preload="none" />
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            speak((q as any).listeningText as string, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
+                          }
+                          disabled={!canSpeak()}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 10,
+                            border: '1px solid #e5e7eb',
+                            background: 'white',
+                            cursor: canSpeak() ? 'pointer' : 'not-allowed',
+                            fontWeight: 700,
+                            fontSize: 13,
+                          }}
+                        >
+                          🔊 聞き直す
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => stopSpeak()}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 10,
+                            border: '1px solid #e5e7eb',
+                            background: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 13,
+                          }}
+                        >
+                          ⏹ 停止
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div
                   className={`mt-3 rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
@@ -301,6 +377,7 @@ export default function ExamClient({ quiz, quizType }: Props) {
           <Button
             variant="main"
             onClick={() => {
+              stopSpeak()
               // 終了後は次回のためにセッション削除（新しくランダム30問を引く）
               localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
               goModeSelect()
@@ -312,9 +389,10 @@ export default function ExamClient({ quiz, quizType }: Props) {
           <Button
             variant="accent"
             onClick={() => {
+              stopSpeak()
               // もう一回（新しいランダム30問）
               localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
-              router.push(`/exam?type=${quizType}`)
+              router.push(`/exam?type=${encodeURIComponent(quizType)}`)
             }}
           >
             もう一度（新しい30問）
@@ -335,6 +413,62 @@ export default function ExamClient({ quiz, quizType }: Props) {
       </div>
 
       <h2>{current.question}</h2>
+
+      {/* ✅ Listening UI（試験中もOK：正解は一切表示しない） */}
+      {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
+        <div
+          style={{
+            margin: '12px 0',
+            padding: 12,
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            background: '#f9fafb',
+          }}
+        >
+          {(current as any).audioUrl ? (
+            <audio controls src={(current as any).audioUrl as string} preload="none" />
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={onListen}
+                disabled={!canSpeak() || finished}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #e5e7eb',
+                  background: 'white',
+                  cursor: canSpeak() ? 'pointer' : 'not-allowed',
+                  fontWeight: 700,
+                }}
+              >
+                🔊 音声を聞く
+              </button>
+
+              <button
+                type="button"
+                onClick={() => stopSpeak()}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #e5e7eb',
+                  background: 'white',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                ⏹ 停止
+              </button>
+
+              {!canSpeak() && (
+                <small style={{ color: '#6b7280' }}>
+                  この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
+                </small>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* isCorrect/isWrong を渡さない → 試験中に正解がバレない */}
       {current.choices.map((c, i) => (
