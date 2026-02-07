@@ -14,12 +14,13 @@ type QuizResult = {
   mode?: string
 }
 
-type TabKey = "all" | "gaikoku-license" | "japanese-n4"
+type TabKey = "all" | "gaikoku-license" | "japanese-n4" | "genba-listening"
 
 const TAB_LABEL: Record<TabKey, string> = {
   all: "すべて",
   "gaikoku-license": "外国免許切替",
   "japanese-n4": "日本語検定N4",
+  "genba-listening": "現場用語リスニング",
 }
 
 type StudyProgress = {
@@ -31,11 +32,15 @@ type StudyProgress = {
   bestStreak: number
 }
 
-const QUIZ_TYPES = ["gaikoku-license", "japanese-n4"] as const
+// ✅ ここに genba を追加
+const QUIZ_TYPES = ["gaikoku-license", "japanese-n4", "genba-listening"] as const
 
 function typeBadge(type: string) {
   if (type === "japanese-n4") {
     return { text: "日本語検定N4", bg: "#ede9fe", fg: "#5b21b6" }
+  }
+  if (type === "genba-listening") {
+    return { text: "現場用語リスニング", bg: "#fef3c7", fg: "#92400e" } // amber
   }
   return { text: "外国免許切替", bg: "#dbeafe", fg: "#1d4ed8" }
 }
@@ -83,6 +88,18 @@ function readStudyProgress(quizType: string): StudyProgress {
   }
 }
 
+// ✅ 追加：復習待ち件数（wrong-${quizType} の配列長）
+function readWrongCount(quizType: string): number {
+  try {
+    const raw = localStorage.getItem(`wrong-${quizType}`)
+    if (!raw) return 0
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.length : 0
+  } catch {
+    return 0
+  }
+}
+
 export default function MyPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
@@ -91,6 +108,7 @@ export default function MyPage() {
 
   const [tab, setTab] = useState<TabKey>("all")
   const [progress, setProgress] = useState<Record<string, StudyProgress>>({})
+  const [wrongCount, setWrongCount] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -100,12 +118,17 @@ export default function MyPage() {
     return () => unsub()
   }, [router])
 
-  // 学習進捗読み込み
+  // 学習進捗 & 復習待ち読み込み
   useEffect(() => {
     if (typeof window === "undefined") return
     const p: Record<string, StudyProgress> = {}
-    for (const t of QUIZ_TYPES) p[t] = readStudyProgress(t)
+    const w: Record<string, number> = {}
+    for (const t of QUIZ_TYPES) {
+      p[t] = readStudyProgress(t)
+      w[t] = readWrongCount(t)
+    }
     setProgress(p)
+    setWrongCount(w)
   }, [])
 
   // 結果取得
@@ -173,8 +196,8 @@ export default function MyPage() {
           .join(" ")
       : ""
 
-  // 学習回数・streakまとめ
-  const pG = progress["gaikoku-license"] ?? {
+  // 学習回数・streakまとめ（3教材に拡張）
+  const baseP: StudyProgress = {
     totalSessions: 0,
     todaySessions: 0,
     lastStudyDate: todayKey(),
@@ -182,13 +205,16 @@ export default function MyPage() {
     streakUpdatedDate: "",
     bestStreak: 0,
   }
-  const pN = progress["japanese-n4"] ?? pG
 
-  const todayTotal = (pG.todaySessions ?? 0) + (pN.todaySessions ?? 0)
-  const allTotal = (pG.totalSessions ?? 0) + (pN.totalSessions ?? 0)
+  const pG = progress["gaikoku-license"] ?? baseP
+  const pN = progress["japanese-n4"] ?? baseP
+  const pL = progress["genba-listening"] ?? baseP
 
-  const bestStreak = Math.max(pG.bestStreak ?? 0, pN.bestStreak ?? 0)
-  const currentStreak = Math.max(pG.streak ?? 0, pN.streak ?? 0)
+  const todayTotal = (pG.todaySessions ?? 0) + (pN.todaySessions ?? 0) + (pL.todaySessions ?? 0)
+  const allTotal = (pG.totalSessions ?? 0) + (pN.totalSessions ?? 0) + (pL.totalSessions ?? 0)
+
+  const bestStreak = Math.max(pG.bestStreak ?? 0, pN.bestStreak ?? 0, pL.bestStreak ?? 0)
+  const currentStreak = Math.max(pG.streak ?? 0, pN.streak ?? 0, pL.streak ?? 0)
 
   const today = todayKey()
   const didStudyToday = todayTotal > 0
@@ -307,14 +333,8 @@ export default function MyPage() {
         <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
           {QUIZ_TYPES.map((t) => {
             const badge = typeBadge(t)
-            const p = progress[t] ?? {
-              totalSessions: 0,
-              todaySessions: 0,
-              lastStudyDate: todayKey(),
-              streak: 0,
-              streakUpdatedDate: "",
-              bestStreak: 0,
-            }
+            const p = progress[t] ?? baseP
+            const w = wrongCount[t] ?? 0
 
             return (
               <div
@@ -344,23 +364,47 @@ export default function MyPage() {
                     {badge.text}
                   </span>
                   <span style={{ fontSize: 12, color: "#666" }}>
-                    今日：<b>{p.todaySessions}</b>回 / 累計：<b>{p.totalSessions}</b>回 / 連続：<b>{p.streak}</b>日（最高 {p.bestStreak}日）
+                    今日：<b>{p.todaySessions}</b>回 / 累計：<b>{p.totalSessions}</b>回 / 連続：<b>{p.streak}</b>日（最高 {p.bestStreak}日） / 復習待ち：<b>{w}</b>問
                   </span>
+
+                  {t === "genba-listening" && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: "#6b7280" }}>
+                      ※ MP3不要：読み上げで練習できます
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  onClick={() => router.push(`/select-mode?type=${t}`)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",
-                    background: "#fff",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  学習する
-                </button>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <button
+                    onClick={() => router.push(`/select-mode?type=${t}`)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid #ccc",
+                      background: "#fff",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    学習する
+                  </button>
+
+                  <button
+                    onClick={() => router.push(`/review?type=${t}`)}
+                    disabled={w === 0}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid #ccc",
+                      background: w === 0 ? "#f3f4f6" : "#fff",
+                      cursor: w === 0 ? "not-allowed" : "pointer",
+                      fontWeight: 700,
+                      opacity: w === 0 ? 0.7 : 1,
+                    }}
+                  >
+                    復習する
+                  </button>
+                </div>
               </div>
             )
           })}
@@ -381,7 +425,7 @@ export default function MyPage() {
           marginBottom: "18px",
         }}
       >
-        {(["all", "gaikoku-license", "japanese-n4"] as TabKey[]).map((k) => {
+        {(["all", "gaikoku-license", "japanese-n4", "genba-listening"] as TabKey[]).map((k) => {
           const active = tab === k
           return (
             <button
