@@ -4,13 +4,13 @@ import type { QuizType } from "@/app/data/types"
 
 export const dynamic = "force-dynamic"
 
-export default function NormalPage({
+export default function Page({
   searchParams,
 }: {
   searchParams: { type?: string }
 }) {
   const type = (searchParams.type ?? "") as QuizType
-  const quiz = (quizzes as any)[type]
+  const quiz = quizzes[type]
 
   if (!quiz) {
     return (
