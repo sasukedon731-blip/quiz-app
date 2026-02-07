@@ -63,7 +63,14 @@ export default function HomePage() {
           日本語N4クイズ
         </Button>
 
-        <Button disabled>安全教育クイズ（準備中）</Button>
+        {/* ✅ ここを差し替え：安全教育 → 現場用語リスニング */}
+        <Button variant="main" onClick={() => router.push("/select-mode?type=genba-listening")}>
+          現場用語リスニング
+        </Button>
+
+        <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
+          ※ MP3がなくても「読み上げ」で学習できます（問題画面の🔊ボタン）
+        </div>
       </Card>
 
       {/* マイページ・ログアウト */}
