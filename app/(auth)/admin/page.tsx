@@ -85,6 +85,18 @@ function safeProgress(p: any): StudyProgress {
   }
 }
 
+// ✅ accuracy が 0-1 / 0-100 の混在でも必ず 0-1 に揃える
+function normalizeAcc(value: unknown, score: number, total: number) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // 0〜1
+    if (value >= 0 && value <= 1.2) return value
+    // 0〜100(%) っぽい値
+    if (value > 1.2 && value <= 100) return value / 100
+  }
+  // accuracy が無い/壊れてる → score/total
+  return total > 0 ? score / total : 0
+}
+
 async function fetchProgress(uid: string, quizType: string): Promise<StudyProgress | null> {
   try {
     const ref = doc(db, "users", uid, "progress", quizType)
@@ -113,15 +125,7 @@ async function fetchExamAverage(uid: string, quizType: string): Promise<ExamAvg 
       const r = d.data() as any
       const score = typeof r.score === "number" ? r.score : 0
       const total = typeof r.total === "number" ? r.total : 0
-      const acc =
-        typeof r.accuracy === "number"
-          ? r.accuracy
-          : total > 0
-            ? score / total
-            : 0
-
-      // mode が入っている場合は exam だけに絞りたいならここでフィルタ可能
-      // if (r.mode && r.mode !== "exam") return
+      const acc = normalizeAcc(r.accuracy, score, total)
 
       sumScore += score
       sumTotal += total
@@ -256,7 +260,6 @@ export default function AdminPage() {
 
     if (showOnlyNotStudiedToday) {
       list = list.filter((r) => {
-        // いずれかの教材で今日やっていれば除外
         const didAny = QUIZ_TYPES.some((t) => {
           const p = r.progress[t]
           return (p?.lastStudyDate ?? "") === today && (p?.todaySessions ?? 0) > 0
@@ -316,6 +319,24 @@ export default function AdminPage() {
     const acc = Number.isFinite(a.avgAcc) ? Math.round(a.avgAcc * 100) : 0
     return `${score}/${total}（${acc}%）`
   }
+
+  const thStyle: React.CSSProperties = {
+    border: "1px solid #ccc",
+    padding: 8,
+    whiteSpace: "nowrap",
+    textAlign: "center",
+    background: "#f9fafb",
+  }
+
+  const tdStyle: React.CSSProperties = {
+    border: "1px solid #ccc",
+    padding: 8,
+    verticalAlign: "middle",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+  }
+
+  const tdLeft: React.CSSProperties = { ...tdStyle, textAlign: "left", whiteSpace: "normal" }
 
   const onPromote = async (targetUid: string) => {
     if (!user) return
@@ -393,115 +414,153 @@ export default function AdminPage() {
       {filtered.length === 0 ? (
         <p>表示できるユーザーがいません。</p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>名前</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>メール</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>UID</th>
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>role</th>
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              minWidth: 1300,
+              borderCollapse: "collapse",
+              tableLayout: "fixed",
+            }}
+          >
+            {/* ✅ 列幅を固定して均等に。崩れた縦見出しを防止 */}
+            <colgroup>
+              <col style={{ width: 120 }} /> {/* 名前 */}
+              <col style={{ width: 240 }} /> {/* メール */}
+              <col style={{ width: 260 }} /> {/* UID */}
+              <col style={{ width: 90 }} /> {/* role */}
 
-              {QUIZ_TYPES.map((t) => (
-                <th key={`${t}-today`} style={{ border: "1px solid #ccc", padding: 8 }}>
-                  {label(t)} 今日
-                </th>
-              ))}
-              {QUIZ_TYPES.map((t) => (
-                <th key={`${t}-total`} style={{ border: "1px solid #ccc", padding: 8 }}>
-                  {label(t)} 累計
-                </th>
-              ))}
-              {QUIZ_TYPES.map((t) => (
-                <th key={`${t}-avg`} style={{ border: "1px solid #ccc", padding: 8 }}>
-                  {label(t)} 模擬平均
-                </th>
-              ))}
+              {/* 今日（3） */}
+              <col style={{ width: 100 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 120 }} />
 
-              <th style={{ border: "1px solid #ccc", padding: 8 }}>操作</th>
-            </tr>
-          </thead>
+              {/* 累計（3） */}
+              <col style={{ width: 100 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 120 }} />
 
-          <tbody>
-            {filtered.map((u) => {
-              const didToday = QUIZ_TYPES.some((t) => cell(u.progress[t]).today > 0)
+              {/* 模擬平均（3） */}
+              <col style={{ width: 150 }} />
+              <col style={{ width: 140 }} />
+              <col style={{ width: 170 }} />
 
-              return (
-                <tr key={u.uid} style={{ background: didToday ? "#ecfdf5" : "#fff" }}>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.displayName ?? "-"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{u.email ?? "-"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, fontSize: 12 }}>{u.uid}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
-                    {u.role ?? "-"}
-                  </td>
+              {/* 操作 */}
+              <col style={{ width: 140 }} />
+            </colgroup>
 
-                  {QUIZ_TYPES.map((t) => (
-                    <td key={`${u.uid}-${t}-today`} style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
-                      {cell(u.progress[t]).today}
+            <thead>
+              <tr>
+                <th style={thStyle}>名前</th>
+                <th style={thStyle}>メール</th>
+                <th style={thStyle}>UID</th>
+                <th style={thStyle}>role</th>
+
+                {QUIZ_TYPES.map((t) => (
+                  <th key={`${t}-today`} style={thStyle}>
+                    {label(t)} 今日
+                  </th>
+                ))}
+                {QUIZ_TYPES.map((t) => (
+                  <th key={`${t}-total`} style={thStyle}>
+                    {label(t)} 累計
+                  </th>
+                ))}
+                {QUIZ_TYPES.map((t) => (
+                  <th key={`${t}-avg`} style={thStyle}>
+                    {label(t)} 模擬平均
+                  </th>
+                ))}
+
+                <th style={thStyle}>操作</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map((u) => {
+                const didToday = QUIZ_TYPES.some((t) => cell(u.progress[t]).today > 0)
+
+                return (
+                  <tr key={u.uid} style={{ background: didToday ? "#ecfdf5" : "#fff" }}>
+                    <td style={tdLeft}>{u.displayName ?? "-"}</td>
+                    <td style={tdLeft}>{u.email ?? "-"}</td>
+                    <td style={{ ...tdLeft, fontSize: 12 }}>{u.uid}</td>
+                    <td style={{ ...tdStyle, fontWeight: 800 }}>{u.role ?? "-"}</td>
+
+                    {QUIZ_TYPES.map((t) => (
+                      <td key={`${u.uid}-${t}-today`} style={{ ...tdStyle, fontWeight: 800 }}>
+                        {cell(u.progress[t]).today}
+                      </td>
+                    ))}
+                    {QUIZ_TYPES.map((t) => (
+                      <td key={`${u.uid}-${t}-total`} style={tdStyle}>
+                        {cell(u.progress[t]).total}
+                      </td>
+                    ))}
+                    {QUIZ_TYPES.map((t) => (
+                      <td key={`${u.uid}-${t}-avg`} style={tdStyle}>
+                        {avgText(u.examAvg[t])}
+                        {u.examAvg[t]?.count ? (
+                          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
+                            （{u.examAvg[t]!.count}回）
+                          </div>
+                        ) : null}
+                      </td>
+                    ))}
+
+                    <td style={{ ...tdStyle, padding: 8 }}>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <button
+                          onClick={() => router.push(`/admin/${u.uid}`)}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 6,
+                            border: "1px solid #ccc",
+                            cursor: "pointer",
+                            background: "#fff",
+                            fontWeight: 700,
+                          }}
+                        >
+                          詳細
+                        </button>
+
+                        {u.role !== "admin" ? (
+                          <button
+                            onClick={() => onPromote(u.uid)}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 6,
+                              border: "1px solid #16a34a",
+                              cursor: "pointer",
+                              background: "#ecfdf5",
+                              fontWeight: 800,
+                            }}
+                          >
+                            adminにする
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onDemote(u.uid)}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 6,
+                              border: "1px solid #ef4444",
+                              cursor: "pointer",
+                              background: "#fef2f2",
+                              fontWeight: 800,
+                            }}
+                          >
+                            userに戻す
+                          </button>
+                        )}
+                      </div>
                     </td>
-                  ))}
-                  {QUIZ_TYPES.map((t) => (
-                    <td key={`${u.uid}-${t}-total`} style={{ border: "1px solid #ccc", padding: 8 }}>
-                      {cell(u.progress[t]).total}
-                    </td>
-                  ))}
-                  {QUIZ_TYPES.map((t) => (
-                    <td key={`${u.uid}-${t}-avg`} style={{ border: "1px solid #ccc", padding: 8 }}>
-                      {avgText(u.examAvg[t])}
-                      {u.examAvg[t]?.count ? (
-                        <div style={{ fontSize: 12, opacity: 0.7 }}>（{u.examAvg[t]!.count}回）</div>
-                      ) : null}
-                    </td>
-                  ))}
-
-                  <td style={{ border: "1px solid #ccc", padding: 8, display: "grid", gap: 6 }}>
-                    <button
-                      onClick={() => router.push(`/admin/${u.uid}`)}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 6,
-                        border: "1px solid #ccc",
-                        cursor: "pointer",
-                        background: "#fff",
-                      }}
-                    >
-                      詳細
-                    </button>
-
-                    {u.role !== "admin" ? (
-                      <button
-                        onClick={() => onPromote(u.uid)}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "1px solid #16a34a",
-                          cursor: "pointer",
-                          background: "#ecfdf5",
-                          fontWeight: 800,
-                        }}
-                      >
-                        adminにする
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onDemote(u.uid)}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "1px solid #ef4444",
-                          cursor: "pointer",
-                          background: "#fef2f2",
-                          fontWeight: 800,
-                        }}
-                      >
-                        userに戻す
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <p style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
