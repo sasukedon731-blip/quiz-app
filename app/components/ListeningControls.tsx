@@ -6,7 +6,7 @@ import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
 
 type Props = {
   text?: string
-  storageKeyPrefix?: string // quizType を渡す想定
+  storageKeyPrefix?: string
 }
 
 export default function ListeningControls({ text, storageKeyPrefix = 'listening' }: Props) {
@@ -26,7 +26,6 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
     return Number.isFinite(v) ? v : 1.0
   })
 
-  // 画面遷移で読み上げが残らないようにする
   useEffect(() => {
     return () => {
       stopSpeak()
@@ -34,18 +33,14 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
     }
   }, [])
 
-  // 自動再生：テキストが変わったら読む（rate/autoPlay反映も含める）
   useEffect(() => {
-    if (!supported) return
-    if (!autoPlay) return
-    if (!text?.trim()) return
+    if (!supported || !autoPlay || !text?.trim()) return
 
     ;(async () => {
       try {
         setIsSpeaking(true)
         await speak(text, { lang: 'ja-JP', rate, pitch: 1.0 })
       } catch {
-        // ignore
       } finally {
         setIsSpeaking(false)
       }
@@ -57,8 +52,6 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
     try {
       setIsSpeaking(true)
       await speak(text, { lang: 'ja-JP', rate, pitch: 1.0 })
-    } catch {
-      // ignore
     } finally {
       setIsSpeaking(false)
     }
@@ -89,27 +82,49 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
 
   return (
     <div style={{ margin: '12px 0' }}>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <Button variant="main" onClick={onPlay} disabled={!supported || isSpeaking}>
-          {isSpeaking ? '🔊 再生中…' : '▶️ 音声を聞く'}
-        </Button>
+      {/* ▶️ ⏹ 🔁 横並び */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <Button variant="main" onClick={onPlay} disabled={!supported || isSpeaking}>
+            {isSpeaking ? '🔊 再生中…' : '▶️ 再生'}
+          </Button>
+        </div>
 
-        <Button variant="accent" onClick={onStop} disabled={!supported}>
-          ⏹ 停止
-        </Button>
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <Button variant="accent" onClick={onStop} disabled={!supported}>
+            ⏹ 停止
+          </Button>
+        </div>
 
-        <Button variant="success" onClick={onReplay} disabled={!supported}>
-          🔁 もう一度
-        </Button>
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <Button variant="success" onClick={onReplay} disabled={!supported}>
+            🔁 もう一度
+          </Button>
+        </div>
       </div>
 
-      <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* 設定系は下に */}
+      <div
+        style={{
+          marginTop: 10,
+          display: 'flex',
+          gap: 14,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
         <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input type="checkbox" checked={autoPlay} onChange={toggleAuto} />
-          自動再生（問題が変わったら自動で読む）
+          自動再生
         </label>
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ opacity: 0.7 }}>速度</span>
           {[0.9, 1.0, 1.1].map(v => (
             <button
@@ -130,12 +145,6 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
             </button>
           ))}
         </div>
-
-        {!supported && (
-          <small style={{ opacity: 0.7 }}>
-            この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
-          </small>
-        )}
       </div>
     </div>
   )
