@@ -16,6 +16,9 @@ import { useAuth } from "@/app/lib/useAuth"
 import { db } from "@/app/lib/firebase"
 import { ensureUserProfile, getUserRole } from "@/app/lib/firestore"
 
+// ✅ 追加：quizCatalog から教材一覧を作る
+import { quizCatalog } from "@/app/data/quizCatalog"
+
 type UserRole = "admin" | "user"
 
 type UserDocData = {
@@ -49,7 +52,15 @@ type Row = {
   examAvg: Record<string, ExamAvg | null>
 }
 
-const QUIZ_TYPES = ["gaikoku-license", "japanese-n4", "genba-listening"] as const
+/**
+ * 🎯 有効な教材ID一覧（quizCatalog基準）
+ * - enabled=false の教材は自動的に除外
+ * - order 順で統一
+ */
+const QUIZ_TYPES = quizCatalog
+  .filter((q) => q.enabled)
+  .sort((a, b) => a.order - b.order)
+  .map((q) => q.id)
 
 function jstDayKey(d = new Date()) {
   try {
@@ -279,6 +290,7 @@ export default function AdminPage() {
 
     if (showOnlyNotStudiedToday) {
       list = list.filter((r) => {
+        // いずれかの教材で今日やっていれば除外
         const didAny = QUIZ_TYPES.some((t) => {
           const p = r.progress[t]
           return (p?.lastStudyDate ?? "") === today && (p?.todaySessions ?? 0) > 0
@@ -512,10 +524,7 @@ export default function AdminPage() {
                     <td style={{ ...tdStyle, fontWeight: 800 }}>{u.role ?? "-"}</td>
 
                     {QUIZ_TYPES.map((t) => (
-                      <td
-                        key={`${u.uid}-${t}-today`}
-                        style={{ ...tdStyle, fontWeight: 800 }}
-                      >
+                      <td key={`${u.uid}-${t}-today`} style={{ ...tdStyle, fontWeight: 800 }}>
                         {cell(u.progress[t]).today}
                       </td>
                     ))}

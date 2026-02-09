@@ -10,11 +10,18 @@ import {
   limit,
   orderBy,
   query,
-  where,
 } from "firebase/firestore"
+
 import { useAuth } from "@/app/lib/useAuth"
 import { db } from "@/app/lib/firebase"
 import { getUserRole } from "@/app/lib/firestore"
+
+// ★ 追加：quizCatalog 参照
+import { quizCatalog } from "@/app/data/quizCatalog"
+
+/* =========================
+   型定義
+========================= */
 
 type QuizResult = {
   score: number
@@ -40,12 +47,25 @@ type UserProfile = {
   role?: "admin" | "user"
 }
 
-const QUIZ_TYPES = ["gaikoku-license", "japanese-n4", "genba-listening"] as const
+/**
+ * 🎯 有効な教材ID一覧（quizCatalog基準）
+ * - enabled=false は自動除外
+ * - order 順で安定
+ */
+const QUIZ_TYPES = quizCatalog
+  .filter(q => q.enabled)
+  .sort((a, b) => a.order - b.order)
+  .map(q => q.id)
 
-function label(t: string) {
+/* =========================
+   ユーティリティ
+========================= */
+
+function label(t?: string) {
   if (t === "japanese-n4") return "N4"
   if (t === "genba-listening") return "現場リスニング"
-  return "外国免許"
+  if (t === "gaikoku-license") return "外国免許"
+  return "-"
 }
 
 function formatDateSeconds(seconds?: number) {
@@ -68,10 +88,15 @@ function safeProgress(p: any): StudyProgress {
     todaySessions: typeof p.todaySessions === "number" ? p.todaySessions : 0,
     lastStudyDate: typeof p.lastStudyDate === "string" ? p.lastStudyDate : "",
     streak: typeof p.streak === "number" ? p.streak : 0,
-    streakUpdatedDate: typeof p.streakUpdatedDate === "string" ? p.streakUpdatedDate : "",
+    streakUpdatedDate:
+      typeof p.streakUpdatedDate === "string" ? p.streakUpdatedDate : "",
     bestStreak: typeof p.bestStreak === "number" ? p.bestStreak : 0,
   }
 }
+
+/* =========================
+   メインコンポーネント
+========================= */
 
 export default function AdminUserPage() {
   const router = useRouter()
@@ -88,6 +113,7 @@ export default function AdminUserPage() {
 
   const [tab, setTab] = useState<"all" | (typeof QUIZ_TYPES)[number]>("all")
 
+  /* ---------- 初期ロード ---------- */
   useEffect(() => {
     if (loading) return
     if (!user) {
@@ -121,43 +147,51 @@ export default function AdminUserPage() {
         )
         setProgress(nextProgress)
 
-        // results（直近100件、教材別はUIでフィルタ）
+        // results（直近100件）
         const col = collection(db, "users", uid, "results")
         const qy = query(col, orderBy("createdAt", "desc"), limit(100))
         const resSnap = await getDocs(qy)
-
-        const list = resSnap.docs.map((d) => d.data() as QuizResult)
-        setResults(list)
+        setResults(resSnap.docs.map(d => d.data() as QuizResult))
       } catch (e: any) {
-        setError(e?.code ? `${e.code}: ${e.message ?? ""}` : e?.message ?? "不明なエラー")
+        setError(e?.message ?? "不明なエラー")
       } finally {
         setReady(true)
       }
     }
 
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading, uid, router])
+
+  /* ---------- 派生データ ---------- */
 
   const filteredResults = useMemo(() => {
     if (tab === "all") return results
-    return results.filter((r) => r.quizType === tab)
+    return results.filter(r => r.quizType === tab)
   }, [results, tab])
 
   const avgOf = (quizType: string) => {
-    const list = results.filter((r) => r.quizType === quizType)
+    const list = results.filter(r => r.quizType === quizType)
     if (list.length === 0) return null
+
     let sumScore = 0
     let sumTotal = 0
     let sumAcc = 0
+
     for (const r of list) {
       const score = typeof r.score === "number" ? r.score : 0
       const total = typeof r.total === "number" ? r.total : 0
-      const acc = typeof r.accuracy === "number" ? r.accuracy : total > 0 ? score / total : 0
+      const acc =
+        typeof r.accuracy === "number"
+          ? r.accuracy
+          : total > 0
+          ? score / total
+          : 0
+
       sumScore += score
       sumTotal += total
       sumAcc += acc
     }
+
     const n = list.length
     return {
       count: n,
@@ -167,7 +201,11 @@ export default function AdminUserPage() {
     }
   }
 
-  if (loading || !ready) return <p style={{ textAlign: "center" }}>読み込み中…</p>
+  /* ---------- 表示 ---------- */
+
+  if (loading || !ready) {
+    return <p style={{ textAlign: "center" }}>読み込み中…</p>
+  }
 
   if (error) {
     return (
@@ -197,15 +235,21 @@ export default function AdminUserPage() {
     <div style={{ maxWidth: 1100, margin: "30px auto", padding: 16 }}>
       <h1>ユーザー詳細</h1>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-        <button
-          onClick={() => router.push("/admin")}
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}
-        >
-          管理画面へ戻る
-        </button>
-      </div>
+      <button
+        onClick={() => router.push("/admin")}
+        style={{
+          padding: "10px 12px",
+          borderRadius: 8,
+          border: "1px solid #ccc",
+          background: "#fff",
+          cursor: "pointer",
+          marginBottom: 12,
+        }}
+      >
+        管理画面へ戻る
+      </button>
 
+      {/* 基本情報 */}
       <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
         <div style={{ fontWeight: 900, marginBottom: 6 }}>基本情報</div>
         <div>名前：{profile?.displayName ?? "-"}</div>
@@ -214,6 +258,7 @@ export default function AdminUserPage() {
         <div style={{ fontSize: 12, opacity: 0.7 }}>UID：{uid}</div>
       </div>
 
+      {/* 学習進捗 */}
       <div style={{ marginTop: 12, border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
         <div style={{ fontWeight: 900, marginBottom: 8 }}>学習進捗（教材別）</div>
 
@@ -228,45 +273,75 @@ export default function AdminUserPage() {
             </tr>
           </thead>
           <tbody>
-            {QUIZ_TYPES.map((t) => {
+            {QUIZ_TYPES.map(t => {
               const p = progress[t]
               const a = avgOf(t)
               return (
                 <tr key={t}>
-                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>{label(t)}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.todaySessions ?? 0}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.totalSessions ?? 0}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{p?.lastStudyDate ?? "-"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
+                    {label(t)}
+                  </td>
                   <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                    {a ? `${a.avgScore.toFixed(1)}/${a.avgTotal.toFixed(1)}（${Math.round(a.avgAcc * 100)}%）` : "-"}
-                    {a?.count ? <div style={{ fontSize: 12, opacity: 0.7 }}>（{a.count}回）</div> : null}
+                    {p?.todaySessions ?? 0}
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                    {p?.totalSessions ?? 0}
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                    {p?.lastStudyDate ?? "-"}
+                  </td>
+                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
+                    {a
+                      ? `${a.avgScore.toFixed(1)}/${a.avgTotal.toFixed(1)}（${Math.round(
+                          a.avgAcc * 100
+                        )}%）`
+                      : "-"}
+                    {a?.count ? (
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>（{a.count}回）</div>
+                    ) : null}
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-          ※ 連続（streak）は表示しない設定にしています（データは消していません）
-        </div>
       </div>
 
+      {/* 模擬試験結果 */}
       <div style={{ marginTop: 12, border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>模擬試験結果（直近100件）</div>
+        <div style={{ fontWeight: 900, marginBottom: 10 }}>
+          模擬試験結果（直近100件）
+        </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <button
             onClick={() => setTab("all")}
-            style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #ccc", background: tab === "all" ? "#111" : "#fff", color: tab === "all" ? "#fff" : "#111", cursor: "pointer", fontWeight: 800 }}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 999,
+              border: "1px solid #ccc",
+              background: tab === "all" ? "#111" : "#fff",
+              color: tab === "all" ? "#fff" : "#111",
+              cursor: "pointer",
+              fontWeight: 800,
+            }}
           >
             ALL
           </button>
-          {QUIZ_TYPES.map((t) => (
+
+          {QUIZ_TYPES.map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #ccc", background: tab === t ? "#111" : "#fff", color: tab === t ? "#fff" : "#111", cursor: "pointer", fontWeight: 800 }}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border: "1px solid #ccc",
+                background: tab === t ? "#111" : "#fff",
+                color: tab === t ? "#fff" : "#111",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
             >
               {label(t)}
             </button>
@@ -291,15 +366,15 @@ export default function AdminUserPage() {
                   typeof r.accuracy === "number"
                     ? r.accuracy
                     : r.total > 0
-                      ? r.score / r.total
-                      : 0
+                    ? r.score / r.total
+                    : 0
                 return (
                   <tr key={idx}>
                     <td style={{ border: "1px solid #ccc", padding: 8 }}>
                       {formatDateSeconds(r.createdAt?.seconds)}
                     </td>
                     <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                      {label(r.quizType ?? "-")}
+                      {label(r.quizType)}
                     </td>
                     <td style={{ border: "1px solid #ccc", padding: 8, fontWeight: 800 }}>
                       {r.score}/{r.total}

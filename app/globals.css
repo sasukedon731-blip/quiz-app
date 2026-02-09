@@ -35,7 +35,14 @@ body {
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
 }
-
+.button-sub {
+  background-color: #ffffff;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+.button-sub:hover {
+  background-color: #f3f4f6;
+}
 /* ===== 色別 ===== */
 .button-main {
   background-color: #2563eb;

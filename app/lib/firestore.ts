@@ -16,6 +16,7 @@ type EnsureParams = {
  * ✅ users/{uid} を必ず「実在するドキュメント」として作る/補正する
  * - 初回：role/user を含めて作成（空ドキュメント問題を根絶）
  * - 既存：roleは触らず、email/displayName/updatedAt を安全に merge
+ * - Phase1：quizLimit / selectedQuizTypes を初期化（未設定なら後で入るが、初回で確実に）
  */
 export async function ensureUserProfile(params: EnsureParams) {
   const { uid } = params
@@ -26,12 +27,16 @@ export async function ensureUserProfile(params: EnsureParams) {
   const snap = await getDoc(ref)
 
   if (!snap.exists()) {
-    // ✅ 初回作成：必ずフィールドを入れて “存在するドキュメント” にする
     await setDoc(ref, {
       uid,
       email,
       displayName,
       role: "user" as UserRole,
+
+      // ✅ Phase1：受講枠（まずは個人用）
+      quizLimit: 3,
+      selectedQuizTypes: [],
+
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -39,13 +44,19 @@ export async function ensureUserProfile(params: EnsureParams) {
   }
 
   // ✅ 既存：roleは変更しない（事故防止）
-  // ただし、email/displayName が入っていなければ補完してOK
+  // email/displayName は未設定なら補完してOK
   await setDoc(
     ref,
     {
       uid,
       ...(email ? { email } : {}),
       ...(displayName ? { displayName } : {}),
+
+      // ✅ Phase1：既存ユーザーでも値が無いことがあるので保険で入れる
+      // mergeなので既存にあれば上書きされない
+      quizLimit: 3,
+      selectedQuizTypes: [],
+
       updatedAt: serverTimestamp(),
     },
     { merge: true }
