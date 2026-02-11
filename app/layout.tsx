@@ -1,33 +1,20 @@
-"use client"
+// app/layout.tsx
+import "./globals.css"
+import type { Metadata } from "next"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/app/lib/useAuth"
-import { ensureUserProfile } from "@/app/lib/firestore"
+export const metadata: Metadata = {
+  title: "Quiz App",
+  description: "Learning quiz app",
+}
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { user, loading } = useAuth()
-
-  useEffect(() => {
-    if (loading) return
-
-    // 未ログインは login
-    if (!user) {
-      router.replace("/login")
-      return
-    }
-
-    // ユーザードキュメントの存在保証だけ行う
-    ensureUserProfile({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-    }).catch(console.error)
-  }, [user, loading, router])
-
-  if (loading) return <p style={{ textAlign: "center" }}>読み込み中…</p>
-  if (!user) return null
-
-  return <>{children}</>
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="ja">
+      <body>{children}</body>
+    </html>
+  )
 }

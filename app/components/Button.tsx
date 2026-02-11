@@ -1,39 +1,41 @@
-'use client'
+"use client"
 
-import { ButtonHTMLAttributes } from 'react'
+import React from "react"
 
-type Variant = 'main' | 'sub' | 'accent' | 'success' | 'choice'
+type Variant = "main" | "accent" | "choice" | "success"
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant
   isCorrect?: boolean
   isWrong?: boolean
 }
 
 export default function Button({
-  variant = 'main',
+  children,
+  variant = "main",
   isCorrect,
   isWrong,
-  className = '',
-  children,
+  className = "",
   ...props
 }: Props) {
-  let classes = 'button '
+  const classes = ["btn"] as string[]
 
-  if (variant === 'main') classes += 'button-main '
-  if (variant === 'sub') classes += 'button-sub '
-  if (variant === 'accent') classes += 'button-accent '
-  if (variant === 'success') classes += 'button-success '
-  if (variant === 'choice') {
-    classes += 'button-choice '
-    if (isCorrect) classes += 'correct '
-    if (isWrong) classes += 'wrong '
+  // variant
+  if (variant === "main") classes.push("btnPrimary")
+  if (variant === "accent") classes.push("btnAccent")
+  if (variant === "success") classes.push("btnSuccess")
+
+  // choice（選択肢）
+  if (variant === "choice") {
+    classes.push("choice")
+    if (isCorrect) classes.push("choiceCorrect")
+    if (isWrong) classes.push("choiceWrong")
   }
 
-  classes += className
+  if (className) classes.push(className)
 
   return (
-    <button className={classes} {...props}>
+    <button {...props} className={classes.join(" ")}>
       {children}
     </button>
   )
