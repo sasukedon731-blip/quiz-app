@@ -1,7 +1,7 @@
 // app/(auth)/layout.tsx
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
 import { ensureUserProfile } from "@/app/lib/firestore"
@@ -13,8 +13,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const { user, loading } = useAuth()
 
   const [entLoaded, setEntLoaded] = useState(false)
-  const [selectedLen, setSelectedLen] = useState<number>(0)
+  const [selectedLen, setSelectedLen] = useState(0)
 
+  const isSelectQuizzes = pathname === "/select-quizzes"
+  const isAdmin = pathname.startsWith("/admin")
+
+  // ✅ 重要：ルートが変わるたびに entitlement を読み直す（保存直後の反映が遅れない）
   useEffect(() => {
     if (loading) return
 
@@ -24,42 +28,61 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       return
     }
 
+    let alive = true
+    setEntLoaded(false)
+
     ;(async () => {
       try {
-        // ✅ users/{uid} を確実に作成（初期値も入る）
+        // users/{uid} を確実に作成
         await ensureUserProfile({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
         })
 
-        // ✅ 利用権チェック
+        // entitlement 読み込み
         const ent = await getUserEntitlement(user.uid)
+        if (!alive) return
         setSelectedLen((ent.selectedQuizTypes ?? []).length)
       } catch (e) {
         console.error("AuthLayout init failed:", e)
       } finally {
+        if (!alive) return
         setEntLoaded(true)
       }
     })()
-  }, [user, loading, router])
 
-  // ロード中
+    return () => {
+      alive = false
+    }
+  }, [user?.uid, loading, pathname, router])
+
+  // ✅ 重要：redirect は render 中にしない（ループ防止）
+  useEffect(() => {
+    if (loading) return
+    if (!user) return
+    if (!entLoaded) return
+
+    // 受講教材が未選択なら強制的に選択へ（select-quizzes / admin は除外）
+    if (!isSelectQuizzes && !isAdmin && selectedLen === 0) {
+      router.replace("/select-quizzes")
+    }
+  }, [loading, user, entLoaded, selectedLen, isSelectQuizzes, isAdmin, router])
+
+  // ロード中表示
   if (loading) return <p style={{ textAlign: "center" }}>読み込み中…</p>
   if (!user) return null
 
-  // 利用権ロード中（ちらつき防止）
+  // entitlement ロード中（ちらつき防止）
   if (!entLoaded) return <p style={{ textAlign: "center" }}>読み込み中…</p>
 
-  // ✅ 除外ルート
-  const isSelectQuizzes = pathname === "/select-quizzes"
-  const isAdmin = pathname.startsWith("/admin")
-
-  // ✅ 受講教材が未選択なら強制的に選択へ
-  if (!isSelectQuizzes && !isAdmin && selectedLen === 0) {
-    router.replace("/select-quizzes")
-    return null
+  // select-quizzes / admin はそのまま見せる
+  if (isSelectQuizzes || isAdmin) {
+    return <>{children}</>
   }
+
+  // 未選択の場合は useEffect で飛ばすのでここは一旦 null（チラつきなし）
+  if (selectedLen === 0) return null
 
   return <>{children}</>
 }
