@@ -1,6 +1,7 @@
 import type { Quiz } from "@/app/data/types"
 
 export const gaikokuQuiz: Quiz = {
+   id: "gaikoku-license", // ✅ 追加
   title: "外国免許切替",
   questions: [
     {

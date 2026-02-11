@@ -6,7 +6,7 @@ export type QuizType =
   | "genba-listening"
 
 export type Question = {
-  // ✅ ここが重要：既存資産に合わせて number に戻す
+  // ✅ 既存資産に合わせて number 維持（Review 側も耐性あり）
   id: number
 
   question: string
@@ -15,11 +15,14 @@ export type Question = {
   explanation: string
 
   // ✅ Listening対応（MP3がなくてもOK）
-  audioUrl?: string        // 将来: public にMP3を置いたら使う
-  listeningText?: string   // 今: ブラウザ読み上げ用
+  audioUrl?: string
+  listeningText?: string
 }
 
 export type Quiz = {
+  // ✅ 追加：quiz の唯一の真実（URL / Firestore / localStorage のキー）
+  id: QuizType
+
   title: string
   description?: string
   questions: Question[]

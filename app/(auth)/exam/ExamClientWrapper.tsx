@@ -5,13 +5,16 @@ import ExamClient from "./ExamClient"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 
+function isQuizType(v: string): v is QuizType {
+  return v in quizzes
+}
+
 export default function ExamClientWrapper() {
   const router = useRouter()
   const params = useSearchParams()
   const typeRaw = params.get("type")
 
-  const quiz = typeRaw ? quizzes[typeRaw as QuizType] : undefined
-  if (!quiz) {
+  if (!typeRaw || !isQuizType(typeRaw)) {
     return (
       <main className="container">
         <p style={{ textAlign: "center", marginTop: 40 }}>
@@ -24,5 +27,6 @@ export default function ExamClientWrapper() {
     )
   }
 
-  return <ExamClient quiz={quiz} quizType={typeRaw as QuizType} />
+  const quiz = quizzes[typeRaw]
+  return <ExamClient quiz={quiz} />
 }

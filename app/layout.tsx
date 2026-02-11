@@ -1,19 +1,33 @@
-import "./globals.css";
-import React, { ReactNode } from "react";
+"use client"
 
-export const metadata = {
-  title: "外国免許切替クイズ",
-  description: "外国人向け免許切替試験対策クイズアプリ",
-};
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/app/lib/useAuth"
+import { ensureUserProfile } from "@/app/lib/firestore"
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="ja">
-      <body>
-        <div className="container">
-          {children}
-        </div>
-      </body>
-    </html>
-  );
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (loading) return
+
+    // 未ログインは login
+    if (!user) {
+      router.replace("/login")
+      return
+    }
+
+    // ユーザードキュメントの存在保証だけ行う
+    ensureUserProfile({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+    }).catch(console.error)
+  }, [user, loading, router])
+
+  if (loading) return <p style={{ textAlign: "center" }}>読み込み中…</p>
+  if (!user) return null
+
+  return <>{children}</>
 }

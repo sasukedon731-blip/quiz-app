@@ -2,6 +2,7 @@
 import type { Quiz } from "@/app/data/types"
 
 export const genbaListening: Quiz = {
+    id: "genba-listening", // ✅ 追加
   title: "現場用語リスニング",
   description: "音声（読み上げ）を聞いて、いちばん近い意味を選びます。",
   questions: [

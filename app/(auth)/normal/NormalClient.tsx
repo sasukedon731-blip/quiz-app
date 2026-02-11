@@ -19,9 +19,9 @@ const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
 const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
 
+// ✅ Props は quiz のみ（ここが変更点①）
 type Props = {
   quiz: Quiz
-  quizType: QuizType
 }
 
 type StudyProgress = {
@@ -154,9 +154,12 @@ function updateProgressOnSessionComplete(quizType: QuizType) {
   return next
 }
 
-export default function NormalClient({ quiz, quizType }: Props) {
+export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
+
+  // ✅ 変更点②：quizType は quiz.id から取得（唯一の真実）
+  const quizType: QuizType = quiz.id
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)

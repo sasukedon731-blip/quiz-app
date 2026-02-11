@@ -5,13 +5,16 @@ import ReviewClient from "./ReviewClient"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 
+function isQuizType(v: string): v is QuizType {
+  return v in quizzes
+}
+
 export default function ReviewClientWrapper() {
   const router = useRouter()
   const params = useSearchParams()
   const typeRaw = params.get("type")
 
-  const quiz = typeRaw ? quizzes[typeRaw as QuizType] : undefined
-  if (!quiz) {
+  if (!typeRaw || !isQuizType(typeRaw)) {
     return (
       <main className="container">
         <p style={{ textAlign: "center", marginTop: 40 }}>
@@ -24,5 +27,8 @@ export default function ReviewClientWrapper() {
     )
   }
 
-  return <ReviewClient quizType={typeRaw as QuizType} />
+  const quiz = quizzes[typeRaw]
+
+  // ✅ ここが変更点：quizType じゃなく quiz を渡す
+  return <ReviewClient quiz={quiz} />
 }

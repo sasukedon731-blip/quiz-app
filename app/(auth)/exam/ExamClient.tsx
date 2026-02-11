@@ -4,31 +4,40 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
+import ListeningControls from '@/app/components/ListeningControls'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
-// ✅ Firestore保存用
-import { auth } from '@/app/lib/firebase'
+import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 
-// ✅ 追加：読み上げ（MP3不要）
-import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
+// ✅ 離脱/中断で読み上げ停止
+import { stopSpeak } from '@/app/lib/tts'
 
-const EXAM_TIME_SEC = 20 * 60 // 20分
+const EXAM_TIME_SEC = 20 * 60
 const EXAM_QUESTION_COUNT = 30
+
+const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_EXAM_SESSION_KEY = 'exam-session'
+const STORAGE_EXAM_PROGRESS_KEY = 'exam-progress'
 
 type Props = {
   quiz: Quiz
-  quizType: QuizType
 }
 
-type Answer = {
-  selectedIndex: number
+type ExamAnswer = {
+  questionId: number // ✅ 修正：Question.id が number なので合わせる
+  selectedIndex: number | null
+  correctIndex: number
   isCorrect: boolean
+  question: string
+  choices: string[]
+  explanation?: string
+  audioUrl?: string
+  listeningText?: string
 }
 
-// ✅ Fisher–Yates shuffle（破壊しない）
+/** utils */
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -42,329 +51,407 @@ function shuffleQuestionChoices(q: Question): Question {
   const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
   const shuffled = shuffleArray(choicesWithIndex)
   const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
-
-  return {
-    ...q,
-    choices: shuffled.map(x => x.text),
-    correctIndex: newCorrectIndex,
-  }
+  return { ...q, choices: shuffled.map(x => x.text), correctIndex: newCorrectIndex }
 }
 
-function buildRandomExamQuestions(all: Question[]): Question[] {
-  const withShuffledChoices = all.map(shuffleQuestionChoices)
-  const shuffledQuestions = shuffleArray(withShuffledChoices)
-  return shuffledQuestions.slice(0, Math.min(EXAM_QUESTION_COUNT, shuffledQuestions.length))
+function buildExamQuestions(all: Question[], count: number): Question[] {
+  const built = shuffleArray(all.map(shuffleQuestionChoices))
+  return built.slice(0, Math.min(count, built.length))
 }
 
-export default function ExamClient({ quiz, quizType }: Props) {
+function formatTime(sec: number) {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+// 音（素材不要）
+function playBeep(freq: number, durationMs: number, type: OscillatorType = 'sine') {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    const ctx = new AudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    const now = ctx.currentTime
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(now)
+    osc.stop(now + durationMs / 1000 + 0.02)
+    osc.onended = () => ctx.close().catch(() => {})
+  } catch {}
+}
+
+export default function ExamClient({ quiz }: Props) {
   const router = useRouter()
+  const { user } = useAuth()
+
+  const quizType: QuizType = quiz.id
+
+  const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
+  const sessionKey = `${STORAGE_EXAM_SESSION_KEY}-${quizType}`
+  const progressKey = `${STORAGE_EXAM_PROGRESS_KEY}-${quizType}`
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
-  const [locked, setLocked] = useState(false)
-  const [answers, setAnswers] = useState<Answer[]>([])
+  const [selected, setSelected] = useState<number | null>(null)
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
   const [finished, setFinished] = useState(false)
 
-  // ✅ 二重保存防止
-  const savedRef = useRef(false)
+  const [answers, setAnswers] = useState<ExamAnswer[]>([])
+  const [score, setScore] = useState(0)
 
-  const total = questions.length
-  const current = questions[index]
+  // stale対策
+  const indexRef = useRef(0)
+  const timeLeftRef = useRef(EXAM_TIME_SEC)
+  const answersRef = useRef<ExamAnswer[]>([])
+  const scoreRef = useRef(0)
 
-  const goModeSelect = () => {
-    stopSpeak()
-    router.push(`/select-mode?type=${encodeURIComponent(quizType)}`)
-  }
-
-  // ✅ 初期化（セッション復元 or 新規作成）
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
-      if (raw) {
-        const s = JSON.parse(raw)
-        if (Array.isArray(s?.questions) && s.questions.length > 0) {
-          setQuestions(s.questions)
-          if (typeof s.index === 'number') setIndex(s.index)
-          if (Array.isArray(s.answers)) setAnswers(s.answers)
-          if (typeof s.timeLeft === 'number') setTimeLeft(s.timeLeft)
-          if (typeof s.finished === 'boolean') setFinished(s.finished)
-          return
-        }
-      }
-
-      // 新規開始
-      const rnd = buildRandomExamQuestions(quiz.questions)
-      setQuestions(rnd)
-      setIndex(0)
-      setAnswers([])
-      setTimeLeft(EXAM_TIME_SEC)
-      setFinished(false)
-
-      localStorage.setItem(
-        `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
-        JSON.stringify({
-          questions: rnd,
-          index: 0,
-          answers: [],
-          timeLeft: EXAM_TIME_SEC,
-          finished: false,
-        })
-      )
-    } catch {
-      localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
-      const rnd = buildRandomExamQuestions(quiz.questions)
-      setQuestions(rnd)
-      setIndex(0)
-      setAnswers([])
-      setTimeLeft(EXAM_TIME_SEC)
-      setFinished(false)
-      localStorage.setItem(
-        `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
-        JSON.stringify({
-          questions: rnd,
-          index: 0,
-          answers: [],
-          timeLeft: EXAM_TIME_SEC,
-          finished: false,
-        })
-      )
-    }
-  }, [quizType, quiz.questions])
-
-  // ✅ セッション保存（状態が変わったら更新）
-  useEffect(() => {
-    if (questions.length === 0) return
-    localStorage.setItem(
-      `${STORAGE_EXAM_SESSION_KEY}-${quizType}`,
-      JSON.stringify({
-        questions,
-        index,
-        answers,
-        timeLeft,
-        finished,
-      })
-    )
-  }, [questions, index, answers, timeLeft, finished, quizType])
-
-  // ✅ 問題切替・終了・画面離脱で読み上げが残らないように停止
-  useEffect(() => {
-    stopSpeak()
+    indexRef.current = index
   }, [index])
 
   useEffect(() => {
-    return () => stopSpeak()
-  }, [])
+    timeLeftRef.current = timeLeft
+  }, [timeLeft])
 
-  // タイマー（試験中のみ）
   useEffect(() => {
-    if (finished) return
-    if (questions.length === 0) return
+    answersRef.current = answers
+  }, [answers])
 
-    const id = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          clearInterval(id)
-          setFinished(true)
+  useEffect(() => {
+    scoreRef.current = score
+  }, [score])
+
+  const goModeSelect = () => {
+    router.push(`/select-mode?type=${quizType}`)
+  }
+
+  /** 初期化（復元あり） */
+  useEffect(() => {
+    stopSpeak()
+
+    const savedSessionRaw = localStorage.getItem(sessionKey)
+    const savedProgressRaw = localStorage.getItem(progressKey)
+
+    if (savedSessionRaw && savedProgressRaw) {
+      try {
+        const s = JSON.parse(savedSessionRaw) as {
+          questions: Question[]
+          answers: ExamAnswer[]
+          score: number
+        }
+        const p = JSON.parse(savedProgressRaw) as { index: number; timeLeft: number; finished?: boolean }
+
+        if (Array.isArray(s.questions) && s.questions.length > 0) {
+          setQuestions(s.questions)
+          setAnswers(Array.isArray(s.answers) ? s.answers : [])
+          setScore(typeof s.score === 'number' ? s.score : 0)
+
+          setIndex(typeof p.index === 'number' ? p.index : 0)
+          setTimeLeft(typeof p.timeLeft === 'number' ? p.timeLeft : EXAM_TIME_SEC)
+          setFinished(Boolean(p.finished))
+          setSelected(null)
+          return
+        }
+      } catch {
+        // 復元失敗→新規開始
+      }
+    }
+
+    const built = buildExamQuestions(quiz.questions, EXAM_QUESTION_COUNT)
+    setQuestions(built)
+    setIndex(0)
+    setSelected(null)
+    setTimeLeft(EXAM_TIME_SEC)
+    setFinished(false)
+    setAnswers([])
+    setScore(0)
+
+    localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0 }))
+    localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizType])
+
+  /** タイマー */
+  useEffect(() => {
+    if (!questions.length) return
+    if (finished) return
+
+    const t = window.setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          window.clearInterval(t)
+          finishExam(true).catch(() => {})
           return 0
         }
-        return t - 1
+        return prev - 1
       })
     }, 1000)
 
-    return () => clearInterval(id)
-  }, [finished, questions.length])
+    return () => window.clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions.length, finished])
 
-  const timeLabel = useMemo(() => {
-    const m = Math.floor(timeLeft / 60)
-    const s = timeLeft % 60
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  }, [timeLeft])
-
-  const answer = (i: number) => {
-    if (finished) return
-    if (locked) return
-    setLocked(true)
-
-    // ✅ 回答したら読み上げ停止（音が残らない）
-    stopSpeak()
-
-    const ok = i === current.correctIndex
-    setAnswers(prev => [...prev, { selectedIndex: i, isCorrect: ok }])
-
-    setTimeout(() => {
-      if (index + 1 < total) {
-        setIndex(v => v + 1)
-        setLocked(false)
-      } else {
-        setFinished(true)
-      }
-    }, 200)
-  }
-
-  const correctCount = useMemo(() => {
-    return answers.filter(a => a.isCorrect).length
-  }, [answers])
-
-  // ✅ 終了したら Firestore に結果保存（1回だけ）
+  /** 離脱時の保存 */
   useEffect(() => {
-    const save = async () => {
-      if (!finished) return
-      if (savedRef.current) return
-      if (questions.length === 0) return
-
-      // 未ログインなら保存しない（mypageはログイン前提なので通常ここは通らない）
-      const u = auth.currentUser
-      if (!u) return
-
-      savedRef.current = true
-
-      const totalCount = questions.length
-      const score = correctCount
-      const accuracy = totalCount ? Math.round((score / totalCount) * 100) : 0
-
+    const handler = () => {
       try {
-        await addDoc(collection(db, 'users', u.uid, 'results'), {
-          quizType, // "gaikoku-license" / "japanese-n4" / "genba-listening"
-          mode: 'exam',
-          score,
-          total: totalCount,
-          accuracy,
-          createdAt: serverTimestamp(),
-        })
-      } catch (e) {
-        // 保存失敗したら、次回の再表示で再保存できるように戻す
-        savedRef.current = false
-        console.error('結果保存失敗', e)
-      }
+        if (!questions.length) return
+        localStorage.setItem(
+          sessionKey,
+          JSON.stringify({
+            questions,
+            answers: answersRef.current,
+            score: scoreRef.current,
+          })
+        )
+        localStorage.setItem(
+          progressKey,
+          JSON.stringify({
+            index: indexRef.current,
+            timeLeft: timeLeftRef.current,
+            finished,
+          })
+        )
+      } catch {}
     }
 
-    save()
-  }, [finished, quizType, questions.length, correctCount])
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [questions, finished, progressKey, sessionKey])
+
+  const current = useMemo(() => {
+    if (!questions.length) return null
+    return questions[index] ?? null
+  }, [questions, index])
+
+  const answer = (choiceIndex: number) => {
+    if (!current) return
+    if (selected !== null) return
+
+    setSelected(choiceIndex)
+
+    const isCorrect = choiceIndex === current.correctIndex
+    if (isCorrect) {
+      playBeep(880, 120, 'triangle')
+      setScore(prev => prev + 1)
+    } else {
+      playBeep(220, 180, 'sawtooth')
+      // wrong に追加（重複防止）
+      try {
+        const raw = localStorage.getItem(wrongKey)
+        const arr = raw ? (JSON.parse(raw) as Question[]) : []
+        const exists = Array.isArray(arr) && arr.some(q => q.id === current.id)
+        if (!exists) {
+          const next = Array.isArray(arr) ? [...arr, current] : [current]
+          localStorage.setItem(wrongKey, JSON.stringify(next))
+        }
+      } catch {}
+    }
+
+    const a: ExamAnswer = {
+      questionId: current.id, // ✅ number → number
+      selectedIndex: choiceIndex,
+      correctIndex: current.correctIndex,
+      isCorrect,
+      question: current.question,
+      choices: current.choices,
+      explanation: current.explanation,
+      audioUrl: current.audioUrl,
+      listeningText: current.listeningText,
+    }
+
+    setAnswers(prev => {
+      const next = [...prev]
+      next[index] = a
+      return next
+    })
+  }
+
+  const next = () => {
+    setSelected(null)
+
+    const nextIndex = index + 1
+    if (nextIndex >= questions.length) {
+      finishExam(false).catch(() => {})
+      return
+    }
+    setIndex(nextIndex)
+
+    try {
+      localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex, timeLeft: timeLeftRef.current, finished: false }))
+    } catch {}
+  }
 
   const interrupt = () => {
     stopSpeak()
-    // セッション保存は useEffect がやってくれるので、そのまま戻る
+    try {
+      localStorage.setItem(
+        sessionKey,
+        JSON.stringify({
+          questions,
+          answers: answersRef.current,
+          score: scoreRef.current,
+        })
+      )
+      localStorage.setItem(
+        progressKey,
+        JSON.stringify({
+          index: indexRef.current,
+          timeLeft: timeLeftRef.current,
+          finished,
+        })
+      )
+    } catch {}
     goModeSelect()
   }
 
-  const onListen = () => {
-    // MP3がない前提：listeningText を読み上げ
-    if ((current as any)?.listeningText) {
-      speak((current as any).listeningText as string, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
+  const finishExam = async (byTimeout: boolean) => {
+    if (finished) return
+    setFinished(true)
+    stopSpeak()
+
+    // 保存（Firestore）
+    if (user) {
+      const resultRef = doc(collection(db, 'users', user.uid, 'results'))
+      await setDoc(
+        resultRef,
+        {
+          quizType,
+          mode: 'exam',
+          score: scoreRef.current,
+          total: questions.length,
+          byTimeout,
+          timeLeft: timeLeftRef.current,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
     }
+
+    try {
+      localStorage.setItem(
+        sessionKey,
+        JSON.stringify({
+          questions,
+          answers: answersRef.current,
+          score: scoreRef.current,
+        })
+      )
+      localStorage.setItem(
+        progressKey,
+        JSON.stringify({
+          index: indexRef.current,
+          timeLeft: timeLeftRef.current,
+          finished: true,
+        })
+      )
+    } catch {}
   }
 
-  // 読み込み中
-  if (questions.length === 0) {
-    return (
-      <QuizLayout title={`${quiz.title}（模擬試験）`}>
-        <p>読み込み中...</p>
-      </QuizLayout>
-    )
+  const resetExam = () => {
+    stopSpeak()
+
+    const built = buildExamQuestions(quiz.questions, EXAM_QUESTION_COUNT)
+    setQuestions(built)
+    setIndex(0)
+    setSelected(null)
+    setTimeLeft(EXAM_TIME_SEC)
+    setFinished(false)
+    setAnswers([])
+    setScore(0)
+
+    try {
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0 }))
+      localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
+    } catch {}
   }
 
-  // 結果画面（まとめて正誤＋解説）
+  if (!questions.length || !current) return null
+
   if (finished) {
+    const total = questions.length
+    const pct = total > 0 ? Math.round((score / total) * 100) : 0
+
     return (
-      <QuizLayout title={`${quiz.title}（模擬試験 結果）`}>
-        <div className="mb-4 rounded-lg border p-3">
-          <div className="text-lg font-bold">
-            結果：{correctCount} / {answers.length} 問正解（全{total}問）
+      <QuizLayout title={`${quiz.title}（模擬試験）結果`}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ fontWeight: 900, fontSize: 20 }}>
+            {score} / {total}（{pct}%）
           </div>
-          <div className="mt-1 text-sm">残り時間：{timeLabel}</div>
+          <div style={{ opacity: 0.8 }}>残り時間: {formatTime(timeLeft)}</div>
         </div>
 
-        <div className="space-y-4">
-          {questions.slice(0, answers.length).map((q, idx) => {
-            const a = answers[idx]
-            const ok = a?.isCorrect
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="main" onClick={resetExam}>
+            もう一度（再挑戦）
+          </Button>
+          <Button variant="accent" onClick={goModeSelect}>
+            モード選択へ戻る
+          </Button>
+        </div>
+
+        <hr style={{ margin: '16px 0' }} />
+
+        <h3 style={{ marginTop: 0 }}>解答・解説（全問）</h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {questions.map((q, i) => {
+            const a = answers[i]
+            const selectedIdx = a?.selectedIndex ?? null
+            const correctIdx = a?.correctIndex ?? q.correctIndex
 
             return (
               <div
-                key={idx}
-                className={`rounded-lg border-2 p-3 ${ok ? 'border-green-300' : 'border-red-300'}`}
+                key={q.id}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  padding: 12,
+                  background: '#fff',
+                }}
               >
-                <div className="text-sm">
-                  {idx + 1} / {total}
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ fontWeight: 800 }}>
+                    Q{i + 1}. {q.question}
+                  </div>
+                  <div style={{ fontWeight: 800 }}>
+                    {selectedIdx === null ? '—' : selectedIdx === correctIdx ? '✅' : '❌'}
+                  </div>
                 </div>
 
-                <div className="mt-1 font-semibold">{q.question}</div>
+                {q.audioUrl && (
+                  <div style={{ marginTop: 10 }}>
+                    <audio controls src={q.audioUrl} preload="none" />
+                  </div>
+                )}
 
-                {/* ✅ 結果画面でも聞ける（任意） */}
-                {(((q as any).audioUrl as string | undefined) || (q as any).listeningText) && (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      padding: 10,
-                      borderRadius: 12,
-                      border: '1px solid #e5e7eb',
-                      background: '#f9fafb',
-                    }}
-                  >
-                    {(q as any).audioUrl ? (
-                      <audio controls src={(q as any).audioUrl as string} preload="none" />
-                    ) : (
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            speak((q as any).listeningText as string, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
-                          }
-                          disabled={!canSpeak()}
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: 10,
-                            border: '1px solid #e5e7eb',
-                            background: 'white',
-                            cursor: canSpeak() ? 'pointer' : 'not-allowed',
-                            fontWeight: 700,
-                            fontSize: 13,
-                          }}
-                        >
-                          🔊 聞き直す
-                        </button>
+                <div style={{ marginTop: 10 }}>
+                  <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam`} />
+                </div>
 
-                        <button
-                          type="button"
-                          onClick={() => stopSpeak()}
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: 10,
-                            border: '1px solid #e5e7eb',
-                            background: 'white',
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            fontSize: 13,
-                          }}
-                        >
-                          ⏹ 停止
-                        </button>
+                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                  {q.choices.map((c, idx) => {
+                    const isCorrect = idx === correctIdx
+                    const isSelected = selectedIdx === idx
+                    const badge = isCorrect ? '（正）' : isSelected ? '（選）' : ''
+
+                    return (
+                      <div key={idx} style={{ opacity: isCorrect || isSelected ? 1 : 0.85 }}>
+                        {idx + 1}. {c} {badge}
                       </div>
-                    )}
-                  </div>
-                )}
-
-                <div
-                  className={`mt-3 rounded-lg px-4 py-2 text-center text-xl font-extrabold ${
-                    ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}
-                >
-                  {ok ? '⭕ 正解！' : '❌ 不正解'}
-                </div>
-
-                {!ok && a && (
-                  <div className="mt-2 text-sm text-red-700">
-                    あなたの回答：{q.choices[a.selectedIndex]}
-                  </div>
-                )}
-
-                <div className="mt-2 text-sm font-semibold text-green-700">
-                  正解：{q.choices[q.correctIndex]}
+                    )
+                  })}
                 </div>
 
                 {q.explanation && (
-                  <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+                  <div style={{ marginTop: 10, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
                     {q.explanation}
                   </div>
                 )}
@@ -372,50 +459,22 @@ export default function ExamClient({ quiz, quizType }: Props) {
             )
           })}
         </div>
-
-        <div className="mt-6 space-y-2">
-          <Button
-            variant="main"
-            onClick={() => {
-              stopSpeak()
-              // 終了後は次回のためにセッション削除（新しくランダム30問を引く）
-              localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
-              goModeSelect()
-            }}
-          >
-            モード選択に戻る
-          </Button>
-
-          <Button
-            variant="accent"
-            onClick={() => {
-              stopSpeak()
-              // もう一回（新しいランダム30問）
-              localStorage.removeItem(`${STORAGE_EXAM_SESSION_KEY}-${quizType}`)
-              router.push(`/exam?type=${encodeURIComponent(quizType)}`)
-            }}
-          >
-            もう一度（新しい30問）
-          </Button>
-        </div>
       </QuizLayout>
     )
   }
 
-  // 試験中（正解が絶対に見えない）
   return (
-    <QuizLayout title={`${quiz.title}（模擬試験：${total}問）`}>
-      <div className="flex items-center justify-between">
-        <p>
-          {index + 1} / {total}
+    <QuizLayout title={`${quiz.title}（模擬試験）`}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <p style={{ margin: 0 }}>
+          {index + 1} / {questions.length}
         </p>
-        <p className="font-bold">{timeLabel}</p>
+        <div style={{ fontWeight: 900 }}>残り {formatTime(timeLeft)}</div>
       </div>
 
-      <h2>{current.question}</h2>
+      <h2 style={{ marginTop: 12 }}>{current.question}</h2>
 
-      {/* ✅ Listening UI（試験中もOK：正解は一切表示しない） */}
-      {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
+      {current.audioUrl && (
         <div
           style={{
             margin: '12px 0',
@@ -425,62 +484,36 @@ export default function ExamClient({ quiz, quizType }: Props) {
             background: '#f9fafb',
           }}
         >
-          {(current as any).audioUrl ? (
-            <audio controls src={(current as any).audioUrl as string} preload="none" />
-          ) : (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={onListen}
-                disabled={!canSpeak() || finished}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: canSpeak() ? 'pointer' : 'not-allowed',
-                  fontWeight: 700,
-                }}
-              >
-                🔊 音声を聞く
-              </button>
-
-              <button
-                type="button"
-                onClick={() => stopSpeak()}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                ⏹ 停止
-              </button>
-
-              {!canSpeak() && (
-                <small style={{ color: '#6b7280' }}>
-                  この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
-                </small>
-              )}
-            </div>
-          )}
+          <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
 
-      {/* isCorrect/isWrong を渡さない → 試験中に正解がバレない */}
+      <ListeningControls text={current.listeningText} storageKeyPrefix={`${quizType}-exam`} />
+
       {current.choices.map((c, i) => (
-        <Button key={i} variant="choice" onClick={() => answer(i)} disabled={locked}>
+        <Button
+          key={i}
+          variant="choice"
+          onClick={() => answer(i)}
+          disabled={selected !== null}
+          isCorrect={selected !== null && i === current.correctIndex}
+          isWrong={selected !== null && i === selected && i !== current.correctIndex}
+        >
           {c}
         </Button>
       ))}
 
-      <div className="mt-4">
-        <Button variant="accent" onClick={interrupt}>
-          中断してモード選択へ
+      <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <Button variant="main" onClick={next} disabled={selected === null}>
+          次へ
         </Button>
+        <Button variant="accent" onClick={interrupt}>
+          中断して戻る
+        </Button>
+      </div>
+
+      <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
+        ※ 模擬試験は時間制限あり。解答後に「次へ」で進みます。
       </div>
     </QuizLayout>
   )

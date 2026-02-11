@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
-import type { Question, QuizType } from '@/app/data/types'
+import type { Question, Quiz, QuizType } from '@/app/data/types'
 
 import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
 
 const STORAGE_WRONG_KEY = 'wrong'
 
 type Props = {
-  quizType: QuizType
+  quiz: Quiz
 }
 
 // ✅ 既存互換を崩さないため「idは number 想定」維持しつつ、落ちにくい判定にする
@@ -31,8 +31,11 @@ function uniqById(list: Question[]) {
   return Array.from(new Map(list.map(q => [String((q as any).id), q])).values())
 }
 
-export default function ReviewClient({ quizType }: Props) {
+export default function ReviewClient({ quiz }: Props) {
   const router = useRouter()
+
+  // ✅ Normal / Exam と同じ：唯一の真実は quiz.id
+  const quizType: QuizType = quiz.id
 
   const storageKey = `${STORAGE_WRONG_KEY}-${quizType}`
 
@@ -121,7 +124,7 @@ export default function ReviewClient({ quizType }: Props) {
   // 復習対象なし
   if (!questions || questions.length === 0) {
     return (
-      <QuizLayout title="復習モード">
+      <QuizLayout title={`${quiz.title}（復習）`}>
         <p>復習する問題はありません</p>
         <Button variant="accent" onClick={goModeSelect}>
           モード選択に戻る
@@ -133,7 +136,7 @@ export default function ReviewClient({ quizType }: Props) {
   // current がない（保険）
   if (!current) {
     return (
-      <QuizLayout title="復習モード">
+      <QuizLayout title={`${quiz.title}（復習）`}>
         <p>問題の読み込みに失敗しました</p>
         <Button variant="accent" onClick={goModeSelect}>
           モード選択に戻る
@@ -196,7 +199,7 @@ export default function ReviewClient({ quizType }: Props) {
   const isLastNow = index >= questions.length - 1
 
   return (
-    <QuizLayout title="復習モード">
+    <QuizLayout title={`${quiz.title}（復習）`}>
       <p>
         {index + 1} / {questions.length}
       </p>
