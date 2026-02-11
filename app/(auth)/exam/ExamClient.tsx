@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
@@ -65,27 +65,6 @@ function formatTime(sec: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-// 音（素材不要）
-function playBeep(freq: number, durationMs: number, type: OscillatorType = 'sine') {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-    const ctx = new AudioCtx()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.type = type
-    osc.frequency.value = freq
-    const now = ctx.currentTime
-    gain.gain.setValueAtTime(0.0001, now)
-    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + durationMs / 1000)
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.start(now)
-    osc.stop(now + durationMs / 1000 + 0.02)
-    osc.onended = () => ctx.close().catch(() => {})
-  } catch {}
-}
-
 export default function ExamClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
@@ -99,6 +78,10 @@ export default function ExamClient({ quiz }: Props) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+
+  // ✅ 回答後 自動で次へ進むまでの「操作ロック」
+  const advancingRef = useRef(false)
+
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
   const [finished, setFinished] = useState(false)
 
@@ -130,6 +113,72 @@ export default function ExamClient({ quiz }: Props) {
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
+
+  /** 保存（Firestore）+ localStorage 反映 */
+  const finishExam = useCallback(
+    async (byTimeout: boolean) => {
+      if (finished) return
+      setFinished(true)
+      stopSpeak()
+
+      if (user) {
+        const resultRef = doc(collection(db, 'users', user.uid, 'results'))
+        await setDoc(
+          resultRef,
+          {
+            quizType,
+            mode: 'exam',
+            score: scoreRef.current,
+            total: questions.length,
+            byTimeout,
+            timeLeft: timeLeftRef.current,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        )
+      }
+
+      try {
+        localStorage.setItem(
+          sessionKey,
+          JSON.stringify({
+            questions,
+            answers: answersRef.current,
+            score: scoreRef.current,
+          })
+        )
+        localStorage.setItem(
+          progressKey,
+          JSON.stringify({
+            index: indexRef.current,
+            timeLeft: timeLeftRef.current,
+            finished: true,
+          })
+        )
+      } catch {}
+    },
+    [finished, progressKey, questions, sessionKey, user, quizType]
+  )
+
+  /** 次へ（自動遷移用） */
+  const goNext = useCallback(() => {
+    setSelected(null)
+
+    const nextIndex = indexRef.current + 1
+    if (nextIndex >= questions.length) {
+      finishExam(false).catch(() => {})
+      return
+    }
+
+    setIndex(nextIndex)
+
+    try {
+      localStorage.setItem(
+        progressKey,
+        JSON.stringify({ index: nextIndex, timeLeft: timeLeftRef.current, finished: false })
+      )
+    } catch {}
+  }, [finishExam, progressKey, questions.length])
 
   /** 初期化（復元あり） */
   useEffect(() => {
@@ -195,8 +244,7 @@ export default function ExamClient({ quiz }: Props) {
     }, 1000)
 
     return () => window.clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questions.length, finished])
+  }, [questions.length, finished, finishExam])
 
   /** 離脱時の保存 */
   useEffect(() => {
@@ -231,18 +279,19 @@ export default function ExamClient({ quiz }: Props) {
     return questions[index] ?? null
   }, [questions, index])
 
+  /** 回答：正誤は表示しない。回答後に自動で次へ */
   const answer = (choiceIndex: number) => {
     if (!current) return
     if (selected !== null) return
+    if (advancingRef.current) return
 
+    // ✅ 手応え：選択したボタンだけ薄グレー（variant/subで）
     setSelected(choiceIndex)
 
     const isCorrect = choiceIndex === current.correctIndex
     if (isCorrect) {
-      playBeep(880, 120, 'triangle')
       setScore(prev => prev + 1)
     } else {
-      playBeep(220, 180, 'sawtooth')
       // wrong に追加（重複防止）
       try {
         const raw = localStorage.getItem(wrongKey)
@@ -269,24 +318,16 @@ export default function ExamClient({ quiz }: Props) {
 
     setAnswers(prev => {
       const next = [...prev]
-      next[index] = a
+      next[indexRef.current] = a
       return next
     })
-  }
 
-  const next = () => {
-    setSelected(null)
-
-    const nextIndex = index + 1
-    if (nextIndex >= questions.length) {
-      finishExam(false).catch(() => {})
-      return
-    }
-    setIndex(nextIndex)
-
-    try {
-      localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex, timeLeft: timeLeftRef.current, finished: false }))
-    } catch {}
+    // ✅ 自動で次へ（少しだけ間を置く）
+    advancingRef.current = true
+    window.setTimeout(() => {
+      advancingRef.current = false
+      goNext()
+    }, 650)
   }
 
   const interrupt = () => {
@@ -310,49 +351,6 @@ export default function ExamClient({ quiz }: Props) {
       )
     } catch {}
     goModeSelect()
-  }
-
-  const finishExam = async (byTimeout: boolean) => {
-    if (finished) return
-    setFinished(true)
-    stopSpeak()
-
-    // 保存（Firestore）
-    if (user) {
-      const resultRef = doc(collection(db, 'users', user.uid, 'results'))
-      await setDoc(
-        resultRef,
-        {
-          quizType,
-          mode: 'exam',
-          score: scoreRef.current,
-          total: questions.length,
-          byTimeout,
-          timeLeft: timeLeftRef.current,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      )
-    }
-
-    try {
-      localStorage.setItem(
-        sessionKey,
-        JSON.stringify({
-          questions,
-          answers: answersRef.current,
-          score: scoreRef.current,
-        })
-      )
-      localStorage.setItem(
-        progressKey,
-        JSON.stringify({
-          index: indexRef.current,
-          timeLeft: timeLeftRef.current,
-          finished: true,
-        })
-      )
-    } catch {}
   }
 
   const resetExam = () => {
@@ -449,7 +447,7 @@ export default function ExamClient({ quiz }: Props) {
   }
 
   return (
-    <QuizLayout title={`${quiz.title}（模擬試験）`} subtitle="時間制限あり・解答後に「次へ」で進みます">
+    <QuizLayout title={`${quiz.title}（模擬試験）`} subtitle="回答すると自動で次の問題へ進みます（正誤は表示されません）">
       <div className="kicker">
         <span className="badge">模擬</span>
         <span>
@@ -470,24 +468,28 @@ export default function ExamClient({ quiz }: Props) {
       <ListeningControls text={current.listeningText} storageKeyPrefix={`${quizType}-exam`} />
 
       <div className="choiceList">
-        {current.choices.map((c, i) => (
-          <Button
-            key={i}
-            variant="choice"
-            onClick={() => answer(i)}
-            disabled={selected !== null}
-            isCorrect={selected !== null && i === current.correctIndex}
-            isWrong={selected !== null && i === selected && i !== current.correctIndex}
-          >
-            {c}
-          </Button>
-        ))}
+        {current.choices.map((c, i) => {
+          // ✅ 選んだ選択肢だけ薄グレー（手応え）
+          const isChosen = selected !== null && i === selected
+          return (
+            <Button
+              key={i}
+              variant={isChosen ? 'sub' : 'choice'}
+              onClick={() => answer(i)}
+              disabled={selected !== null}
+              // ✅ 正誤表示しない
+              isCorrect={false}
+              isWrong={false}
+            >
+              {c}
+            </Button>
+          )
+        })}
       </div>
 
+      <p className="note">※ 中断すると途中から再開できます（タイマーも保存されます）</p>
+
       <div className="actions">
-        <Button variant="main" onClick={next} disabled={selected === null}>
-          次へ
-        </Button>
         <Button variant="sub" onClick={interrupt}>
           中断して戻る
         </Button>
