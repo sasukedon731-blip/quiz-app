@@ -26,7 +26,7 @@ type Props = {
 }
 
 type ExamAnswer = {
-  questionId: number // ✅ 修正：Question.id が number なので合わせる
+  questionId: number
   selectedIndex: number | null
   correctIndex: number
   isCorrect: boolean
@@ -256,7 +256,7 @@ export default function ExamClient({ quiz }: Props) {
     }
 
     const a: ExamAnswer = {
-      questionId: current.id, // ✅ number → number
+      questionId: current.id,
       selectedIndex: choiceIndex,
       correctIndex: current.correctIndex,
       isCorrect,
@@ -381,14 +381,14 @@ export default function ExamClient({ quiz }: Props) {
 
     return (
       <QuizLayout title={`${quiz.title}（模擬試験）結果`}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div className="resultMeta">
           <div style={{ fontWeight: 900, fontSize: 20 }}>
             {score} / {total}（{pct}%）
           </div>
           <div style={{ opacity: 0.8 }}>残り時間: {formatTime(timeLeft)}</div>
         </div>
 
-        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="actions">
           <Button variant="main" onClick={resetExam}>
             もう一度（再挑戦）
           </Button>
@@ -397,33 +397,23 @@ export default function ExamClient({ quiz }: Props) {
           </Button>
         </div>
 
-        <hr style={{ margin: '16px 0' }} />
+        <hr />
 
         <h3 style={{ marginTop: 0 }}>解答・解説（全問）</h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="resultList">
           {questions.map((q, i) => {
             const a = answers[i]
             const selectedIdx = a?.selectedIndex ?? null
             const correctIdx = a?.correctIndex ?? q.correctIndex
 
             return (
-              <div
-                key={q.id}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 12,
-                  padding: 12,
-                  background: '#fff',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ fontWeight: 800 }}>
+              <div key={q.id} className="resultItem">
+                <div className="resultHead">
+                  <div className="resultQ">
                     Q{i + 1}. {q.question}
                   </div>
-                  <div style={{ fontWeight: 800 }}>
-                    {selectedIdx === null ? '—' : selectedIdx === correctIdx ? '✅' : '❌'}
-                  </div>
+                  <div className="resultMark">{selectedIdx === null ? '—' : selectedIdx === correctIdx ? '✅' : '❌'}</div>
                 </div>
 
                 {q.audioUrl && (
@@ -436,12 +426,11 @@ export default function ExamClient({ quiz }: Props) {
                   <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam`} />
                 </div>
 
-                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                <div className="resultChoices">
                   {q.choices.map((c, idx) => {
                     const isCorrect = idx === correctIdx
                     const isSelected = selectedIdx === idx
                     const badge = isCorrect ? '（正）' : isSelected ? '（選）' : ''
-
                     return (
                       <div key={idx} style={{ opacity: isCorrect || isSelected ? 1 : 0.85 }}>
                         {idx + 1}. {c} {badge}
@@ -450,11 +439,7 @@ export default function ExamClient({ quiz }: Props) {
                   })}
                 </div>
 
-                {q.explanation && (
-                  <div style={{ marginTop: 10, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                    {q.explanation}
-                  </div>
-                )}
+                {q.explanation && <div className="resultExplain">{q.explanation}</div>}
               </div>
             )
           })}
@@ -464,56 +449,48 @@ export default function ExamClient({ quiz }: Props) {
   }
 
   return (
-    <QuizLayout title={`${quiz.title}（模擬試験）`}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <p style={{ margin: 0 }}>
+    <QuizLayout title={`${quiz.title}（模擬試験）`} subtitle="時間制限あり・解答後に「次へ」で進みます">
+      <div className="kicker">
+        <span className="badge">模擬</span>
+        <span>
           {index + 1} / {questions.length}
-        </p>
-        <div style={{ fontWeight: 900 }}>残り {formatTime(timeLeft)}</div>
+        </span>
+        <span className="spacer" />
+        <span className="timer">残り {formatTime(timeLeft)}</span>
       </div>
 
-      <h2 style={{ marginTop: 12 }}>{current.question}</h2>
+      <h2 className="question">{current.question}</h2>
 
       {current.audioUrl && (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 12,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#f9fafb',
-          }}
-        >
+        <div className="panelSoft" style={{ margin: '12px 0' }}>
           <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
 
       <ListeningControls text={current.listeningText} storageKeyPrefix={`${quizType}-exam`} />
 
-      {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          onClick={() => answer(i)}
-          disabled={selected !== null}
-          isCorrect={selected !== null && i === current.correctIndex}
-          isWrong={selected !== null && i === selected && i !== current.correctIndex}
-        >
-          {c}
-        </Button>
-      ))}
+      <div className="choiceList">
+        {current.choices.map((c, i) => (
+          <Button
+            key={i}
+            variant="choice"
+            onClick={() => answer(i)}
+            disabled={selected !== null}
+            isCorrect={selected !== null && i === current.correctIndex}
+            isWrong={selected !== null && i === selected && i !== current.correctIndex}
+          >
+            {c}
+          </Button>
+        ))}
+      </div>
 
-      <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div className="actions">
         <Button variant="main" onClick={next} disabled={selected === null}>
           次へ
         </Button>
-        <Button variant="accent" onClick={interrupt}>
+        <Button variant="sub" onClick={interrupt}>
           中断して戻る
         </Button>
-      </div>
-
-      <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
-        ※ 模擬試験は時間制限あり。解答後に「次へ」で進みます。
       </div>
     </QuizLayout>
   )

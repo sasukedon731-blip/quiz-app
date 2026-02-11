@@ -160,3 +160,195 @@ input:focus, select:focus, textarea:focus{
   border:1px solid var(--border);
 }
 .btnSub:hover{ background:#f3f4f6; }
+/* --- Layout container (for QuizLayout) --- */
+.container{
+  max-width:860px;
+  margin:0 auto;
+  padding:24px 16px 40px;
+}
+
+/* smaller stack helper */
+.stackSm{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* --- Card structure --- */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+  overflow:hidden;
+}
+
+.card-header{
+  padding:18px 18px 14px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.65));
+}
+
+.card-title{
+  margin:0;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:.2px;
+}
+
+.card-subtitle{
+  margin:0;
+  color:var(--muted);
+  font-weight:700;
+  font-size:13px;
+}
+
+.card-body{
+  padding:18px;
+}
+
+/* inside card spacing safety (when children are plain divs) */
+.card-body > *:first-child { margin-top:0; }
+.card-body > *:last-child { margin-bottom:0; }
+/* --- Normal/Exam/Review common blocks --- */
+.kicker{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--muted);
+  font-weight:800;
+  font-size:13px;
+  margin:0 0 10px;
+}
+
+.question{
+  margin:0 0 12px;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:.2px;
+}
+
+.panel{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:12px;
+  padding:12px;
+}
+
+.panelSoft{
+  border:1px solid var(--border);
+  background:#f9fafb;
+  border-radius:12px;
+  padding:12px;
+}
+
+.choiceList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:12px;
+}
+
+.explainBox{
+  margin-top:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:12px;
+  padding:12px;
+}
+
+.explainTitle{
+  font-weight:900;
+  margin:0 0 6px;
+}
+
+.explainText{
+  white-space:pre-wrap;
+  line-height:1.75;
+  margin:0;
+}
+
+.actions{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.actions > .btn{
+  width:auto;
+  min-width:180px;
+}
+
+.note{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+}
+/* --- Exam result list --- */
+.resultList{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:12px;
+}
+
+.resultItem{
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+  background:#fff;
+}
+
+.resultHead{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.resultQ{
+  font-weight:900;
+}
+
+.resultMark{
+  font-weight:900;
+}
+
+.resultChoices{
+  margin-top:10px;
+  display:grid;
+  gap:8px;
+}
+
+.resultExplain{
+  margin-top:10px;
+  white-space:pre-wrap;
+  line-height:1.75;
+}
+
+.resultMeta{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.timer{
+  font-weight:900;
+}
+/* --- Listening bar (Review) --- */
+.listenRow{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.listenHint{
+  color:var(--muted);
+  font-size:12.5px;
+  font-weight:700;
+}

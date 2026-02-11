@@ -14,12 +14,12 @@ export default function QuizLayout({
     <main className="container">
       <section className="card">
         <div className="card-header">
-          <div>
+          <div className="stackSm">
             <h1 className="card-title">{title}</h1>
             {subtitle ? <p className="card-subtitle">{subtitle}</p> : null}
           </div>
         </div>
-        {children}
+        <div className="card-body">{children}</div>
       </section>
     </main>
   )

@@ -102,16 +102,13 @@ export default function ReviewClient({ quiz }: Props) {
   const removeCurrentFromWrong = (qid: any) => {
     const key = String(qid)
 
-    // state更新（画面上のリストから消す）
     setQuestions(prev => {
       const next = prev.filter(q => String((q as any).id) !== key)
 
-      // localStorage も同期
       try {
         localStorage.setItem(storageKey, JSON.stringify(next))
       } catch {}
 
-      // index 調整：末尾を消して index がはみ出すのを防ぐ
       setIndex(i => {
         const max = Math.max(0, next.length - 1)
         return Math.min(i, max)
@@ -124,11 +121,13 @@ export default function ReviewClient({ quiz }: Props) {
   // 復習対象なし
   if (!questions || questions.length === 0) {
     return (
-      <QuizLayout title={`${quiz.title}（復習）`}>
-        <p>復習する問題はありません</p>
-        <Button variant="accent" onClick={goModeSelect}>
-          モード選択に戻る
-        </Button>
+      <QuizLayout title={`${quiz.title}（復習）`} subtitle="復習リストは空です">
+        <p className="note">復習する問題はありません</p>
+        <div className="actions">
+          <Button variant="accent" onClick={goModeSelect}>
+            モード選択に戻る
+          </Button>
+        </div>
       </QuizLayout>
     )
   }
@@ -136,24 +135,24 @@ export default function ReviewClient({ quiz }: Props) {
   // current がない（保険）
   if (!current) {
     return (
-      <QuizLayout title={`${quiz.title}（復習）`}>
-        <p>問題の読み込みに失敗しました</p>
-        <Button variant="accent" onClick={goModeSelect}>
-          モード選択に戻る
-        </Button>
+      <QuizLayout title={`${quiz.title}（復習）`} subtitle="読み込みエラー">
+        <p className="note">問題の読み込みに失敗しました</p>
+        <div className="actions">
+          <Button variant="accent" onClick={goModeSelect}>
+            モード選択に戻る
+          </Button>
+        </div>
       </QuizLayout>
     )
   }
 
   const answer = (i: number) => {
     if (answered) return
-    stopSpeak() // ✅ 回答時に停止（読み上げが続かない）
+    stopSpeak()
     setSelected(i)
   }
 
   const onListen = () => {
-    // MP3がない前提：listeningText を読み上げ
-    // audioUrl があるなら audio が表示されるので不要
     if ((current as any).listeningText) {
       speak((current as any).listeningText, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
     }
@@ -163,17 +162,12 @@ export default function ReviewClient({ quiz }: Props) {
     if (!current) return
     stopSpeak()
 
-    // ✅ 正解なら弱点リストから削除
     if (isCorrect) {
       const qid = (current as any).id
-
-      // 先に選択状態をリセット（UI安定）
       setSelected(null)
 
-      // 削除後の表示を決める
       const willBe = questions.filter(q => String((q as any).id) !== String(qid))
       if (willBe.length === 0) {
-        // 全部克服！
         try {
           localStorage.setItem(storageKey, JSON.stringify([]))
         } catch {}
@@ -181,17 +175,14 @@ export default function ReviewClient({ quiz }: Props) {
         return
       }
 
-      // index は removeCurrentFromWrong 内で安全に調整される
       removeCurrentFromWrong(qid)
       return
     }
 
-    // ❌ 不正解は残す：普通に次へ
     setSelected(null)
     if (index + 1 < questions.length) {
       setIndex(prev => prev + 1)
     } else {
-      // 最後まで見たらモード選択へ（不正解が残るので次回来るとまた出る）
       goModeSelect()
     }
   }
@@ -199,97 +190,70 @@ export default function ReviewClient({ quiz }: Props) {
   const isLastNow = index >= questions.length - 1
 
   return (
-    <QuizLayout title={`${quiz.title}（復習）`}>
-      <p>
-        {index + 1} / {questions.length}
-      </p>
+    <QuizLayout title={`${quiz.title}（復習）`} subtitle="正解した問題はリストから消えます">
+      <div className="kicker">
+        <span className="badge">復習</span>
+        <span>
+          {index + 1} / {questions.length}
+        </span>
+      </div>
 
-      <h2>{current.question}</h2>
+      <h2 className="question">{current.question}</h2>
 
       {/* ✅ Listening UI（MP3なくてもOK） */}
       {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 12,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#f9fafb',
-          }}
-        >
+        <div className="panelSoft" style={{ margin: '12px 0' }}>
           {(current as any).audioUrl ? (
             <audio controls src={(current as any).audioUrl as string} preload="none" />
           ) : (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={onListen}
-                disabled={!canSpeak()}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: canSpeak() ? 'pointer' : 'not-allowed',
-                  fontWeight: 700,
-                }}
-              >
+            <div className="listenRow">
+              <Button variant="sub" onClick={onListen} disabled={!canSpeak()}>
                 🔊 音声を聞く
-              </button>
-
-              <button
-                type="button"
-                onClick={() => stopSpeak()}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
+              </Button>
+              <Button variant="sub" onClick={() => stopSpeak()}>
                 ⏹ 停止
-              </button>
-
+              </Button>
               {!canSpeak() && (
-                <small style={{ color: '#6b7280' }}>
+                <span className="listenHint">
                   この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
-                </small>
+                </span>
               )}
             </div>
           )}
         </div>
       )}
 
-      {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          onClick={() => answer(i)}
-          disabled={answered}
-          isCorrect={answered && i === current.correctIndex}
-          isWrong={answered && i === selected && i !== current.correctIndex}
-        >
-          {c}
-        </Button>
-      ))}
-
-      {answered && (
-        <div className="mt-4">
-          <p>{isCorrect ? '⭕ 正解！（この問題は復習リストから消えます）' : '❌ 不正解（復習に残します）'}</p>
-          {(current as any).explanation && (
-            <p className="mt-2 whitespace-pre-wrap">{(current as any).explanation}</p>
-          )}
-
-          <Button variant="main" onClick={next}>
-            {isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}
+      <div className="choiceList">
+        {current.choices.map((c, i) => (
+          <Button
+            key={i}
+            variant="choice"
+            onClick={() => answer(i)}
+            disabled={answered}
+            isCorrect={answered && i === current.correctIndex}
+            isWrong={answered && i === selected && i !== current.correctIndex}
+          >
+            {c}
           </Button>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {!answered && (
-        <div className="mt-4">
+      {answered ? (
+        <div className="explainBox">
+          <div className="explainTitle">
+            {isCorrect ? '⭕ 正解！（この問題は復習リストから消えます）' : '❌ 不正解（復習に残します）'}
+          </div>
+
+          {(current as any).explanation && <p className="explainText">{(current as any).explanation}</p>}
+
+          <div className="actions">
+            <Button variant="main" onClick={next}>
+              {isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="actions">
           <Button variant="accent" onClick={goModeSelect}>
             モード選択に戻る
           </Button>

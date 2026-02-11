@@ -19,7 +19,7 @@ const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
 const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
 
-// ✅ Props は quiz のみ（ここが変更点①）
+// ✅ Props は quiz のみ
 type Props = {
   quiz: Quiz
 }
@@ -158,7 +158,7 @@ export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
 
-  // ✅ 変更点②：quizType は quiz.id から取得（唯一の真実）
+  // ✅ quizType は quiz.id から取得（唯一の真実）
   const quizType: QuizType = quiz.id
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -170,8 +170,6 @@ export default function NormalClient({ quiz }: Props) {
   const [correct, setCorrect] = useState(false)
 
   // ✅ 続きから/はじめから選択
-  // null: 選択待ち（確認画面表示）
-  // 'continue' | 'restart': 選択済み
   const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
 
   const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
@@ -189,7 +187,7 @@ export default function NormalClient({ quiz }: Props) {
   }
 
   const startSession = (mode: 'continue' | 'restart') => {
-    // wrong は常に最新を ref で保持（念のためここでも読み込み）
+    // wrong 読み込み
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -225,7 +223,6 @@ export default function NormalClient({ quiz }: Props) {
     }
 
     if (!loadedQuestions) {
-      // sessionが無いなら安全に最初から
       const built = buildRandomQuestions(quiz.questions)
       setQuestions(built)
       setIndex(0)
@@ -234,7 +231,6 @@ export default function NormalClient({ quiz }: Props) {
       return
     }
 
-    // index
     let resumeIndex = 0
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
@@ -244,7 +240,6 @@ export default function NormalClient({ quiz }: Props) {
       } catch {}
     }
 
-    // 範囲外なら最初から（壊れ防止）
     if (resumeIndex < 0 || resumeIndex >= loadedQuestions.length) {
       resumeIndex = 0
       localStorage.removeItem(progressKey)
@@ -259,10 +254,9 @@ export default function NormalClient({ quiz }: Props) {
 
   // ✅ 初期化：中断があるなら「続き？最初？」を出す
   useEffect(() => {
-    // 画面切替時に読み上げが残らないように
     stopSpeak()
 
-    // wrong を読み込み
+    // wrong 読み込み
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -280,14 +274,12 @@ export default function NormalClient({ quiz }: Props) {
       try {
         const d = JSON.parse(savedProgressRaw) as { index?: number }
         if (typeof d.index === 'number' && d.index > 0) {
-          // ✅ 続きの可能性あり → 確認画面
           setStartChoice(null)
           return
         }
       } catch {}
     }
 
-    // 中断なし → そのまま開始
     setStartChoice('restart')
     startSession('restart')
 
@@ -311,11 +303,10 @@ export default function NormalClient({ quiz }: Props) {
   // ✅ 確認画面（続き/最初）
   if (startChoice === null) {
     return (
-      <QuizLayout title={quiz.title}>
-        <h2 style={{ marginTop: 0 }}>前回の続きがあります</h2>
-        <p style={{ opacity: 0.85 }}>どちらから始めますか？</p>
+      <QuizLayout title={quiz.title} subtitle="前回の続きが見つかりました">
+        <p className="note">どちらから始めますか？</p>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+        <div className="actions">
           <Button
             variant="main"
             onClick={() => {
@@ -337,11 +328,9 @@ export default function NormalClient({ quiz }: Props) {
           </Button>
         </div>
 
-        <div style={{ marginTop: 12, opacity: 0.75, fontSize: 13 }}>
-          ※「はじめから」を選ぶと、通常問題の並びは新しくシャッフルされます
-        </div>
+        <p className="note">※「はじめから」を選ぶと、問題の並びは新しくシャッフルされます</p>
 
-        <div style={{ marginTop: 16 }}>
+        <div className="actions">
           <Button variant="success" onClick={goModeSelect}>
             いったん戻る
           </Button>
@@ -350,7 +339,6 @@ export default function NormalClient({ quiz }: Props) {
     )
   }
 
-  // startChoice が決まっているのに questions がまだ無いとき（初期化直後）
   if (!questions.length) return null
 
   const current = questions[index]
@@ -397,7 +385,6 @@ export default function NormalClient({ quiz }: Props) {
         )
       }
 
-      // ✅ 完了したら中断情報を消す
       localStorage.removeItem(progressKey)
       localStorage.removeItem(sessionKey)
 
@@ -419,62 +406,57 @@ export default function NormalClient({ quiz }: Props) {
 
   return (
     <QuizLayout title={quiz.title}>
-      <p>
-        {index + 1} / {questions.length}
-      </p>
+      <div className="kicker">
+        <span className="badge">通常</span>
+        <span>
+          {index + 1} / {questions.length}
+        </span>
+      </div>
 
-      <h2>{current.question}</h2>
+      <h2 className="question">{current.question}</h2>
 
       {/* ✅ MP3がある場合 */}
       {current.audioUrl && (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 12,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#f9fafb',
-          }}
-        >
+        <div className="panelSoft" style={{ margin: '12px 0' }}>
           <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
 
-      {/* ✅ MP3がない場合：読み上げ（強化UI） */}
+      {/* ✅ MP3がない場合：読み上げ */}
       <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
 
-      {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          onClick={() => answer(i)}
-          disabled={selected !== null}
-          isCorrect={selected !== null && i === current.correctIndex}
-          isWrong={selected !== null && i === selected && i !== current.correctIndex}
-        >
-          {c}
-        </Button>
-      ))}
+      <div className="choiceList">
+        {current.choices.map((c, i) => (
+          <Button
+            key={i}
+            variant="choice"
+            onClick={() => answer(i)}
+            disabled={selected !== null}
+            isCorrect={selected !== null && i === current.correctIndex}
+            isWrong={selected !== null && i === selected && i !== current.correctIndex}
+          >
+            {c}
+          </Button>
+        ))}
+      </div>
 
-      {showExplanation && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontWeight: 800, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
-          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanation}</div>
+      {showExplanation ? (
+        <div className="explainBox">
+          <div className="explainTitle">{correct ? '✅ 正解！' : '❌ 不正解'}</div>
+          <p className="explainText">{current.explanation}</p>
 
-          <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="actions">
             <Button variant="main" onClick={next}>
               次へ
             </Button>
-            <Button variant="accent" onClick={interrupt}>
+            <Button variant="sub" onClick={interrupt}>
               中断して戻る
             </Button>
           </div>
         </div>
-      )}
-
-      {!showExplanation && (
-        <div style={{ marginTop: 12 }}>
-          <Button variant="accent" onClick={interrupt}>
+      ) : (
+        <div className="actions">
+          <Button variant="sub" onClick={interrupt}>
             中断して戻る
           </Button>
         </div>
