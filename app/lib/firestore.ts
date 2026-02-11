@@ -16,7 +16,7 @@ type EnsureParams = {
  * ✅ users/{uid} を必ず「実在するドキュメント」として作る/補正する
  * - 初回：role/user を含めて作成（空ドキュメント問題を根絶）
  * - 既存：roleは触らず、email/displayName/updatedAt を安全に merge
- * - Phase1：quizLimit / selectedQuizTypes を初期化（未設定なら後で入るが、初回で確実に）
+ * - ⚠️ 既存ユーザーの selectedQuizTypes を絶対に上書きしない
  */
 export async function ensureUserProfile(params: EnsureParams) {
   const { uid } = params
@@ -33,7 +33,7 @@ export async function ensureUserProfile(params: EnsureParams) {
       displayName,
       role: "user" as UserRole,
 
-      // ✅ Phase1：受講枠（まずは個人用）
+      // 初回だけ初期値
       quizLimit: 3,
       selectedQuizTypes: [],
 
@@ -43,24 +43,23 @@ export async function ensureUserProfile(params: EnsureParams) {
     return
   }
 
+  const data = snap.data() as any
+
   // ✅ 既存：roleは変更しない（事故防止）
-  // email/displayName は未設定なら補完してOK
-  await setDoc(
-    ref,
-    {
-      uid,
-      ...(email ? { email } : {}),
-      ...(displayName ? { displayName } : {}),
+  // ✅ email/displayName は未設定なら補完してOK
+  // ✅ quizLimit/selectedQuizTypes は「無いときだけ」補完（上書き禁止）
+  const patch: Record<string, any> = {
+    uid,
+    updatedAt: serverTimestamp(),
+  }
 
-      // ✅ Phase1：既存ユーザーでも値が無いことがあるので保険で入れる
-      // mergeなので既存にあれば上書きされない
-      quizLimit: 3,
-      selectedQuizTypes: [],
+  if (email && !data?.email) patch.email = email
+  if (displayName && !data?.displayName) patch.displayName = displayName
 
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  )
+  if (typeof data?.quizLimit !== "number") patch.quizLimit = 3
+  if (!Array.isArray(data?.selectedQuizTypes)) patch.selectedQuizTypes = []
+
+  await setDoc(ref, patch, { merge: true })
 }
 
 /**
