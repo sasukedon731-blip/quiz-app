@@ -1,18 +1,26 @@
-'use client'
-
-import { ReactNode } from 'react'
+// app/components/QuizLayout.tsx
+import React from "react"
 
 export default function QuizLayout({
   title,
   children,
+  subtitle,
 }: {
   title: string
-  children: ReactNode
+  subtitle?: string
+  children: React.ReactNode
 }) {
   return (
-    <div className="container mx-auto p-4 max-w-xl">
-      <h1 className="text-xl font-bold mb-4">{title}</h1>
-      {children}
-    </div>
+    <main className="container">
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h1 className="card-title">{title}</h1>
+            {subtitle ? <p className="card-subtitle">{subtitle}</p> : null}
+          </div>
+        </div>
+        {children}
+      </section>
+    </main>
   )
 }
