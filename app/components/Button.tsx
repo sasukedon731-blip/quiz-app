@@ -2,7 +2,7 @@
 
 import React from "react"
 
-type Variant = "main" | "accent" | "choice" | "success"
+type Variant = "main" | "sub" | "accent" | "choice" | "success"
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant
@@ -20,8 +20,9 @@ export default function Button({
 }: Props) {
   const classes = ["btn"] as string[]
 
-  // variant
+  // variants
   if (variant === "main") classes.push("btnPrimary")
+  if (variant === "sub") classes.push("btnSub")
   if (variant === "accent") classes.push("btnAccent")
   if (variant === "success") classes.push("btnSuccess")
 
