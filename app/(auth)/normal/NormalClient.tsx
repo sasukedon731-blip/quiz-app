@@ -19,7 +19,9 @@ const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
 const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
 
-// ✅ Props は quiz のみ
+// ★ streak 永続キー
+const STREAK_PREFIX = 'normal-streak'
+
 type Props = {
   quiz: Quiz
 }
@@ -33,7 +35,7 @@ type StudyProgress = {
   bestStreak: number
 }
 
-// ---------- util ----------
+// ---------- utils ----------
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -55,7 +57,6 @@ function buildRandomQuestions(questions: Question[]): Question[] {
 }
 
 function todayKey() {
-  // NOTE: 既存仕様維持（UTC基準）
   return new Date().toISOString().slice(0, 10)
 }
 
@@ -158,7 +159,7 @@ export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
 
-  // ✅ quizType は quiz.id から取得（唯一の真実）
+  // 唯一の真実
   const quizType: QuizType = quiz.id
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -169,25 +170,50 @@ export default function NormalClient({ quiz }: Props) {
   const [showExplanation, setShowExplanation] = useState(false)
   const [correct, setCorrect] = useState(false)
 
-  // ✅ 続きから/はじめから選択
+  // ★ streak（連続正解）＋節目演出
+  const [streak, setStreak] = useState(0)
+  const [streakPop, setStreakPop] = useState(false)
+  const [streakFx, setStreakFx] = useState<'none' | 'spark' | 'party'>('none')
+
+  // null: 確認表示 / 'continue' | 'restart'
   const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
 
   const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
   const wrongRef = useRef<Question[]>([])
 
+  const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
+  const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
+  const streakKey = `${STREAK_PREFIX}-${quizType}`
+
   useEffect(() => {
     indexRef.current = index
   }, [index])
-
-  const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
-  const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
 
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
 
+  const loadStreak = () => {
+    const raw = localStorage.getItem(streakKey)
+    const n = raw ? Number(raw) : 0
+    setStreak(Number.isFinite(n) ? n : 0)
+  }
+
+  const saveStreak = (n: number) => {
+    setStreak(n)
+    localStorage.setItem(streakKey, String(n))
+  }
+
   const startSession = (mode: 'continue' | 'restart') => {
-    // wrong 読み込み
+    setStreakFx('none')
+    setStreakPop(false)
+
+    if (mode === 'restart') {
+      saveStreak(0)
+    } else {
+      loadStreak()
+    }
+
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -212,7 +238,6 @@ export default function NormalClient({ quiz }: Props) {
       return
     }
 
-    // continue
     let loadedQuestions: Question[] | null = null
     const savedSessionRaw = localStorage.getItem(sessionKey)
     if (savedSessionRaw) {
@@ -252,11 +277,10 @@ export default function NormalClient({ quiz }: Props) {
     setCorrect(false)
   }
 
-  // ✅ 初期化：中断があるなら「続き？最初？」を出す
+  // 初期化
   useEffect(() => {
     stopSpeak()
 
-    // wrong 読み込み
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -268,7 +292,6 @@ export default function NormalClient({ quiz }: Props) {
       wrongRef.current = []
     }
 
-    // 中断 index を確認
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
       try {
@@ -286,25 +309,26 @@ export default function NormalClient({ quiz }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType])
 
-  // ✅ 離脱時も中断保存（stale回避でrefを使う）
+  // 離脱保存
   useEffect(() => {
     const handler = () => {
       try {
         if (questions.length > 0) {
           localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current }))
           localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+          localStorage.setItem(streakKey, String(streak))
         }
       } catch {}
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [questions.length, progressKey, wrongKey])
+  }, [questions.length, progressKey, wrongKey, streak, streakKey])
 
-  // ✅ 確認画面（続き/最初）
   if (startChoice === null) {
     return (
-      <QuizLayout title={quiz.title} subtitle="前回の続きが見つかりました">
-        <p className="note">どちらから始めますか？</p>
+      <QuizLayout title={quiz.title}>
+        <h2 style={{ marginTop: 0 }}>前回の続きがあります</h2>
+        <p style={{ opacity: 0.85 }}>どちらから始めますか？</p>
 
         <div className="actions">
           <Button
@@ -328,7 +352,7 @@ export default function NormalClient({ quiz }: Props) {
           </Button>
         </div>
 
-        <p className="note">※「はじめから」を選ぶと、問題の並びは新しくシャッフルされます</p>
+        <p className="note">※「はじめから」を選ぶと問題は新しくシャッフルされます</p>
 
         <div className="actions">
           <Button variant="success" onClick={goModeSelect}>
@@ -351,8 +375,21 @@ export default function NormalClient({ quiz }: Props) {
     setCorrect(isCorrect)
     setShowExplanation(true)
 
-    if (isCorrect) playBeep(880, 120, 'triangle')
-    else playBeep(220, 180, 'sawtooth')
+    if (isCorrect) {
+      playBeep(880, 120, 'triangle')
+      const next = streak + 1
+      saveStreak(next)
+      setStreakPop(true)
+      window.setTimeout(() => setStreakPop(false), 220)
+
+      if (next === 5) setStreakFx('spark')
+      else if (next === 10) setStreakFx('party')
+      else setStreakFx('none')
+    } else {
+      playBeep(220, 180, 'sawtooth')
+      saveStreak(0)
+      setStreakFx('none')
+    }
 
     if (!isCorrect) {
       const exists = wrongRef.current.some(q => q.id === current.id)
@@ -387,7 +424,7 @@ export default function NormalClient({ quiz }: Props) {
 
       localStorage.removeItem(progressKey)
       localStorage.removeItem(sessionKey)
-
+      localStorage.removeItem(streakKey) // ★ 完了時は streak を閉じる
       goModeSelect()
       return
     }
@@ -401,6 +438,7 @@ export default function NormalClient({ quiz }: Props) {
     stopSpeak()
     localStorage.setItem(progressKey, JSON.stringify({ index }))
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+    localStorage.setItem(streakKey, String(streak))
     goModeSelect()
   }
 
@@ -411,18 +449,29 @@ export default function NormalClient({ quiz }: Props) {
         <span>
           {index + 1} / {questions.length}
         </span>
+
+        {streak >= 2 && (
+          <span
+            className={[
+              'streakPill',
+              streakPop ? 'streakPop' : '',
+              streakFx === 'spark' ? 'streakSpark' : '',
+              streakFx === 'party' ? 'streakParty' : '',
+            ].join(' ')}
+          >
+            🔥 {streak}連続正解
+          </span>
+        )}
       </div>
 
       <h2 className="question">{current.question}</h2>
 
-      {/* ✅ MP3がある場合 */}
       {current.audioUrl && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>
           <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
 
-      {/* ✅ MP3がない場合：読み上げ */}
       <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
 
       <div className="choiceList">
@@ -443,20 +492,20 @@ export default function NormalClient({ quiz }: Props) {
       {showExplanation ? (
         <div className="explainBox">
           <div className="explainTitle">{correct ? '✅ 正解！' : '❌ 不正解'}</div>
-          <p className="explainText">{current.explanation}</p>
+          <div className="explainText">{current.explanation}</div>
 
           <div className="actions">
             <Button variant="main" onClick={next}>
               次へ
             </Button>
-            <Button variant="sub" onClick={interrupt}>
+            <Button variant="accent" onClick={interrupt}>
               中断して戻る
             </Button>
           </div>
         </div>
       ) : (
         <div className="actions">
-          <Button variant="sub" onClick={interrupt}>
+          <Button variant="accent" onClick={interrupt}>
             中断して戻る
           </Button>
         </div>
