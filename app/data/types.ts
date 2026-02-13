@@ -4,6 +4,14 @@ export type QuizType =
   | "gaikoku-license"
   | "japanese-n4"
   | "genba-listening"
+  | "japanese-n3"
+  | "japanese-n2"
+  | "kenchiku-sekou-2kyu-1ji"
+  | "doboku-sekou-2kyu-1ji"
+  | "denki-sekou-2kyu-1ji"
+  | "kanko-sekou-2kyu-1ji"
+  | "speaking-practice"
+  | "genba-phrasebook"
 
 export type Question = {
   // ✅ 既存資産に合わせて number 維持（Review 側も耐性あり）

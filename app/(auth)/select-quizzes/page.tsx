@@ -102,7 +102,7 @@ export default function SelectQuizzesPage() {
         <Button variant="main" onClick={save} disabled={!canSave || saving}>
           {saving ? "保存中…" : "この内容で保存"}
         </Button>
-        <Button variant="sub" onClick={() => router.push("/")}>
+        <Button variant="accent" onClick={() => router.push("/")}> 
           TOPへ戻る
         </Button>
       </div>

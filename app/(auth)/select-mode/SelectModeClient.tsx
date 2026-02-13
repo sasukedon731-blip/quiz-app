@@ -1,105 +1,84 @@
-'use client'
+"use client"
 
-import { useMemo } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import QuizLayout from '@/app/components/QuizLayout'
-import Button from '@/app/components/Button'
-import { quizzes } from '@/app/data/quizzes'
-import type { QuizType } from '@/app/data/types'
+import { useRouter, useSearchParams } from "next/navigation"
+import QuizLayout from "@/app/components/QuizLayout"
+import Button from "@/app/components/Button"
+import type { QuizType } from "@/app/data/types"
+import { quizCatalog } from "@/app/data/quizCatalog"
 
-const QUIZ_TYPE_LABEL: Record<QuizType, { title: string; badge: string; color: string }> = {
-  'gaikoku-license': {
-    title: '外国免許切替',
-    badge: '外国免許切替',
-    color: 'bg-blue-100 text-blue-700',
-  },
-  'japanese-n4': {
-    title: '日本語検定 N4',
-    badge: '日本語検定 N4',
-    color: 'bg-purple-100 text-purple-700',
-  },
-  'genba-listening': {
-    title: '現場用語リスニング',
-    badge: '現場用語リスニング',
-    color: 'bg-amber-100 text-amber-800',
-  },
-}
+// ✅ quizTypeごとの見た目（追加が来ても落ちない）
+function badgeByType(type: string) {
+  if (type === "japanese-n4") return { title: "日本語検定N4", badge: "N4", color: "#5b21b6" }
+  if (type === "japanese-n3") return { title: "日本語N3", badge: "N3", color: "#4338ca" }
+  if (type === "japanese-n2") return { title: "日本語N2", badge: "N2", color: "#1e40af" }
 
-function isQuizType(v: string): v is QuizType {
-  return (quizzes as any)[v] != null
+  if (type === "genba-listening") return { title: "現場用語リスニング", badge: "現場", color: "#92400e" }
+  if (type === "genba-phrasebook") return { title: "現場用語集（聞く/話す）", badge: "用語", color: "#9a3412" }
+
+  if (type === "kenchiku-sekou-2kyu-1ji") return { title: "2級建築施工管理技士1次", badge: "建築", color: "#065f46" }
+  if (type === "doboku-sekou-2kyu-1ji") return { title: "2級土木施工管理技士1次", badge: "土木", color: "#0f766e" }
+  if (type === "denki-sekou-2kyu-1ji") return { title: "2級電気施工管理技士1次", badge: "電気", color: "#0e7490" }
+  if (type === "kanko-sekou-2kyu-1ji") return { title: "2級管工事施工管理技士1次", badge: "管工", color: "#1d4ed8" }
+
+  if (type === "speaking-practice") return { title: "スピーキング練習", badge: "話す", color: "#be185d" }
+
+  // ✅ デフォルト（増えてもここで落ちない）
+  const fromCatalog = quizCatalog.find(q => q.id === type)
+  return { title: fromCatalog?.title ?? type, badge: "QUIZ", color: "#111827" }
 }
 
 export default function SelectModeClient() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const typeRaw = searchParams.get('type') // string | null
+  const params = useSearchParams()
+  const type = params.get("type") as QuizType | null
 
-  // ✅ 重要：render中に router.push/replace しない！
-  // type が無い/不正なら「画面表示」で逃がす（ボタンで戻す）
-  if (!typeRaw) {
+  if (!type) {
     return (
       <QuizLayout title="モード選択">
-        <p style={{ color: '#6b7280' }}>教材が指定されていません。</p>
-        <Button variant="accent" onClick={() => router.push('/')}>
-          教材選択へ戻る
+        <p>教材が選択されていません</p>
+        <Button variant="main" onClick={() => router.push("/")}>
+          TOPへ
         </Button>
       </QuizLayout>
     )
   }
 
-  const quizType = useMemo(() => {
-    return isQuizType(typeRaw) ? (typeRaw as QuizType) : null
-  }, [typeRaw])
-
-  if (!quizType) {
-    return (
-      <QuizLayout title="モード選択">
-        <p style={{ color: '#6b7280' }}>不正な教材です：type={typeRaw}</p>
-        <Button variant="accent" onClick={() => router.push('/')}>
-          教材選択へ戻る
-        </Button>
-      </QuizLayout>
-    )
-  }
-
-  const info =
-    QUIZ_TYPE_LABEL[quizType] ?? {
-      title: quizType,
-      badge: quizType,
-      color: 'bg-gray-100 text-gray-700',
-    }
+  const meta = badgeByType(type)
 
   return (
-    <QuizLayout title="モード選択">
-      <div className={`mb-4 inline-block rounded-lg px-4 py-2 text-lg font-extrabold ${info.color}`}>
-        {info.badge}
+    <QuizLayout title="モード選択" subtitle={meta.title}>
+      <div style={{ marginBottom: 12 }}>
+        <span
+          style={{
+            display: "inline-block",
+            padding: "6px 10px",
+            borderRadius: 999,
+            border: "1px solid var(--border)",
+            background: "white",
+            fontWeight: 900,
+          }}
+        >
+          <span style={{ color: meta.color }}>●</span> {meta.badge}
+        </span>
       </div>
 
-      <p className="mb-4 text-sm text-gray-600">「{info.title}」の学習モードを選択してください</p>
-
-      <div className="space-y-3">
-        <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(quizType)}`)}>
-          標準問題（練習）
+      <div style={{ display: "grid", gap: 10 }}>
+        <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(type)}`)}>
+          標準問題（Normal）
         </Button>
 
-        <Button variant="main" onClick={() => router.push(`/exam?type=${encodeURIComponent(quizType)}`)}>
-          模擬試験（本番形式）
+        <Button variant="accent" onClick={() => router.push(`/exam?type=${encodeURIComponent(type)}`)}>
+          模擬試験（Exam）
         </Button>
 
-        <Button variant="main" onClick={() => router.push(`/review?type=${encodeURIComponent(quizType)}`)}>
-          復習（間違えた問題）
+        <Button variant="success" onClick={() => router.push(`/review?type=${encodeURIComponent(type)}`)}>
+          復習（Review）
         </Button>
       </div>
 
-      {quizType === 'genba-listening' && (
-        <div className="mt-4 rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
-          MP3がなくてもOK：問題画面の「🔊 音声を聞く」で読み上げ学習できます。
-        </div>
-      )}
-
-      <div className="mt-6">
-        <Button variant="accent" onClick={() => router.push('/')}>
-          教材選択に戻る
+      <div style={{ marginTop: 14 }}>
+        <Button variant="main" onClick={() => router.push(`/select-quizzes`)}>
+          教材を選び直す
         </Button>
       </div>
     </QuizLayout>

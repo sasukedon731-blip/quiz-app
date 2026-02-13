@@ -88,6 +88,85 @@ export const quizCatalog: QuizDef[] = [
       // { id: "safety", title: "安全指示", enabled: false, order: 3 },
     ],
   },
+
+  // -------------------------------
+  // 追加：10+教材の箱（課金/選択テスト用）
+  // -------------------------------
+
+  {
+    id: "japanese-n3",
+    title: "日本語検定 N3",
+    description: "文法・語彙・読解・聴解（N3）",
+    enabled: true,
+    order: 4,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+  {
+    id: "japanese-n2",
+    title: "日本語検定 N2",
+    description: "文法・語彙・読解・聴解（N2）",
+    enabled: true,
+    order: 5,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+
+  {
+    id: "kenchiku-sekou-2kyu-1ji",
+    title: "2級建築施工管理技士 1次",
+    description: "施工管理（建築）一次の基礎",
+    enabled: true,
+    order: 6,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+  {
+    id: "doboku-sekou-2kyu-1ji",
+    title: "2級土木施工管理技士 1次",
+    description: "施工管理（土木）一次の基礎",
+    enabled: true,
+    order: 7,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+  {
+    id: "denki-sekou-2kyu-1ji",
+    title: "2級電気施工管理技士 1次",
+    description: "施工管理（電気）一次の基礎",
+    enabled: true,
+    order: 8,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+  {
+    id: "kanko-sekou-2kyu-1ji",
+    title: "2級管工事施工管理技士 1次",
+    description: "施工管理（管工事）一次の基礎",
+    enabled: true,
+    order: 9,
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+
+  {
+    id: "speaking-practice",
+    title: "スピーキング練習",
+    description: "発話・シャドーイング・応答練習",
+    enabled: true,
+    order: 10,
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+  {
+    id: "genba-phrasebook",
+    title: "現場で使える用語集（ヒアリング・スピーキング）",
+    description: "現場フレーズの聞き取り＆言える化",
+    enabled: true,
+    order: 11,
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
 ]
 
 /**
