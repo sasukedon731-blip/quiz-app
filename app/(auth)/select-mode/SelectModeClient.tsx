@@ -36,9 +36,29 @@ export default function SelectModeClient() {
     return (
       <QuizLayout title="モード選択">
         <p>教材が選択されていません</p>
-        <Button variant="main" onClick={() => router.push("/")}>
-          TOPへ
-        </Button>
+        <div style={{ display: "grid", gap: 10 }}>
+          <Button variant="success" onClick={() => router.push("/mypage")}>
+            マイページへ
+          </Button>
+          <Button variant="main" onClick={() => router.push("/")}>
+            TOPへ
+          </Button>
+          <button
+            type="button"
+            onClick={() => router.push("/select-quizzes")}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "white",
+              cursor: "pointer",
+              fontWeight: 800,
+              opacity: 0.9,
+            }}
+          >
+            教材を選び直す（変更）
+          </button>
+        </div>
       </QuizLayout>
     )
   }
@@ -47,6 +67,7 @@ export default function SelectModeClient() {
 
   return (
     <QuizLayout title="モード選択" subtitle={meta.title}>
+      {/* バッジ */}
       <div style={{ marginBottom: 12 }}>
         <span
           style={{
@@ -62,6 +83,7 @@ export default function SelectModeClient() {
         </span>
       </div>
 
+      {/* モード選択 */}
       <div style={{ display: "grid", gap: 10 }}>
         <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(type)}`)}>
           標準問題（Normal）
@@ -76,10 +98,33 @@ export default function SelectModeClient() {
         </Button>
       </div>
 
-      <div style={{ marginTop: 14 }}>
-        <Button variant="main" onClick={() => router.push(`/select-quizzes`)}>
-          教材を選び直す
+      {/* ✅ 戻る導線（重要）：教材選択に“戻る”を混ぜない */}
+      <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+        <Button variant="success" onClick={() => router.push("/mypage")}>
+          マイページへ戻る
         </Button>
+
+        <Button variant="main" onClick={() => router.push("/")}>
+          TOPへ戻る
+        </Button>
+
+        {/* 教材選び直しは「戻る」と分離してサブ導線にする */}
+        <button
+          type="button"
+          onClick={() => router.push("/select-quizzes")}
+          style={{
+            marginTop: 4,
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid var(--border)",
+            background: "white",
+            cursor: "pointer",
+            fontWeight: 800,
+            opacity: 0.9,
+          }}
+        >
+          教材を選び直す（変更）
+        </button>
       </div>
     </QuizLayout>
   )
