@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
 import { ensureUserProfile } from "@/app/lib/firestore"
-import { getUserEntitlement } from "@/app/lib/entitlement"
+import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -41,9 +41,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         })
 
         // entitlement 読み込み
-        const ent = await getUserEntitlement(user.uid)
+        const state = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setSelectedLen((ent.selectedQuizTypes ?? []).length)
+        setSelectedLen((state.selectedQuizTypes ?? []).length)
       } catch (e) {
         console.error("AuthLayout init failed:", e)
       } finally {

@@ -6,7 +6,7 @@ import ExamClient from "./ExamClient"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType, Quiz } from "@/app/data/types"
 import { useAuth } from "@/app/lib/useAuth"
-import { getUserEntitlement } from "@/app/lib/entitlement"
+import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 
 function isQuizType(v: string): v is QuizType {
   return (quizzes as any)[v] != null
@@ -35,9 +35,9 @@ export default function ExamClientWrapper() {
 
     ;(async () => {
       try {
-        const ent = await getUserEntitlement(user.uid)
+        const state = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setSelectedTypes((ent.selectedQuizTypes ?? []) as QuizType[])
+        setSelectedTypes((state.selectedQuizTypes ?? []) as QuizType[])
       } catch (e) {
         console.error("getUserEntitlement failed:", e)
         if (!alive) return

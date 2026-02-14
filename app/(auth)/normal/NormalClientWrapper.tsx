@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
-import { getUserEntitlement } from "@/app/lib/entitlement"
+import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import { parseQuizType } from "@/app/lib/quizTypeGuard"
 import { getQuizByType } from "@/app/lib/getQuizByType"
 import NormalClient from "./NormalClient"
@@ -36,9 +36,9 @@ export default function NormalClientWrapper() {
 
     ;(async () => {
       try {
-        const ent = await getUserEntitlement(user.uid)
+        const state = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setAllowed(ent.selectedQuizTypes ?? [])
+        setAllowed(state.selectedQuizTypes ?? [])
       } catch (e) {
         console.error("getUserEntitlement failed:", e)
         if (!alive) return
