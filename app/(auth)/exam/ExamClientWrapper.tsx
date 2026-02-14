@@ -19,10 +19,9 @@ export default function ExamClientWrapper() {
 
   const typeRaw = params.get("type")
 
-  const [entLoaded, setEntLoaded] = useState(false)
+  const [stateLoaded, setStateLoaded] = useState(false)
   const [selectedTypes, setSelectedTypes] = useState<QuizType[]>([])
 
-  // ✅ entitlement 読み込み
   useEffect(() => {
     if (loading) return
     if (!user) {
@@ -31,20 +30,20 @@ export default function ExamClientWrapper() {
     }
 
     let alive = true
-    setEntLoaded(false)
+    setStateLoaded(false)
 
     ;(async () => {
       try {
-        const state = await loadAndRepairUserPlanState(user.uid)
+        const st = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setSelectedTypes((state.selectedQuizTypes ?? []) as QuizType[])
+        setSelectedTypes((st.selectedQuizTypes ?? []) as QuizType[])
       } catch (e) {
-        console.error("getUserEntitlement failed:", e)
+        console.error("loadAndRepairUserPlanState failed:", e)
         if (!alive) return
         setSelectedTypes([])
       } finally {
         if (!alive) return
-        setEntLoaded(true)
+        setStateLoaded(true)
       }
     })()
 
@@ -59,35 +58,31 @@ export default function ExamClientWrapper() {
     return (quizzes as any)[typeRaw] as Quiz
   }, [typeRaw])
 
-  // ✅ redirect は useEffect で（render中にしない）
   useEffect(() => {
     if (loading) return
     if (!user) return
-    if (!entLoaded) return
+    if (!stateLoaded) return
 
-    // 未選択なら選択画面へ
     if (selectedTypes.length === 0) {
       router.replace("/select-quizzes")
       return
     }
 
-    // type が無い/不正なら TOPへ
     if (!typeRaw || !isQuizType(typeRaw)) {
       router.replace("/")
       return
     }
 
-    // 選択してない教材に直リンク → 選択画面へ
     const qt = typeRaw as QuizType
     if (!selectedTypes.includes(qt)) {
       router.replace("/select-quizzes")
       return
     }
-  }, [loading, user, entLoaded, selectedTypes, typeRaw, router])
+  }, [loading, user, stateLoaded, selectedTypes, typeRaw, router])
 
   if (loading) return null
   if (!user) return null
-  if (!entLoaded) return null
+  if (!stateLoaded) return null
   if (!quiz) return null
 
   return <ExamClient quiz={quiz} />

@@ -20,9 +20,9 @@ import {
 
 export type UserPlanState = {
   plan: PlanId
-  entitledQuizTypes: QuizType[] // 候補（plan.tsから算出）
-  selectedQuizTypes: QuizType[] // 今月の受講教材（Firestoreにはこれだけを保存）
-  nextChangeAllowedAt: Date | null // 教材変更ロック解除日
+  entitledQuizTypes: QuizType[]
+  selectedQuizTypes: QuizType[]
+  nextChangeAllowedAt: Date | null
   displayName: string
   schemaVersion: number
 }
@@ -31,36 +31,35 @@ function isPlanId(v: any): v is PlanId {
   return v === "trial" || v === "free" || v === "3" || v === "5" || v === "all"
 }
 
+function coercePlanId(v: any): PlanId | null {
+  // allow numeric legacy values (1/3/5)
+  if (isPlanId(v)) return v
+  if (typeof v === "number") {
+    if (v === 1) return "trial"
+    if (v === 3) return "3"
+    if (v === 5) return "5"
+  }
+  if (typeof v === "string") {
+    const s = v.trim()
+    if (s === "1") return "trial"
+    if (s === "3") return "3"
+    if (s === "5") return "5"
+  }
+  return null
+}
+
 function inferPlanFromLegacy(data: any): PlanId {
-  const p = data?.plan
+  // 1) plan があれば（数値でも）解釈
+  const coerced = coercePlanId(data?.plan)
+  if (coerced) return coerced
 
-  // 1) Prefer explicit plan field if we can interpret it
-  if (isPlanId(p)) return p
-
-  // number stored (e.g., 3 / 5 / 1)
-  if (typeof p === "number") {
-    if (p === 5) return "5"
-    if (p === 3) return "3"
-    if (p === 1) return "trial"
-  }
-
-  // string but different format (e.g., "3教材", "plan_5")
-  if (typeof p === "string") {
-    const s = p.toLowerCase()
-    if (s.includes("all")) return "all"
-    if (s.includes("trial")) return "trial"
-    if (s.includes("free")) return "free"
-    if (s.includes("5")) return "5"
-    if (s.includes("3")) return "3"
-  }
-
-  // 2) Fallback: legacy quizLimit
+  // 2) 旧 quizLimit から推定
   const limit = typeof data?.quizLimit === "number" ? (data.quizLimit as number) : null
   if (limit === 5) return "5"
   if (limit === 3) return "3"
   if (limit === 1) return "trial"
 
-  // 3) Safe default
+  // 3) デフォルト
   return "trial"
 }
 
@@ -92,16 +91,12 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
   const plan = inferPlanFromLegacy(data)
   const entitled = buildEntitledQuizTypes(plan)
 
-  const rawSelected = Array.isArray(data?.selectedQuizTypes)
-    ? (data.selectedQuizTypes as QuizType[])
-    : []
-
+  const rawSelected = Array.isArray(data?.selectedQuizTypes) ? (data.selectedQuizTypes as QuizType[]) : []
   const selected = normalizeSelectedForPlan(rawSelected, entitled, plan)
 
   const nextChangeAllowedAt = toDateOrNull(data?.nextChangeAllowedAt)
   const displayName = typeof data?.displayName === "string" ? data.displayName : ""
 
-  // ---- 自動修復パッチ ----
   const patch: Record<string, any> = {}
   let needUpdate = false
 
@@ -110,6 +105,7 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
     needUpdate = true
   }
 
+  // plan を正規形で保存（数値->文字列など）
   if (!isPlanId(data?.plan) || data.plan !== plan) {
     patch.plan = plan
     needUpdate = true
@@ -147,35 +143,21 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
 
 /**
  * ✅ 教材選択の保存（1ヶ月ロック開始をここで管理）
- *
- * 仕様：
- * - trial/free: 常に固定1教材（保存内容も正規化）
- * - 3/5: 選択数を上限に正規化して保存
- * - all: 空なら全件に正規化して保存
  * - ロック開始は「今ロック中じゃない」時だけ（毎回延長しない）
  */
 export async function saveSelectedQuizTypesWithLock(params: {
   uid: string
   selectedQuizTypes: QuizType[]
 }): Promise<{ saved: QuizType[]; nextChangeAllowedAt: Date | null }> {
-  const { uid } = params
-  const state = await loadAndRepairUserPlanState(uid)
-
-  const entitled = state.entitledQuizTypes
-  const normalized = normalizeSelectedForPlan(
-    params.selectedQuizTypes,
-    entitled,
-    state.plan
-  )
+  const state = await loadAndRepairUserPlanState(params.uid)
+  const normalized = normalizeSelectedForPlan(params.selectedQuizTypes, state.entitledQuizTypes, state.plan)
 
   const now = new Date()
   const lockedUntil = state.nextChangeAllowedAt
   const isLocked = lockedUntil ? now < lockedUntil : false
-
-  // ✅ ロック開始は「ロック中じゃない」場合のみ
   const next = isLocked ? lockedUntil : addMonths(now, 1)
 
-  const ref = doc(db, "users", uid)
+  const ref = doc(db, "users", params.uid)
   await setDoc(
     ref,
     {
@@ -190,33 +172,26 @@ export async function saveSelectedQuizTypesWithLock(params: {
 }
 
 /**
- * ✅ プラン変更保存（plan.ts を唯一のルール源にする）
- *
- * - plan変更後、selected は plan に合わせて正規化
- * - entitledQuizTypes は保存しない（残ってたら削除）
+ * ✅ プラン変更保存
+ * - selected は plan に合わせて正規化
+ * - entitledQuizTypes は保存しない（残ってても削除）
  */
 export async function savePlanAndNormalizeSelected(params: {
   uid: string
   plan: PlanId
 }): Promise<UserPlanState> {
-  const { uid, plan } = params
-
-  const ref = doc(db, "users", uid)
+  const ref = doc(db, "users", params.uid)
   const snap = await getDoc(ref)
   const data = snap.exists() ? (snap.data() as any) : {}
 
-  const entitled = buildEntitledQuizTypes(plan)
-
-  const rawSelected = Array.isArray(data?.selectedQuizTypes)
-    ? (data.selectedQuizTypes as QuizType[])
-    : []
-
-  const selected = normalizeSelectedForPlan(rawSelected, entitled, plan)
+  const entitled = buildEntitledQuizTypes(params.plan)
+  const rawSelected = Array.isArray(data?.selectedQuizTypes) ? (data.selectedQuizTypes as QuizType[]) : []
+  const selected = normalizeSelectedForPlan(rawSelected, entitled, params.plan)
 
   await setDoc(
     ref,
     {
-      plan,
+      plan: params.plan,
       schemaVersion: 2,
       selectedQuizTypes: selected,
       entitledQuizTypes: deleteField(),
@@ -227,7 +202,7 @@ export async function savePlanAndNormalizeSelected(params: {
   )
 
   return {
-    plan,
+    plan: params.plan,
     entitledQuizTypes: entitled,
     selectedQuizTypes: selected,
     nextChangeAllowedAt: toDateOrNull(data?.nextChangeAllowedAt),

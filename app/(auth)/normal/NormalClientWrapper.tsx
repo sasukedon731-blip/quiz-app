@@ -14,14 +14,12 @@ export default function NormalClientWrapper() {
   const params = useSearchParams()
   const { user, loading } = useAuth()
 
-  // ✅ typeは遷移直後に null になることがあるので、いったん受けて memo
   const quizType = useMemo(() => parseQuizType(params.get("type")), [params])
   const quiz = useMemo(() => (quizType ? getQuizByType(quizType) : null), [quizType])
 
-  const [allowed, setAllowed] = useState<string[] | null>(null)
-  const [entLoaded, setEntLoaded] = useState(false)
+  const [allowed, setAllowed] = useState<QuizType[] | null>(null)
+  const [stateLoaded, setStateLoaded] = useState(false)
 
-  // ✅ entitlement 読み込み
   useEffect(() => {
     if (loading) return
 
@@ -32,20 +30,20 @@ export default function NormalClientWrapper() {
 
     let alive = true
     setAllowed(null)
-    setEntLoaded(false)
+    setStateLoaded(false)
 
     ;(async () => {
       try {
-        const state = await loadAndRepairUserPlanState(user.uid)
+        const st = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setAllowed(state.selectedQuizTypes ?? [])
+        setAllowed((st.selectedQuizTypes ?? []) as QuizType[])
       } catch (e) {
-        console.error("getUserEntitlement failed:", e)
+        console.error("loadAndRepairUserPlanState failed:", e)
         if (!alive) return
         setAllowed([])
       } finally {
         if (!alive) return
-        setEntLoaded(true)
+        setStateLoaded(true)
       }
     })()
 
@@ -54,39 +52,33 @@ export default function NormalClientWrapper() {
     }
   }, [loading, user?.uid, router, user])
 
-  // ✅ redirect は useEffect で（render中にやらない）
   useEffect(() => {
     if (loading) return
     if (!user) return
-    if (!entLoaded) return
+    if (!stateLoaded) return
 
-    // URL不正 or quiz実体なし → TOPへ
     if (!quizType || !quiz) {
       router.replace("/")
       return
     }
 
-    // 未選択 → 選択画面へ
     if ((allowed ?? []).length === 0) {
       router.replace("/select-quizzes")
       return
     }
 
-    // 利用権チェック（選んでない教材に直リンクしてたら選択画面へ）
     if (!(allowed ?? []).includes(quizType)) {
       router.replace("/select-quizzes")
       return
     }
-  }, [loading, user, entLoaded, allowed, quizType, quiz, router])
+  }, [loading, user, stateLoaded, allowed, quizType, quiz, router])
 
-  // 表示：ロード完了まで待つ（ちらつき防止）
   if (loading) return null
   if (!user) return null
-  if (!entLoaded) return null
+  if (!stateLoaded) return null
   if (!quizType || !quiz) return null
   if (allowed === null) return null
   if (!allowed.includes(quizType)) return null
 
-  // ✅ Quiz（questions入り）を渡す
   return <NormalClient quiz={quiz} />
 }

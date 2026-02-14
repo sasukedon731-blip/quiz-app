@@ -39,7 +39,6 @@ export default function PlansPage() {
   const [currentPlan, setCurrentPlan] = useState<PlanId>("trial")
   const [displayName, setDisplayName] = useState<string>("")
 
-  // auth guard
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -51,16 +50,15 @@ export default function PlansPage() {
     return () => unsub()
   }, [router])
 
-  // load + repair
   useEffect(() => {
     ;(async () => {
       if (!uid) return
       setLoading(true)
       setError("")
       try {
-        const state = await loadAndRepairUserPlanState(uid)
-        setCurrentPlan(state.plan)
-        setDisplayName(state.displayName)
+        const st = await loadAndRepairUserPlanState(uid)
+        setCurrentPlan(st.plan)
+        setDisplayName(st.displayName)
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -79,8 +77,6 @@ export default function PlansPage() {
 
     try {
       await savePlanAndNormalizeSelected({ uid, plan })
-
-      // ✅ 3/5 は教材選択へ、trial/free/all はモード選択へ
       if (plan === "3" || plan === "5") {
         router.push("/select-quizzes")
       } else {
@@ -98,14 +94,7 @@ export default function PlansPage() {
 
   return (
     <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
+      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
         <div>
           <h1 style={{ margin: 0 }}>プラン選択</h1>
           <p style={{ margin: "6px 0 0", opacity: 0.8 }}>
@@ -114,25 +103,14 @@ export default function PlansPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => router.push("/mypage")}
-          style={backBtn}
-        >
+        <button onClick={() => router.push("/mypage")} style={backBtn}>
           マイページへ
         </button>
       </header>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <section
-        style={{
-          marginTop: 16,
-          padding: 14,
-          border: "1px solid #e5e7eb",
-          borderRadius: 14,
-          background: "#fff",
-        }}
-      >
+      <section style={{ marginTop: 16, padding: 14, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
         <div style={{ fontWeight: 900 }}>教材数</div>
         <div style={{ marginTop: 6, opacity: 0.85 }}>
           現在 <b>{allCount}</b> 教材（今後10以上に拡張）
@@ -142,30 +120,13 @@ export default function PlansPage() {
         </div>
       </section>
 
-      <div
-        style={{
-          marginTop: 16,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: 12,
-        }}
-      >
+      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 12 }}>
         {(["trial", "3", "5", "all"] as PlanId[]).map((p) => {
           const isCurrent = p === currentPlan
           return (
-            <div
-              key={p}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 16,
-                padding: 14,
-                background: "#fff",
-              }}
-            >
+            <div key={p} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#fff" }}>
               <div style={{ fontWeight: 900, fontSize: 16 }}>{PLAN_LABEL[p]}</div>
-              <div style={{ marginTop: 6, opacity: 0.8, lineHeight: 1.5 }}>
-                {PLAN_DESC[p]}
-              </div>
+              <div style={{ marginTop: 6, opacity: 0.8, lineHeight: 1.5 }}>{PLAN_DESC[p]}</div>
 
               <div style={{ marginTop: 10, fontSize: 13, opacity: 0.85 }}>
                 {p === "trial" && "利用可能：固定1教材（お試し）"}
@@ -196,15 +157,6 @@ export default function PlansPage() {
           )
         })}
       </div>
-
-      <section style={{ marginTop: 18 }}>
-        <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>次の動き</h2>
-        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.9, lineHeight: 1.7 }}>
-          <li>trial → まず学習体験</li>
-          <li>3/5 → 教材選択へ（/select-quizzes）</li>
-          <li>all → すぐ学習へ（/select-mode）</li>
-        </ul>
-      </section>
     </main>
   )
 }

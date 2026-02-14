@@ -30,7 +30,6 @@ export default function SelectModePage() {
   const [selected, setSelected] = useState<QuizType[]>([])
   const [displayName, setDisplayName] = useState("")
 
-  // auth guard
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -42,7 +41,6 @@ export default function SelectModePage() {
     return () => unsub()
   }, [router])
 
-  // load + repair
   useEffect(() => {
     ;(async () => {
       if (!uid) return
@@ -70,14 +68,7 @@ export default function SelectModePage() {
 
   return (
     <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
+      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
         <div>
           <h1 style={{ margin: 0 }}>学習を始める</h1>
           <p style={{ margin: "6px 0 0", opacity: 0.8 }}>
@@ -86,14 +77,7 @@ export default function SelectModePage() {
           </p>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Link href="/mypage" style={btnStyle("#111827")}>マイページ</Link>
           <Link href="/plans" style={btnStyle("#2563eb")}>プラン変更</Link>
         </div>
@@ -101,22 +85,12 @@ export default function SelectModePage() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {/* selected が空のときの案内 */}
       {selectedCards.length === 0 ? (
-        <section
-          style={{
-            marginTop: 16,
-            padding: 16,
-            border: "1px solid #e5e7eb",
-            borderRadius: 14,
-            background: "#fff",
-          }}
-        >
+        <section style={{ marginTop: 16, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
           <div style={{ fontWeight: 900, fontSize: 16 }}>教材が選択されていません</div>
           <p style={{ marginTop: 8, opacity: 0.85, lineHeight: 1.6 }}>
             プランに応じて教材を選んでから学習を開始できます。
           </p>
-
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link href="/plans" style={btnStyle("#2563eb")}>プランを確認する</Link>
             <Link href="/select-quizzes" style={btnStyle("#16a34a")}>教材を選ぶ</Link>
@@ -126,43 +100,20 @@ export default function SelectModePage() {
         <section style={{ marginTop: 16 }}>
           <h2 style={{ margin: "0 0 12px", fontSize: 18 }}>あなたの教材（今月の受講）</h2>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             {selectedCards.map((id) => {
               const q = quizzes[id]
               return (
-                <div
-                  key={id}
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#fff",
-                  }}
-                >
+                <div key={id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff" }}>
                   <div style={{ fontWeight: 900, fontSize: 16 }}>{q.title}</div>
                   {q.description && (
-                    <div
-                      style={{
-                        marginTop: 6,
-                        fontSize: 13,
-                        opacity: 0.8,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {q.description}
-                    </div>
+                    <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.5 }}>{q.description}</div>
                   )}
 
                   <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                    <Link href={`/normal?type=${id}`} style={btnStyle("#2563eb")}>通常</Link>
-                    <Link href={`/exam?type=${id}`} style={btnStyle("#111827")}>模擬試験</Link>
-                    <Link href={`/review?type=${id}`} style={btnStyle("#16a34a")}>復習</Link>
+                    <Link href={`/normal?type=${encodeURIComponent(id)}`} style={btnStyle("#2563eb")}>通常</Link>
+                    <Link href={`/exam?type=${encodeURIComponent(id)}`} style={btnStyle("#111827")}>模擬試験</Link>
+                    <Link href={`/review?type=${encodeURIComponent(id)}`} style={btnStyle("#16a34a")}>復習</Link>
                   </div>
 
                   <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>ID: {id}</div>
