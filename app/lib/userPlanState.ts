@@ -32,16 +32,35 @@ function isPlanId(v: any): v is PlanId {
 }
 
 function inferPlanFromLegacy(data: any): PlanId {
-  // 1) 新しい plan があれば採用
-  if (isPlanId(data?.plan)) return data.plan
+  const p = data?.plan
 
-  // 2) 旧 quizLimit から推定（既存ユーザー救済）
+  // 1) Prefer explicit plan field if we can interpret it
+  if (isPlanId(p)) return p
+
+  // number stored (e.g., 3 / 5 / 1)
+  if (typeof p === "number") {
+    if (p === 5) return "5"
+    if (p === 3) return "3"
+    if (p === 1) return "trial"
+  }
+
+  // string but different format (e.g., "3教材", "plan_5")
+  if (typeof p === "string") {
+    const s = p.toLowerCase()
+    if (s.includes("all")) return "all"
+    if (s.includes("trial")) return "trial"
+    if (s.includes("free")) return "free"
+    if (s.includes("5")) return "5"
+    if (s.includes("3")) return "3"
+  }
+
+  // 2) Fallback: legacy quizLimit
   const limit = typeof data?.quizLimit === "number" ? (data.quizLimit as number) : null
   if (limit === 5) return "5"
   if (limit === 3) return "3"
   if (limit === 1) return "trial"
 
-  // 3) 不明なら安全側
+  // 3) Safe default
   return "trial"
 }
 
