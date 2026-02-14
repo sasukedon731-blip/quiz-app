@@ -401,6 +401,42 @@ export default function ExamClient({ quiz }: Props) {
     const passScore = getPassScore(quizType, total)
     const passed = score >= passScore
 
+    // ✅ 分野別の弱点分析（sectionId がない教材も落ちない）
+    const sectionLabelMap = new Map<string, string>()
+    ;(quiz.sections ?? []).forEach(s => sectionLabelMap.set(s.id, s.label))
+
+    const sectionStats = (() => {
+      type Stat = { id: string; label: string; total: number; correct: number }
+      const map = new Map<string, Stat>()
+
+      questions.forEach((q, i) => {
+        const sid = q.sectionId ?? 'all'
+        const label = sectionLabelMap.get(sid) ?? (sid === 'all' ? '全体' : sid)
+
+        const a = answers[i]
+        const selectedIdx = a?.selectedIndex ?? null
+        const correctIdx = a?.correctIndex ?? q.correctIndex
+        const isCorrect = selectedIdx !== null && selectedIdx === correctIdx
+
+        const cur = map.get(sid) ?? { id: sid, label, total: 0, correct: 0 }
+        cur.total += 1
+        if (isCorrect) cur.correct += 1
+        map.set(sid, cur)
+      })
+
+      const arr = Array.from(map.values()).map(s => {
+        const accuracy = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0
+        return { ...s, accuracy, wrong: s.total - s.correct }
+      })
+
+      // 弱い順（正答率が低い→間違い数が多い→出題数が多い）
+      arr.sort((a, b) => a.accuracy - b.accuracy || b.wrong - a.wrong || b.total - a.total)
+      return arr
+    })()
+
+    const goReview = () => router.push(`/review?type=${quizType}`)
+    const goNormal = () => router.push(`/normal?type=${quizType}`)
+
     return (
       <QuizLayout title={`${quiz.title}（模擬試験）結果`}>
         <div className="resultMeta">
@@ -413,9 +449,39 @@ export default function ExamClient({ quiz }: Props) {
           <div style={{ opacity: 0.8 }}>残り時間: {formatTime(timeLeft)}</div>
         </div>
 
+        <div className="panelSoft" style={{ marginTop: 14 }}>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>弱点分析（分野別）</div>
+
+          {sectionStats.length <= 1 ? (
+            <div style={{ opacity: 0.85 }}>この教材は分野設定がないため、分野別分析はありません。</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ opacity: 0.9 }}>正答率が低い分野から表示します（未回答は不正解としてカウント）。</div>
+
+              {sectionStats
+                .filter(s => s.id !== 'all')
+                .slice(0, 5)
+                .map(s => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontWeight: 800 }}>{s.label}</div>
+                    <div style={{ whiteSpace: 'nowrap' }}>
+                      {s.correct}/{s.total}（{s.accuracy}%）
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
         <div className="actions">
           <Button variant="main" onClick={resetExam}>
             もう一度（再挑戦）
+          </Button>
+          <Button variant="choice" onClick={goReview}>
+            復習へ（間違えた問題）
+          </Button>
+          <Button variant="sub" onClick={goNormal}>
+            通常学習へ
           </Button>
           <Button variant="accent" onClick={goModeSelect}>
             モード選択へ戻る
