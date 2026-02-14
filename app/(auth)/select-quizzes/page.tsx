@@ -16,7 +16,7 @@ import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 
 // ------------------------------
-// Plan / Entitlement helpers
+// Plan helpers（このファイル内で完結）
 // ------------------------------
 type PlanId = "free" | "3" | "5" | "all"
 
@@ -36,12 +36,10 @@ function normalizeSelected(
   entitled: QuizType[],
   plan: PlanId
 ): QuizType[] {
-  // entitled外は除外
   const filtered = selected.filter((q) => entitled.includes(q))
 
   const limit = getPlanLimit(plan)
   if (limit === "ALL") {
-    // 選択が空なら entitled 全部
     return filtered.length ? filtered : entitled
   }
 
@@ -119,7 +117,6 @@ export default function SelectQuizzesPage() {
         const data = snap.data() as UserDoc
         const p = data.plan ?? "free"
 
-        // entitled が空のときは、最低限「全教材」を仮で入れて落ちないようにする
         const entitledList =
           (data.entitledQuizTypes ?? []).filter((q) => quizzes[q]) as QuizType[]
 
@@ -148,24 +145,31 @@ export default function SelectQuizzesPage() {
   const limit = useMemo(() => getPlanLimit(plan), [plan])
   const maxCount = limit === "ALL" ? entitled.length : limit
 
+  // ✅ 3/5 は「必要数」未達ならロック中でも編集OK（初回確定救済）
+  const requiredCount =
+    plan === "3" ? 3 : plan === "5" ? 5 : plan === "all" ? entitled.length : 1
+
+  // ロック解除条件：
+  // - changeOk（通常解除） OR
+  // - まだ必要数に達していない（初回確定がまだ） → 今だけ編集OK
+  const editable = changeOk || selected.length < requiredCount
+
   const remaining = useMemo(() => {
     if (limit === "ALL") return "∞"
     return Math.max(0, maxCount - selected.length)
   }, [limit, maxCount, selected.length])
 
   const entitledList = useMemo(() => {
-    // 権限（entitled）だけを表示
     return entitled.filter((q) => quizzes[q])
   }, [entitled])
 
   const toggle = (q: QuizType) => {
-    if (!changeOk) return
+    if (!editable) return
 
     setSelected((prev) => {
       const has = prev.includes(q)
       if (has) return prev.filter((x) => x !== q)
 
-      // 上限ブロック
       if (limit !== "ALL" && prev.length >= maxCount) return prev
       return [...prev, q]
     })
@@ -178,6 +182,8 @@ export default function SelectQuizzesPage() {
 
     try {
       const normalized = normalizeSelected(selected, entitled, plan)
+
+      // ✅ ここで初めて 1ヶ月ロック開始（A方針）
       const next = addOneMonth(new Date())
 
       await updateDoc(doc(db, "users", uid), {
@@ -201,6 +207,37 @@ export default function SelectQuizzesPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+      {/* ✅ 戻る導線 */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <button
+          onClick={() => router.push("/plans")}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid #ddd",
+            background: "#fff",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          ← プランに戻る
+        </button>
+
+        <button
+          onClick={() => router.push("/select-mode")}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid #ddd",
+            background: "#fff",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          モード選択へ
+        </button>
+      </div>
+
       <h1 style={{ marginBottom: 12 }}>教材を選択</h1>
 
       <div
@@ -222,9 +259,17 @@ export default function SelectQuizzesPage() {
           残り：<b>{remaining}</b>
         </div>
 
-        {!changeOk && nextAllowedAt && (
+        {/* ✅ ロック表示（確定済みのときだけ） */}
+        {!changeOk && nextAllowedAt && selected.length >= requiredCount && (
           <div style={{ marginTop: 8, color: "#b45309" }}>
             次に変更できる日：<b>{formatDate(nextAllowedAt)}</b>
+          </div>
+        )}
+
+        {/* ✅ 初回確定救済メッセージ */}
+        {!changeOk && selected.length < requiredCount && (
+          <div style={{ marginTop: 8, color: "#16a34a" }}>
+            ※ 初回の教材確定がまだなので、今だけ編集できます（保存後に1ヶ月ロック）
           </div>
         )}
       </div>
@@ -237,8 +282,7 @@ export default function SelectQuizzesPage() {
           const checked = selected.includes(q)
 
           const disabled =
-            !changeOk ||
-            (!checked && limit !== "ALL" && selected.length >= maxCount)
+            !editable || (!checked && limit !== "ALL" && selected.length >= maxCount)
 
           return (
             <li key={q} style={{ marginBottom: 10 }}>
@@ -273,19 +317,19 @@ export default function SelectQuizzesPage() {
 
       <button
         onClick={handleSave}
-        disabled={!changeOk || saving}
+        disabled={!editable || saving}
         style={{
           width: "100%",
           padding: 14,
           borderRadius: 14,
           border: "none",
-          background: !changeOk ? "#9ca3af" : "#2563eb",
+          background: !editable ? "#9ca3af" : "#2563eb",
           color: "#fff",
           fontWeight: 900,
           marginTop: 10,
         }}
       >
-        {saving ? "保存中..." : changeOk ? "この内容で保存して進む" : "変更可能日まで編集できません"}
+        {saving ? "保存中..." : editable ? "この内容で保存して進む" : "変更可能日まで編集できません"}
       </button>
     </div>
   )
