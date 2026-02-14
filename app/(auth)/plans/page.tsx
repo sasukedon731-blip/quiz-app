@@ -3,23 +3,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
-import { auth, db } from "@/app/lib/firebase"
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
 
-import type { QuizType } from "@/app/data/types"
+import { auth } from "@/app/lib/firebase"
 import { quizzes } from "@/app/data/quizzes"
+import { type PlanId } from "@/app/lib/plan"
 import {
-  buildEntitledQuizTypes,
-  normalizeSelectedForPlan,
-  type PlanId,
-} from "@/app/lib/plan"
-
-type UserDoc = {
-  plan?: PlanId
-  entitledQuizTypes?: QuizType[]
-  selectedQuizTypes?: QuizType[]
-  displayName?: string
-}
+  loadAndRepairUserPlanState,
+  savePlanAndNormalizeSelected,
+} from "@/app/lib/userPlanState"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -48,7 +39,7 @@ export default function PlansPage() {
   const [currentPlan, setCurrentPlan] = useState<PlanId>("trial")
   const [displayName, setDisplayName] = useState<string>("")
 
-  // auth guard（ログイン必須）
+  // auth guard
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -60,22 +51,16 @@ export default function PlansPage() {
     return () => unsub()
   }, [router])
 
-  // load user doc
+  // load + repair
   useEffect(() => {
     ;(async () => {
       if (!uid) return
       setLoading(true)
       setError("")
       try {
-        const snap = await getDoc(doc(db, "users", uid))
-        if (!snap.exists()) {
-          setError("ユーザー情報が見つかりません（再登録が必要な可能性）")
-          setLoading(false)
-          return
-        }
-        const data = snap.data() as UserDoc
-        setCurrentPlan(data.plan ?? "trial")
-        setDisplayName(data.displayName ?? "")
+        const state = await loadAndRepairUserPlanState(uid)
+        setCurrentPlan(state.plan)
+        setDisplayName(state.displayName)
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -93,26 +78,7 @@ export default function PlansPage() {
     setError("")
 
     try {
-      // ✅ planに応じて entitled を自動生成
-      const entitledQuizTypes = buildEntitledQuizTypes(plan)
-
-      // ✅ selected は現在の選択を尊重したいので、いったん user doc を読んで正規化
-      const snap = await getDoc(doc(db, "users", uid))
-      const prev = snap.exists() ? (snap.data() as UserDoc) : {}
-
-      const prevSelected = (prev.selectedQuizTypes ?? []) as QuizType[]
-      const selectedQuizTypes = normalizeSelectedForPlan(
-        prevSelected,
-        entitledQuizTypes,
-        plan
-      )
-
-      await updateDoc(doc(db, "users", uid), {
-        plan,
-        entitledQuizTypes,
-        selectedQuizTypes,
-        updatedAt: serverTimestamp(),
-      })
+      await savePlanAndNormalizeSelected({ uid, plan })
 
       // ✅ 3/5 は教材選択へ、trial/free/all はモード選択へ
       if (plan === "3" || plan === "5") {
@@ -132,7 +98,14 @@ export default function PlansPage() {
 
   return (
     <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
         <div>
           <h1 style={{ margin: 0 }}>プラン選択</h1>
           <p style={{ margin: "6px 0 0", opacity: 0.8 }}>
@@ -143,14 +116,7 @@ export default function PlansPage() {
 
         <button
           onClick={() => router.push("/mypage")}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #ddd",
-            background: "#fff",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
+          style={backBtn}
         >
           マイページへ
         </button>
@@ -241,4 +207,13 @@ export default function PlansPage() {
       </section>
     </main>
   )
+}
+
+const backBtn: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 800,
+  cursor: "pointer",
 }

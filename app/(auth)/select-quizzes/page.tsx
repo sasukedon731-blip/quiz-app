@@ -3,60 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
-import {
-  Timestamp,
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore"
 
-import { auth, db } from "@/app/lib/firebase"
+import { auth } from "@/app/lib/firebase"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
-
-// ------------------------------
-// Plan helpers（このファイル内で完結）
-// ------------------------------
-type PlanId = "free" | "3" | "5" | "all"
-
-const PLAN_LIMIT: Record<PlanId, number | "ALL"> = {
-  free: 1,
-  "3": 3,
-  "5": 5,
-  all: "ALL",
-}
-
-function getPlanLimit(plan: PlanId): number | "ALL" {
-  return PLAN_LIMIT[plan] ?? 1
-}
-
-function normalizeSelected(
-  selected: QuizType[],
-  entitled: QuizType[],
-  plan: PlanId
-): QuizType[] {
-  const filtered = selected.filter((q) => entitled.includes(q))
-
-  const limit = getPlanLimit(plan)
-  if (limit === "ALL") {
-    return filtered.length ? filtered : entitled
-  }
-
-  const sliced = filtered.slice(0, limit)
-  if (sliced.length) return sliced
-  return entitled.slice(0, limit)
-}
+import { getSelectLimit, type PlanId } from "@/app/lib/plan"
+import {
+  loadAndRepairUserPlanState,
+  saveSelectedQuizTypesWithLock,
+} from "@/app/lib/userPlanState"
 
 function canChange(now: Date, nextAllowedAt?: Date | null) {
   if (!nextAllowedAt) return true
   return now.getTime() >= nextAllowedAt.getTime()
-}
-
-function addOneMonth(from: Date) {
-  const d = new Date(from)
-  d.setMonth(d.getMonth() + 1)
-  return d
 }
 
 function formatDate(d: Date) {
@@ -64,14 +23,6 @@ function formatDate(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}/${m}/${day}`
-}
-
-type UserDoc = {
-  plan?: PlanId
-  entitledQuizTypes?: QuizType[]
-  selectedQuizTypes?: QuizType[]
-  nextChangeAllowedAt?: Timestamp
-  displayName?: string
 }
 
 export default function SelectQuizzesPage() {
@@ -82,7 +33,7 @@ export default function SelectQuizzesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  const [plan, setPlan] = useState<PlanId>("free")
+  const [plan, setPlan] = useState<PlanId>("trial")
   const [entitled, setEntitled] = useState<QuizType[]>([])
   const [selected, setSelected] = useState<QuizType[]>([])
   const [nextAllowedAt, setNextAllowedAt] = useState<Date | null>(null)
@@ -99,7 +50,7 @@ export default function SelectQuizzesPage() {
     return () => unsub()
   }, [router])
 
-  // 2) load user doc
+  // 2) load + repair
   useEffect(() => {
     ;(async () => {
       if (!uid) return
@@ -107,29 +58,11 @@ export default function SelectQuizzesPage() {
       setError("")
 
       try {
-        const snap = await getDoc(doc(db, "users", uid))
-        if (!snap.exists()) {
-          setError("ユーザー情報が見つかりません（再登録が必要な可能性）")
-          setLoading(false)
-          return
-        }
-
-        const data = snap.data() as UserDoc
-        const p = data.plan ?? "free"
-
-        const entitledList =
-          (data.entitledQuizTypes ?? []).filter((q) => quizzes[q]) as QuizType[]
-
-        const fallbackAll = Object.keys(quizzes) as QuizType[]
-        const e = entitledList.length ? entitledList : fallbackAll
-
-        const s = (data.selectedQuizTypes ?? []) as QuizType[]
-        const next = data.nextChangeAllowedAt?.toDate?.() ?? null
-
-        setPlan(p)
-        setEntitled(e)
-        setSelected(normalizeSelected(s, e, p))
-        setNextAllowedAt(next)
+        const state = await loadAndRepairUserPlanState(uid)
+        setPlan(state.plan)
+        setEntitled(state.entitledQuizTypes)
+        setSelected(state.selectedQuizTypes)
+        setNextAllowedAt(state.nextChangeAllowedAt)
       } catch (e: any) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -142,16 +75,17 @@ export default function SelectQuizzesPage() {
   const now = new Date()
   const changeOk = canChange(now, nextAllowedAt)
 
-  const limit = useMemo(() => getPlanLimit(plan), [plan])
+  const limit = useMemo(() => getSelectLimit(plan), [plan])
   const maxCount = limit === "ALL" ? entitled.length : limit
 
-  // ✅ 3/5 は「必要数」未達ならロック中でも編集OK（初回確定救済）
-  const requiredCount =
-    plan === "3" ? 3 : plan === "5" ? 5 : plan === "all" ? entitled.length : 1
+  // 初回確定救済：ロック中でも必要数に達してない場合は編集OK
+  const requiredCount = useMemo(() => {
+    if (plan === "3") return 3
+    if (plan === "5") return 5
+    if (plan === "all") return entitled.length
+    return 1
+  }, [plan, entitled.length])
 
-  // ロック解除条件：
-  // - changeOk（通常解除） OR
-  // - まだ必要数に達していない（初回確定がまだ） → 今だけ編集OK
   const editable = changeOk || selected.length < requiredCount
 
   const remaining = useMemo(() => {
@@ -181,17 +115,8 @@ export default function SelectQuizzesPage() {
     setError("")
 
     try {
-      const normalized = normalizeSelected(selected, entitled, plan)
-
-      // ✅ ここで初めて 1ヶ月ロック開始（A方針）
-      const next = addOneMonth(new Date())
-
-      await updateDoc(doc(db, "users", uid), {
-        selectedQuizTypes: normalized,
-        nextChangeAllowedAt: Timestamp.fromDate(next),
-        updatedAt: serverTimestamp(),
-      })
-
+      // ✅ 保存＆ロック開始（ロック中なら延長しない）
+      await saveSelectedQuizTypesWithLock({ uid, selectedQuizTypes: selected })
       router.push("/select-mode")
     } catch (e: any) {
       console.error(e)
@@ -211,28 +136,14 @@ export default function SelectQuizzesPage() {
       <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <button
           onClick={() => router.push("/plans")}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #ddd",
-            background: "#fff",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
+          style={backBtn}
         >
           ← プランに戻る
         </button>
 
         <button
           onClick={() => router.push("/select-mode")}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #ddd",
-            background: "#fff",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
+          style={backBtn}
         >
           モード選択へ
         </button>
@@ -270,6 +181,12 @@ export default function SelectQuizzesPage() {
         {!changeOk && selected.length < requiredCount && (
           <div style={{ marginTop: 8, color: "#16a34a" }}>
             ※ 初回の教材確定がまだなので、今だけ編集できます（保存後に1ヶ月ロック）
+          </div>
+        )}
+
+        {(plan === "trial" || plan === "free") && (
+          <div style={{ marginTop: 8, color: "#2563eb" }}>
+            ※ お試し/無料は教材固定です（選択は自動で整えられます）
           </div>
         )}
       </div>
@@ -329,8 +246,21 @@ export default function SelectQuizzesPage() {
           marginTop: 10,
         }}
       >
-        {saving ? "保存中..." : editable ? "この内容で保存して進む" : "変更可能日まで編集できません"}
+        {saving
+          ? "保存中..."
+          : editable
+            ? "この内容で保存して進む"
+            : "変更可能日まで編集できません"}
       </button>
     </div>
   )
+}
+
+const backBtn: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 800,
+  cursor: "pointer",
 }
