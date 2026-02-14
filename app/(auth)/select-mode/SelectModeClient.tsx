@@ -43,21 +43,6 @@ export default function SelectModeClient() {
           <Button variant="main" onClick={() => router.push("/")}>
             TOPへ
           </Button>
-          <button
-            type="button"
-            onClick={() => router.push("/select-quizzes")}
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid var(--border)",
-              background: "white",
-              cursor: "pointer",
-              fontWeight: 800,
-              opacity: 0.9,
-            }}
-          >
-            教材を選び直す（変更）
-          </button>
         </div>
       </QuizLayout>
     )
@@ -107,24 +92,6 @@ export default function SelectModeClient() {
         <Button variant="main" onClick={() => router.push("/")}>
           TOPへ戻る
         </Button>
-
-        {/* 教材選び直しは「戻る」と分離してサブ導線にする */}
-        <button
-          type="button"
-          onClick={() => router.push("/select-quizzes")}
-          style={{
-            marginTop: 4,
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid var(--border)",
-            background: "white",
-            cursor: "pointer",
-            fontWeight: 800,
-            opacity: 0.9,
-          }}
-        >
-          教材を選び直す（変更）
-        </button>
       </div>
     </QuizLayout>
   )
