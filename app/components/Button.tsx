@@ -2,7 +2,14 @@
 
 import React from "react"
 
-type Variant = "main" | "sub" | "accent" | "choice" | "success"
+export type Variant =
+  | "main"
+  | "sub"
+  | "accent"
+  | "success"
+  | "danger"
+  | "ghost"
+  | "choice"
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant
@@ -20,17 +27,36 @@ export default function Button({
 }: Props) {
   const classes = ["btn"] as string[]
 
-  // variants
-  if (variant === "main") classes.push("btnPrimary")
-  if (variant === "sub") classes.push("btnSub")
-  if (variant === "accent") classes.push("btnAccent")
-  if (variant === "success") classes.push("btnSuccess")
+  switch (variant) {
+    case "main":
+      classes.push("btnPrimary")
+      break
 
-  // choice（選択肢）
-  if (variant === "choice") {
-    classes.push("choice")
-    if (isCorrect) classes.push("choiceCorrect")
-    if (isWrong) classes.push("choiceWrong")
+    case "sub":
+      classes.push("btnSub")
+      break
+
+    case "accent":
+      classes.push("btnAccent")
+      break
+
+    case "success":
+      classes.push("btnSuccess")
+      break
+
+    case "danger":
+      classes.push("btnDanger")
+      break
+
+    case "ghost":
+      classes.push("btnGhost")
+      break
+
+    case "choice":
+      classes.push("choice")
+      if (isCorrect) classes.push("choiceCorrect")
+      if (isWrong) classes.push("choiceWrong")
+      break
   }
 
   if (className) classes.push(className)

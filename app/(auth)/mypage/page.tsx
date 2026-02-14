@@ -17,12 +17,11 @@ import QuizLayout from "@/app/components/QuizLayout"
 import Button from "@/app/components/Button"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import type { QuizType } from "@/app/data/types"
+import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 
 // ✅ 模擬試験 合格ライン（科目別）
 function getPassLine(quizType: string) {
-  // 外国免許：50問中45問正解（=90%）で合格
   if (quizType === "gaikoku-license") return 0.9
-  // それ以外：従来どおり80%
   return 0.8
 }
 
@@ -51,7 +50,7 @@ type ExamStats = {
   lastAccuracy: number // 0-100
 }
 
-type TabKey = "all" | QuizType
+type ViewKey = "current" | "history"
 
 function toSeconds(ts: any): number | null {
   if (!ts) return null
@@ -89,6 +88,10 @@ function pct(score: number, total: number) {
   return Math.round((score / total) * 100)
 }
 
+function uniq<T>(arr: T[]) {
+  return Array.from(new Set(arr))
+}
+
 export default function MyPage() {
   const router = useRouter()
 
@@ -98,14 +101,22 @@ export default function MyPage() {
   const [progressByType, setProgressByType] = useState<Record<string, ProgressDoc>>({})
   const [results, setResults] = useState<QuizResult[]>([])
 
-  const quizTypes = useMemo(() => {
+  // ✅ 今月の受講教材（selectedQuizTypes）をここで取得する
+  const [selectedTypes, setSelectedTypes] = useState<QuizType[]>([])
+  const [selectedLoaded, setSelectedLoaded] = useState(false)
+
+  // 表示モード：進行中 / 履歴あり
+  const [view, setView] = useState<ViewKey>("current")
+
+  // 詳細表示する教材（nullなら詳細非表示）
+  const [focusType, setFocusType] = useState<QuizType | null>(null)
+
+  const quizTypesAll = useMemo(() => {
     return quizCatalog
       .filter(q => q.enabled)
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
       .map(q => q.id) as QuizType[]
   }, [])
-
-  const [tab, setTab] = useState<TabKey>("all")
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -115,6 +126,7 @@ export default function MyPage() {
     return () => unsub()
   }, [router])
 
+  // ✅ progress/results を取得
   useEffect(() => {
     if (!user) return
 
@@ -146,6 +158,30 @@ export default function MyPage() {
     run()
   }, [user])
 
+  // ✅ selectedQuizTypes を取得（今月の受講教材）
+  useEffect(() => {
+    if (!user) return
+    let alive = true
+    setSelectedLoaded(false)
+
+    ;(async () => {
+      try {
+        const st = await loadAndRepairUserPlanState(user.uid)
+        if (!alive) return
+        setSelectedTypes((st.selectedQuizTypes ?? []) as QuizType[])
+      } catch (e) {
+        console.error("loadAndRepairUserPlanState failed:", e)
+        if (!alive) return
+        setSelectedTypes([])
+      } finally {
+        if (!alive) return
+        setSelectedLoaded(true)
+      }
+    })()
+
+    return () => { alive = false }
+  }, [user])
+
   const handleLogout = async () => {
     await signOut(auth)
     router.replace("/login")
@@ -166,7 +202,6 @@ export default function MyPage() {
       todayAll += safeNum(v.todaySessions)
     }
 
-    // 全体のexam合格率
     let attempts = 0
     let passes = 0
     for (const r of results) {
@@ -218,70 +253,78 @@ export default function MyPage() {
     return stats
   }, [results])
 
-  // ---- allタブ用：進捗ミニカード（全部表示するが軽量） ----
-  const miniCardsAll = useMemo(() => {
-    return quizTypes.map((qt) => {
-      const meta = typeMeta(qt)
-      const p = progressByType[qt] ?? {}
-      const updatedSec = toSeconds(p.updatedAt)
-      const badge = badgeByType(qt)
-      return {
-        quizType: qt,
-        title: meta.title,
-        badge,
-        todaySessions: safeNum(p.todaySessions),
-        totalSessions: safeNum(p.totalSessions),
-        streak: safeNum(p.streak),
-        bestStreak: safeNum(p.bestStreak),
-        updatedText: updatedSec ? formatDateSeconds(updatedSec) : "-",
-      }
-    })
-  }, [quizTypes, progressByType])
+  // ✅ 履歴あり（progress or results に存在）
+  const historyTypes = useMemo(() => {
+    const fromProgress = Object.keys(progressByType) as QuizType[]
+    const fromResults = results
+      .map(r => (r.quizType ?? "gaikoku-license") as QuizType)
+    return uniq([...fromProgress, ...fromResults])
+  }, [progressByType, results])
 
-  // ---- 科目タブ用：対象教材だけ ----
-  const activeQuizTypes = useMemo(() => {
-    if (tab === "all") return quizTypes
-    return [tab]
-  }, [tab, quizTypes])
+  // ✅ “進行中” と “履歴あり” を、カタログ順に整列
+  const sortedByCatalogOrder = useMemo(() => {
+    const orderMap = new Map<string, number>()
+    quizCatalog.forEach((q, i) => orderMap.set(q.id, q.order ?? i ?? 999))
+    return (types: QuizType[]) => {
+      return types
+        .filter(t => typeMeta(t).enabled)
+        .sort((a, b) => (orderMap.get(a) ?? 999) - (orderMap.get(b) ?? 999))
+    }
+  }, [])
 
-  const progressCards = useMemo(() => {
-    return activeQuizTypes.map((qt) => {
-      const meta = typeMeta(qt)
-      const p = progressByType[qt] ?? {}
-      const updatedSec = toSeconds(p.updatedAt)
-      const badge = badgeByType(qt)
-      return {
-        quizType: qt,
-        title: meta.title,
-        description: meta.description,
-        badge,
-        totalSessions: safeNum(p.totalSessions),
-        todaySessions: safeNum(p.todaySessions),
-        streak: safeNum(p.streak),
-        bestStreak: safeNum(p.bestStreak),
-        updatedText: updatedSec ? formatDateSeconds(updatedSec) : "-",
-      }
-    })
-  }, [activeQuizTypes, progressByType])
+  const currentList = useMemo(() => {
+    // 今月の selected が最優先。カタログに存在するものだけ。
+    const list = sortedByCatalogOrder(selectedTypes)
+    return list
+  }, [selectedTypes, sortedByCatalogOrder])
 
-  // 科目タブだけ：最新5件＋グラフ
+  const historyList = useMemo(() => {
+    // 履歴あり から、進行中を除外
+    const setSelected = new Set(selectedTypes)
+    const list = historyTypes.filter(t => !setSelected.has(t))
+    return sortedByCatalogOrder(list)
+  }, [historyTypes, selectedTypes, sortedByCatalogOrder])
+
+  // ✅ 表示対象（viewによって切替）
+  const visibleList = useMemo(() => {
+    return view === "current" ? currentList : historyList
+  }, [view, currentList, historyList])
+
+  // ---- 詳細表示用：対象教材 ----
+  const focusMeta = useMemo(() => {
+    if (!focusType) return null
+    return typeMeta(focusType)
+  }, [focusType])
+
+  const focusProgress = useMemo(() => {
+    if (!focusType) return null
+    const p = progressByType[focusType] ?? {}
+    const updatedSec = toSeconds(p.updatedAt)
+    return {
+      totalSessions: safeNum(p.totalSessions),
+      todaySessions: safeNum(p.todaySessions),
+      streak: safeNum(p.streak),
+      bestStreak: safeNum(p.bestStreak),
+      updatedText: updatedSec ? formatDateSeconds(updatedSec) : "-",
+    }
+  }, [focusType, progressByType])
+
   const latest5 = useMemo(() => {
-    if (tab === "all") return []
-    const filtered = results.filter(r => (r.quizType ?? "gaikoku-license") === tab)
+    if (!focusType) return []
+    const filtered = results.filter(r => (r.quizType ?? "gaikoku-license") === focusType)
     return filtered.slice(0, 5).map(r => ({
       ...r,
       quizType: r.quizType ?? "gaikoku-license",
       mode: r.mode ?? "exam",
     }))
-  }, [results, tab])
+  }, [results, focusType])
 
   const accuracies = useMemo(() => {
-    if (tab === "all") return []
     return latest5
       .slice()
       .reverse()
       .map((r) => (r.total ? pct(r.score, r.total) : 0))
-  }, [latest5, tab])
+  }, [latest5])
 
   const graphWidth = 320
   const graphHeight = 160
@@ -301,25 +344,53 @@ export default function MyPage() {
 
   if (!user) return <p style={{ textAlign: "center" }}>確認中...</p>
 
-  const tabItems: { key: TabKey; label: string }[] = [
-    { key: "all", label: "すべて" },
-    ...quizTypes.map(qt => ({ key: qt, label: typeMeta(qt).title })),
-  ]
+  // ---- カード用データ ----
+  const cards = useMemo(() => {
+    return visibleList.map((qt) => {
+      const meta = typeMeta(qt)
+      const badge = badgeByType(qt)
+      const p = progressByType[qt] ?? {}
+      const updatedSec = toSeconds(p.updatedAt)
+      const exam = examStatsByType[qt]
+      return {
+        quizType: qt,
+        title: meta.title,
+        description: meta.description ?? "",
+        badge,
+        todaySessions: safeNum(p.todaySessions),
+        totalSessions: safeNum(p.totalSessions),
+        streak: safeNum(p.streak),
+        bestStreak: safeNum(p.bestStreak),
+        updatedText: updatedSec ? formatDateSeconds(updatedSec) : "-",
+        exam,
+      }
+    })
+  }, [visibleList, progressByType, examStatsByType])
 
-  const isAll = tab === "all"
+  const showEmptyState =
+    selectedLoaded &&
+    ((view === "current" && currentList.length === 0) ||
+      (view === "history" && historyList.length === 0))
 
   return (
     <QuizLayout title="マイページ" subtitle={`ようこそ ${user.displayName ?? user.email} さん`}>
+      {/* Header actions */}
       <div className="actions">
-        <Button variant="main" onClick={() => router.push("/")}>
-          TOPに戻る
+        <Button variant="main" onClick={() => router.push("/select-mode")}>
+          学習を始める
         </Button>
-        <Button variant="accent" onClick={handleLogout}>
+        <Button variant="accent" onClick={() => router.push("/select-quizzes")}>
+          教材選択
+        </Button>
+        <Button variant="sub" onClick={() => router.push("/plans")}>
+          プラン
+        </Button>
+        <Button variant="danger" onClick={handleLogout}>
           ログアウト
         </Button>
       </div>
 
-      {/* ✅ 全体サマリー（常に表示） */}
+      {/* Overall summary */}
       <div className="panelSoft" style={{ marginTop: 12 }}>
         <div style={{ fontWeight: 900, marginBottom: 6 }}>全体サマリー</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -347,235 +418,208 @@ export default function MyPage() {
         </div>
       </div>
 
-      {/* ✅ 科目タブ */}
+      {/* View switch */}
       <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {tabItems.map(t => {
-          const active = tab === t.key
-          return (
-            <button
-              key={String(t.key)}
-              onClick={() => setTab(t.key)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 999,
-                border: active ? "2px solid #111" : "1px solid var(--border)",
-                background: active ? "#111" : "white",
-                color: active ? "white" : "#111",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              {t.label}
-            </button>
-          )
-        })}
+        <button
+          onClick={() => { setView("current"); setFocusType(null) }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 999,
+            border: view === "current" ? "2px solid #111" : "1px solid var(--border)",
+            background: view === "current" ? "#111" : "white",
+            color: view === "current" ? "white" : "#111",
+            cursor: "pointer",
+            fontWeight: 800,
+          }}
+        >
+          進行中（今月）{selectedLoaded ? ` ${currentList.length}` : ""}
+        </button>
+
+        <button
+          onClick={() => { setView("history"); setFocusType(null) }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 999,
+            border: view === "history" ? "2px solid #111" : "1px solid var(--border)",
+            background: view === "history" ? "#111" : "white",
+            color: view === "history" ? "white" : "#111",
+            cursor: "pointer",
+            fontWeight: 800,
+          }}
+        >
+          履歴あり（過去）{selectedLoaded ? ` ${historyList.length}` : ""}
+        </button>
       </div>
 
-      {/* ✅ allタブ：軽量表示 */}
-      {isAll ? (
-        <>
-          <div className="panelSoft" style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>📚 進捗（教材別・軽量）</div>
+      {/* List */}
+      <div className="panelSoft" style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 900, marginBottom: 6 }}>
+          {view === "current" ? "🔥 進行中の教材" : "📚 履歴のある教材"}
+        </div>
 
-            {loading ? (
-              <p>読み込み中…</p>
+        {loading ? (
+          <p>読み込み中…</p>
+        ) : showEmptyState ? (
+          <div style={{ padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
+            {view === "current" ? (
+              <>
+                <div style={{ fontWeight: 900 }}>今月の教材が未選択です</div>
+                <div style={{ marginTop: 6, opacity: 0.8 }}>
+                  「教材選択」から今月受講する教材を選ぶと、ここに表示されます。
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <Button variant="main" onClick={() => router.push("/select-quizzes")}>
+                    教材を選ぶ
+                  </Button>
+                </div>
+              </>
             ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                {miniCardsAll.map((c) => (
-                  <div
-                    key={c.quizType}
+              <>
+                <div style={{ fontWeight: 900 }}>履歴がまだありません</div>
+                <div style={{ marginTop: 6, opacity: 0.8 }}>
+                  学習や模擬試験をすると、履歴がここに溜まっていきます。
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {cards.map((c) => (
+              <div
+                key={c.quizType}
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 16,
+                  padding: 14,
+                  background: "white",
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 200,
+                }}
+              >
+                <div style={{ marginBottom: 8 }}>
+                  <span
                     style={{
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "white",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      alignItems: "center",
+                      display: "inline-block",
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      backgroundColor: c.badge.bg,
+                      color: c.badge.fg,
+                      fontWeight: 900,
+                      fontSize: 12,
+                      marginRight: 10,
                     }}
                   >
-                    <div style={{ minWidth: 260 }}>
-                      <div style={{ marginBottom: 6 }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            backgroundColor: c.badge.bg,
-                            color: c.badge.fg,
-                            fontWeight: 900,
-                            fontSize: 12,
-                            marginRight: 10,
-                          }}
-                        >
-                          {c.badge.text}
-                        </span>
-                        <span style={{ fontWeight: 900 }}>{c.title}</span>
-                      </div>
+                    {c.badge.text}
+                  </span>
+                  <span style={{ fontWeight: 900 }}>{c.title}</span>
+                </div>
 
-                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
-                        今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
-                        <br />
-                        最終学習：<b>{c.updatedText}</b>
-                      </div>
-                    </div>
-
-                    <div className="actions" style={{ marginTop: 0 }}>
-                      <Button variant="main" onClick={() => router.push(`/select-mode?type=${encodeURIComponent(c.quizType)}`)}>
-                        学習する
-                      </Button>
-                    </div>
+                {/* 説明文の有無に関係なく高さ確保 */}
+                {c.description ? (
+                  <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, minHeight: 44 }}>
+                    {c.description}
                   </div>
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div style={{ fontSize: 13, opacity: 0.55, minHeight: 44 }}>（説明なし）</div>
+                )}
 
-            <p style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              ※ 「すべて」タブは見やすさ重視で “軽量表示” です（結果一覧・グラフは科目タブで表示）。
-            </p>
+                <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, marginTop: 6 }}>
+                  今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
+                  <br />
+                  最終学習：<b>{c.updatedText}</b>
+                  {c.exam ? (
+                    <>
+                      <br />
+                      模擬：合格率 <b>{c.exam.passRate}%</b>（{c.exam.passes}/{c.exam.attempts}） / 直近 <b>{c.exam.lastScoreText}</b>（{c.exam.lastAccuracy}%）
+                    </>
+                  ) : null}
+                </div>
+
+                {/* ✅ ボタンは常に下 */}
+                <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(c.quizType)}`)}>
+                    通常
+                  </Button>
+                  <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(c.quizType)}`)}>
+                    模擬
+                  </Button>
+                  <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(c.quizType)}`)}>
+                    復習
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setFocusType(c.quizType)
+                      // スクロールで詳細へ（UX向上）
+                      setTimeout(() => {
+                        document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }, 50)
+                    }}
+                  >
+                    詳細
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-        </>
-      ) : (
-        // ✅ 科目タブ：詳細表示
-        <>
-          {/* Exam 合格率（その科目のみ） */}
-          <div className="panelSoft" style={{ marginTop: 12 }}>
+        )}
+
+        <p style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
+          ※ 「進行中」は今月の受講教材のみ、「履歴あり」は過去に学習/模擬した教材のみ表示します。
+        </p>
+      </div>
+
+      {/* Detail */}
+      {focusType ? (
+        <div id="detail" className="panelSoft" style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, marginBottom: 6 }}>
+            🔎 詳細：{badgeByType(focusType).text} / {focusMeta?.title ?? focusType}
+          </div>
+
+          {/* Exam stats */}
+          <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>
-              🧪 模擬試験 合格率{" "}
-              <span style={{ fontSize: 12, opacity: 0.7 }}>
-                ※ 合格ライン {activeQuizTypes.length === 1 ? `${Math.round(getPassLine(activeQuizTypes[0]) * 100)}%` : "科目別"}
-              </span>
+              🧪 模擬試験 合格率（合格ライン {Math.round(getPassLine(focusType) * 100)}%）
             </div>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              {activeQuizTypes.map((qt) => {
-                const s = examStatsByType[qt]
-                const badge = badgeByType(qt)
-                const meta = typeMeta(qt)
-
-                return (
-                  <div
-                    key={qt}
-                    style={{
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "white",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                      <div>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            backgroundColor: badge.bg,
-                            color: badge.fg,
-                            fontWeight: 900,
-                            fontSize: 12,
-                            marginRight: 10,
-                          }}
-                        >
-                          {badge.text}
-                        </span>
-                        <span style={{ fontWeight: 900 }}>{meta.title}</span>
-                      </div>
-
-                      {s ? (
-                        <div style={{ fontWeight: 900 }}>
-                          合格率 {s.passRate}%（{s.passes}/{s.attempts}） / 直近 {s.lastScoreText}（{s.lastAccuracy}%）
-                        </div>
-                      ) : (
-                        <div style={{ opacity: 0.7, fontWeight: 700 }}>まだ模擬試験の記録がありません</div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* 進捗（その科目のみ） */}
-          <div className="panelSoft" style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>📚 進捗（標準問題）</div>
-
-            {loading ? (
-              <p>読み込み中…</p>
-            ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                {progressCards.map((c) => (
-                  <div
-                    key={c.quizType}
-                    style={{
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "white",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ minWidth: 260 }}>
-                      <div style={{ marginBottom: 6 }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            backgroundColor: c.badge.bg,
-                            color: c.badge.fg,
-                            fontWeight: 900,
-                            fontSize: 12,
-                            marginRight: 10,
-                          }}
-                        >
-                          {c.badge.text}
-                        </span>
-                        <span style={{ fontWeight: 900 }}>{c.title}</span>
-                      </div>
-
-                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
-                        今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
-                        <br />
-                        最終学習：<b>{c.updatedText}</b>
-                      </div>
-                    </div>
-
-                    <div className="actions" style={{ marginTop: 0 }}>
-                      <Button variant="main" onClick={() => router.push(`/select-mode?type=${encodeURIComponent(c.quizType)}`)}>
-                        学習する
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+            {examStatsByType[focusType] ? (
+              <div style={{ fontWeight: 900 }}>
+                合格率 {examStatsByType[focusType].passRate}%（{examStatsByType[focusType].passes}/{examStatsByType[focusType].attempts}） / 直近 {examStatsByType[focusType].lastScoreText}（{examStatsByType[focusType].lastAccuracy}%）
               </div>
+            ) : (
+              <div style={{ opacity: 0.7, fontWeight: 700 }}>まだ模擬試験の記録がありません</div>
             )}
-
-            <p style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              ※ ここは Firestore（users/{`{uid}`}/progress）を表示しています。
-            </p>
           </div>
 
-          {/* 結果（最新5件）＋グラフ（その科目のみ） */}
-          <div className="panelSoft" style={{ marginTop: 12 }}>
+          {/* Progress */}
+          <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>📚 進捗（標準問題）</div>
+            {focusProgress ? (
+              <div style={{ fontSize: 13, opacity: 0.9, lineHeight: 1.7 }}>
+                今日：<b>{focusProgress.todaySessions}</b>回 / 累計：<b>{focusProgress.totalSessions}</b>回
+                <br />
+                連続：<b>{focusProgress.streak}</b>日（最高 <b>{focusProgress.bestStreak}</b>日）
+                <br />
+                最終学習：<b>{focusProgress.updatedText}</b>
+              </div>
+            ) : (
+              <div style={{ opacity: 0.7 }}>進捗がありません</div>
+            )}
+          </div>
+
+          {/* Latest 5 + graph */}
+          <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>📈 結果（最新5件）</div>
 
-            {loading ? (
-              <p>読み込み中…</p>
-            ) : latest5.length === 0 ? (
+            {latest5.length === 0 ? (
               <p>まだ結果がありません</p>
             ) : (
               <>
                 <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                   <thead>
                     <tr>
-                      <th style={{ border: "1px solid var(--border)", padding: 8 }}>教材</th>
                       <th style={{ border: "1px solid var(--border)", padding: 8 }}>モード</th>
                       <th style={{ border: "1px solid var(--border)", padding: 8 }}>日付</th>
                       <th style={{ border: "1px solid var(--border)", padding: 8 }}>スコア</th>
@@ -584,27 +628,10 @@ export default function MyPage() {
                   </thead>
                   <tbody>
                     {latest5.map((r, i) => {
-                      const qt = r.quizType ?? "gaikoku-license"
-                      const badge = badgeByType(qt)
                       const acc = r.total ? pct(r.score, r.total) : 0
                       const sec = toSeconds(r.createdAt)
                       return (
                         <tr key={i}>
-                          <td style={{ border: "1px solid var(--border)", padding: 8 }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "4px 10px",
-                                borderRadius: 999,
-                                backgroundColor: badge.bg,
-                                color: badge.fg,
-                                fontWeight: 900,
-                                fontSize: 12,
-                              }}
-                            >
-                              {badge.text}
-                            </span>
-                          </td>
                           <td style={{ border: "1px solid var(--border)", padding: 8, fontWeight: 800 }}>
                             {r.mode ?? "exam"}
                           </td>
@@ -649,8 +676,17 @@ export default function MyPage() {
               </>
             )}
           </div>
-        </>
-      )}
+
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button variant="sub" onClick={() => setFocusType(null)}>
+              詳細を閉じる
+            </Button>
+            <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>
+              この教材で学習する
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </QuizLayout>
   )
 }

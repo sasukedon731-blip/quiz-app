@@ -124,45 +124,46 @@ export default function SelectModePage() {
             </div>
           </section>
         ) : (
-          <>
-            {/* Selected */}
-            <section style={{ marginTop: 14 }}>
-              <div style={styles.sectionHead}>
-                <h2 style={styles.h2}>あなたの教材（今月の受講）</h2>
-                <span style={styles.badge}>{selectedCards.length} 件</span>
-              </div>
+          <section style={{ marginTop: 14 }}>
+            <div style={styles.sectionHead}>
+              <h2 style={styles.h2}>あなたの教材（今月の受講）</h2>
+              <span style={styles.badge}>{selectedCards.length} 件</span>
+            </div>
 
-              <div style={styles.grid}>
-                {selectedCards.map((id) => {
-                  const q = quizzes[id]
-                  return (
-                    <div key={id} style={styles.quizCard}>
-                      <div style={styles.quizTitle}>{q.title}</div>
-                      {q.description ? (
-                        <div style={styles.quizDesc}>{q.description}</div>
-                      ) : (
-                        <div style={styles.quizDescMuted}>（説明なし）</div>
-                      )}
+            <div style={styles.grid}>
+              {selectedCards.map((id) => {
+                const q = quizzes[id]
+                return (
+                  <div key={id} style={styles.quizCard}>
+                    <div style={styles.quizTitle}>{q.title}</div>
 
-                      <div style={styles.quizActions}>
-                        <Link href={`/normal?type=${id}`} style={{ ...styles.btn, ...styles.btnBlue }}>
-                          通常
-                        </Link>
-                        <Link href={`/exam?type=${id}`} style={{ ...styles.btn, ...styles.btnGray }}>
-                          模擬試験
-                        </Link>
-                        <Link href={`/review?type=${id}`} style={{ ...styles.btn, ...styles.btnGreen }}>
-                          復習
-                        </Link>
-                      </div>
+                    {/* 説明文の有無に関係なく高さを確保 */}
+                    {q.description ? (
+                      <div style={styles.quizDesc}>{q.description}</div>
+                    ) : (
+                      <div style={styles.quizDescMuted}>（説明なし）</div>
+                    )}
 
-                      <div style={styles.quizMeta}>ID: {id}</div>
+                    {/* ✅ IDはボタンより上へ（ボタン位置固定のため） */}
+                    <div style={styles.quizMeta}>ID: {id}</div>
+
+                    {/* ✅ ボタンは常にカード下部へ */}
+                    <div style={styles.quizActions}>
+                      <Link href={`/normal?type=${id}`} style={{ ...styles.btn, ...styles.btnBlue }}>
+                        通常
+                      </Link>
+                      <Link href={`/exam?type=${id}`} style={{ ...styles.btn, ...styles.btnGray }}>
+                        模擬試験
+                      </Link>
+                      <Link href={`/review?type=${id}`} style={{ ...styles.btn, ...styles.btnGreen }}>
+                        復習
+                      </Link>
                     </div>
-                  )
-                })}
-              </div>
-            </section>
-          </>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
         )}
 
         <footer style={styles.footer}>
@@ -202,6 +203,7 @@ const styles: Record<string, React.CSSProperties> = {
   h1: { margin: 0, fontSize: 26, letterSpacing: 0.2 },
   h2: { margin: 0, fontSize: 18 },
   sub: { margin: "6px 0 0", opacity: 0.78 },
+
   alert: {
     marginTop: 10,
     marginBottom: 12,
@@ -212,6 +214,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#991b1b",
     fontWeight: 800,
   },
+
   skeletonCard: {
     background: "#fff",
     border: "1px solid #e5e7eb",
@@ -219,6 +222,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
     boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
   },
+
   card: {
     marginTop: 12,
     background: "#fff",
@@ -250,44 +254,45 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
     gap: 12,
+    alignItems: "stretch",
   },
 
   quizCard: {
-  background: "#fff",
-  border: "1px solid #e5e7eb",
-  borderRadius: 16,
-  padding: 14,
-  boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-
-  // 追加
-  display: "flex",
-  flexDirection: "column",
-  minHeight: 220, // 好みで調整（240とかでもOK）
-},
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 14,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 240, // カードの最低高さ（好みで調整）
+  },
   quizTitle: { fontWeight: 900, fontSize: 16 },
+
+  // 説明文の最低高さを確保
   quizDesc: {
-  marginTop: 6,
-  fontSize: 13,
-  opacity: 0.85,
-  lineHeight: 1.5,
+    marginTop: 6,
+    fontSize: 13,
+    opacity: 0.85,
+    lineHeight: 1.5,
+    minHeight: 48, // 2行ぶんくらい
+  },
+  quizDescMuted: {
+    marginTop: 6,
+    fontSize: 13,
+    opacity: 0.55,
+    minHeight: 48,
+  },
 
-  // 追加：説明が短くても高さを確保
-  minHeight: 40, // 2行分くらい（好みで 44〜52）
-},
-quizDescMuted: {
-  marginTop: 6,
-  fontSize: 13,
-  opacity: 0.55,
+  // IDはボタンより上に置く前提
+  quizMeta: { marginTop: 8, fontSize: 12, opacity: 0.6 },
 
-  // 追加
-  minHeight: 40,
-},
+  // ボタンを常に最下部へ
   quizActions: {
-  marginTop: "auto", // ←これが効く（下に押し下げ）
-  display: "grid",
-  gap: 8,
-},
-  quizMeta: { marginTop: 10, fontSize: 12, opacity: 0.6 },
+    marginTop: "auto",
+    display: "grid",
+    gap: 8,
+  },
 
   btn: {
     display: "inline-block",

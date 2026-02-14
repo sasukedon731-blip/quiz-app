@@ -380,3 +380,21 @@ input:focus, select:focus, textarea:focus{
   60%{ transform:scale(1.08); }
   100%{ transform:scale(1); }
 }
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: #111;
+}
+
+.btnGhost:hover {
+  background: #f3f4f6;
+}
+
+.btnDanger {
+  background: #dc2626;
+  color: white;
+}
+
+.btnDanger:hover {
+  background: #b91c1c;
+}
