@@ -1,3 +1,4 @@
+// app/(auth)/NormalClient.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -19,8 +20,8 @@ const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_NORMAL_SESSION_KEY = 'normal-session'
 const STORAGE_STUDY_PROGRESS_PREFIX = 'study-progress'
 
-// ★ streak 永続キー
-const STREAK_PREFIX = 'normal-streak'
+// ✅ 追加：分野選択の保存キー
+const STORAGE_NORMAL_SECTION_PREFIX = 'normal-section'
 
 type Props = {
   quiz: Quiz
@@ -35,7 +36,7 @@ type StudyProgress = {
   bestStreak: number
 }
 
-// ---------- utils ----------
+// ---------- util ----------
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -57,6 +58,7 @@ function buildRandomQuestions(questions: Question[]): Question[] {
 }
 
 function todayKey() {
+  // NOTE: 既存仕様維持（UTC基準）
   return new Date().toISOString().slice(0, 10)
 }
 
@@ -155,11 +157,17 @@ function updateProgressOnSessionComplete(quizType: QuizType) {
   return next
 }
 
+// ✅ 追加：分野フィルタ（sectionId 未設定の問題は「全体」扱い）
+function filterBySection(questions: Question[], sectionId: string | null) {
+  if (!sectionId || sectionId === 'all') return questions
+  return questions.filter(q => q.sectionId === sectionId)
+}
+
 export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
 
-  // 唯一の真実
+  // ✅ quizType は quiz.id（唯一の真実）
   const quizType: QuizType = quiz.id
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -170,50 +178,32 @@ export default function NormalClient({ quiz }: Props) {
   const [showExplanation, setShowExplanation] = useState(false)
   const [correct, setCorrect] = useState(false)
 
-  // ★ streak（連続正解）＋節目演出
-  const [streak, setStreak] = useState(0)
-  const [streakPop, setStreakPop] = useState(false)
-  const [streakFx, setStreakFx] = useState<'none' | 'spark' | 'party'>('none')
-
-  // null: 確認表示 / 'continue' | 'restart'
+  // ✅ 続きから/はじめから選択
   const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
+
+  // ✅ 追加：分野選択（null＝未選択画面を出す）
+  const hasSections = Array.isArray(quiz.sections) && quiz.sections.length > 0
+  const [sectionChoice, setSectionChoice] = useState<string | null>(null)
 
   const wrongKey = `${STORAGE_WRONG_KEY}-${quizType}`
   const wrongRef = useRef<Question[]>([])
-
-  const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
-  const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
-  const streakKey = `${STREAK_PREFIX}-${quizType}`
 
   useEffect(() => {
     indexRef.current = index
   }, [index])
 
+  const progressKey = `${STORAGE_PROGRESS_KEY}-${quizType}`
+  const sessionKey = `${STORAGE_NORMAL_SESSION_KEY}-${quizType}`
+  const sectionKey = `${STORAGE_NORMAL_SECTION_PREFIX}-${quizType}`
+
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
 
-  const loadStreak = () => {
-    const raw = localStorage.getItem(streakKey)
-    const n = raw ? Number(raw) : 0
-    setStreak(Number.isFinite(n) ? n : 0)
-  }
+  type NormalSession = { questions: Question[]; sectionId?: string | null }
 
-  const saveStreak = (n: number) => {
-    setStreak(n)
-    localStorage.setItem(streakKey, String(n))
-  }
-
-  const startSession = (mode: 'continue' | 'restart') => {
-    setStreakFx('none')
-    setStreakPop(false)
-
-    if (mode === 'restart') {
-      saveStreak(0)
-    } else {
-      loadStreak()
-    }
-
+  const startSession = (mode: 'continue' | 'restart', sectionId: string | null) => {
+    // wrong を同期
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -225,37 +215,56 @@ export default function NormalClient({ quiz }: Props) {
       wrongRef.current = []
     }
 
+    // ✅ 分野保存
+    try {
+      localStorage.setItem(sectionKey, JSON.stringify({ sectionId }))
+    } catch {}
+
     if (mode === 'restart') {
-      const built = buildRandomQuestions(quiz.questions)
+      const filtered = filterBySection(quiz.questions, sectionId)
+      const built = buildRandomQuestions(filtered)
+
       setQuestions(built)
       setIndex(0)
       setSelected(null)
       setShowExplanation(false)
       setCorrect(false)
 
-      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
+      const session: NormalSession = { questions: built, sectionId }
+      localStorage.setItem(sessionKey, JSON.stringify(session))
       localStorage.removeItem(progressKey)
       return
     }
 
+    // continue
     let loadedQuestions: Question[] | null = null
+    let loadedSectionId: string | null = null
+
     const savedSessionRaw = localStorage.getItem(sessionKey)
     if (savedSessionRaw) {
       try {
-        const d = JSON.parse(savedSessionRaw) as { questions: Question[] }
+        const d = JSON.parse(savedSessionRaw) as NormalSession
         if (Array.isArray(d.questions) && d.questions.length > 0) loadedQuestions = d.questions
+        loadedSectionId = (d.sectionId ?? null) as any
       } catch {}
     }
 
     if (!loadedQuestions) {
-      const built = buildRandomQuestions(quiz.questions)
+      // sessionが無いなら安全に最初から
+      const filtered = filterBySection(quiz.questions, sectionId)
+      const built = buildRandomQuestions(filtered)
+
       setQuestions(built)
       setIndex(0)
-      localStorage.setItem(sessionKey, JSON.stringify({ questions: built }))
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, sectionId }))
       localStorage.removeItem(progressKey)
       return
     }
 
+    // ✅ continue は「前回の分野」で復元（分野違いで事故らないように）
+    const effectiveSectionId = loadedSectionId ?? sectionId
+
+    // index
     let resumeIndex = 0
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
@@ -270,6 +279,8 @@ export default function NormalClient({ quiz }: Props) {
       localStorage.removeItem(progressKey)
     }
 
+    // state
+    setSectionChoice(effectiveSectionId ?? 'all')
     setQuestions(loadedQuestions)
     setIndex(resumeIndex)
     setSelected(null)
@@ -277,10 +288,11 @@ export default function NormalClient({ quiz }: Props) {
     setCorrect(false)
   }
 
-  // 初期化
+  // ✅ 初期化
   useEffect(() => {
     stopSpeak()
 
+    // wrong
     const savedWrongRaw = localStorage.getItem(wrongKey)
     if (savedWrongRaw) {
       try {
@@ -292,50 +304,74 @@ export default function NormalClient({ quiz }: Props) {
       wrongRef.current = []
     }
 
+    // section（前回選択があれば読む）
+    let savedSection: string | null = null
+    try {
+      const raw = localStorage.getItem(sectionKey)
+      if (raw) {
+        const d = JSON.parse(raw) as { sectionId?: string | null }
+        savedSection = (d.sectionId ?? null) as any
+      }
+    } catch {}
+
+    // 中断 index を確認
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
       try {
         const d = JSON.parse(savedProgressRaw) as { index?: number }
         if (typeof d.index === 'number' && d.index > 0) {
-          setStartChoice(null)
+          setStartChoice(null) // 続き確認
+          // continue はセッションに sectionId が入ってるのでここでは section画面不要
           return
         }
       } catch {}
     }
 
+    // 中断なし → restart
     setStartChoice('restart')
-    startSession('restart')
+
+    // ✅ 分野がある教材だけ、分野選択画面を出す（デフォは前回 or all）
+    if (hasSections) {
+      setSectionChoice(savedSection ?? 'all')
+      // 「すぐ開始」ではなく「選べる状態」だけ作る
+      // ただしUX上は即開始でもいいので、ここでは即開始にしておく：
+      startSession('restart', savedSection ?? 'all')
+      return
+    }
+
+    setSectionChoice('all')
+    startSession('restart', 'all')
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType])
 
-  // 離脱保存
+  // ✅ 離脱時も中断保存（stale回避でref）
   useEffect(() => {
     const handler = () => {
       try {
         if (questions.length > 0) {
           localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current }))
           localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
-          localStorage.setItem(streakKey, String(streak))
         }
       } catch {}
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [questions.length, progressKey, wrongKey, streak, streakKey])
+  }, [questions.length, progressKey, wrongKey])
 
+  // ✅ 確認画面（続き/最初）
   if (startChoice === null) {
     return (
       <QuizLayout title={quiz.title}>
         <h2 style={{ marginTop: 0 }}>前回の続きがあります</h2>
         <p style={{ opacity: 0.85 }}>どちらから始めますか？</p>
 
-        <div className="actions">
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
           <Button
             variant="main"
             onClick={() => {
               setStartChoice('continue')
-              startSession('continue')
+              startSession('continue', sectionChoice ?? 'all')
             }}
           >
             続きから
@@ -345,16 +381,24 @@ export default function NormalClient({ quiz }: Props) {
             variant="accent"
             onClick={() => {
               setStartChoice('restart')
-              startSession('restart')
+              // restart の時だけ分野選び直しが嬉しい
+              if (hasSections) {
+                // ここでは現在の sectionChoice を使って開始（あとで選び直したければ、分野ボタンでrestartする導線も作れる）
+                startSession('restart', sectionChoice ?? 'all')
+              } else {
+                startSession('restart', 'all')
+              }
             }}
           >
             はじめから
           </Button>
         </div>
 
-        <p className="note">※「はじめから」を選ぶと問題は新しくシャッフルされます</p>
+        <div style={{ marginTop: 12, opacity: 0.75, fontSize: 13 }}>
+          ※「はじめから」を選ぶと、通常問題の並びは新しくシャッフルされます
+        </div>
 
-        <div className="actions">
+        <div style={{ marginTop: 16 }}>
           <Button variant="success" onClick={goModeSelect}>
             いったん戻る
           </Button>
@@ -363,6 +407,7 @@ export default function NormalClient({ quiz }: Props) {
     )
   }
 
+  // startChoice が決まっているのに questions がまだ無いとき
   if (!questions.length) return null
 
   const current = questions[index]
@@ -375,21 +420,8 @@ export default function NormalClient({ quiz }: Props) {
     setCorrect(isCorrect)
     setShowExplanation(true)
 
-    if (isCorrect) {
-      playBeep(880, 120, 'triangle')
-      const next = streak + 1
-      saveStreak(next)
-      setStreakPop(true)
-      window.setTimeout(() => setStreakPop(false), 220)
-
-      if (next === 5) setStreakFx('spark')
-      else if (next === 10) setStreakFx('party')
-      else setStreakFx('none')
-    } else {
-      playBeep(220, 180, 'sawtooth')
-      saveStreak(0)
-      setStreakFx('none')
-    }
+    if (isCorrect) playBeep(880, 120, 'triangle')
+    else playBeep(220, 180, 'sawtooth')
 
     if (!isCorrect) {
       const exists = wrongRef.current.some(q => q.id === current.id)
@@ -424,7 +456,7 @@ export default function NormalClient({ quiz }: Props) {
 
       localStorage.removeItem(progressKey)
       localStorage.removeItem(sessionKey)
-      localStorage.removeItem(streakKey) // ★ 完了時は streak を閉じる
+
       goModeSelect()
       return
     }
@@ -438,63 +470,105 @@ export default function NormalClient({ quiz }: Props) {
     stopSpeak()
     localStorage.setItem(progressKey, JSON.stringify({ index }))
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
-    localStorage.setItem(streakKey, String(streak))
     goModeSelect()
   }
 
   return (
-    <QuizLayout title={quiz.title}>
-      <div className="kicker">
-        <span className="badge">通常</span>
-        <span>
-          {index + 1} / {questions.length}
-        </span>
+    <QuizLayout title={quiz.title} subtitle={hasSections ? (quiz.sections?.find(s => s.id === sectionChoice)?.label ?? 'すべて') : undefined}>
+      {/* ✅ 分野切替（任意） */}
+      {hasSections && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>分野（Normalのみ）</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSectionChoice('all')
+                startSession('restart', 'all') // 分野変えたら安全にrestart
+              }}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 999,
+                border: '1px solid var(--border)',
+                background: sectionChoice === 'all' ? '#111' : 'white',
+                color: sectionChoice === 'all' ? 'white' : '#111',
+                cursor: 'pointer',
+                fontWeight: 800,
+              }}
+            >
+              すべて
+            </button>
 
-        {streak >= 2 && (
-          <span
-            className={[
-              'streakPill',
-              streakPop ? 'streakPop' : '',
-              streakFx === 'spark' ? 'streakSpark' : '',
-              streakFx === 'party' ? 'streakParty' : '',
-            ].join(' ')}
-          >
-            🔥 {streak}連続正解
-          </span>
-        )}
-      </div>
+            {quiz.sections!.map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  setSectionChoice(s.id)
+                  startSession('restart', s.id) // ✅ 分野変更はrestartが安全
+                }}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 999,
+                  border: '1px solid var(--border)',
+                  background: sectionChoice === s.id ? '#111' : 'white',
+                  color: sectionChoice === s.id ? 'white' : '#111',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
 
-      <h2 className="question">{current.question}</h2>
+          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+            ※ 分野を変えると安全のため「はじめから」で開始します
+          </div>
+        </div>
+      )}
+
+      <p>
+        {index + 1} / {questions.length}
+      </p>
+
+      <h2>{current.question}</h2>
 
       {current.audioUrl && (
-        <div className="panelSoft" style={{ margin: '12px 0' }}>
+        <div
+          style={{
+            margin: '12px 0',
+            padding: 12,
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            background: '#f9fafb',
+          }}
+        >
           <audio controls src={current.audioUrl} preload="none" />
         </div>
       )}
 
       <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
 
-      <div className="choiceList">
-        {current.choices.map((c, i) => (
-          <Button
-            key={i}
-            variant="choice"
-            onClick={() => answer(i)}
-            disabled={selected !== null}
-            isCorrect={selected !== null && i === current.correctIndex}
-            isWrong={selected !== null && i === selected && i !== current.correctIndex}
-          >
-            {c}
-          </Button>
-        ))}
-      </div>
+      {current.choices.map((c, i) => (
+        <Button
+          key={i}
+          variant="choice"
+          onClick={() => answer(i)}
+          disabled={selected !== null}
+          isCorrect={selected !== null && i === current.correctIndex}
+          isWrong={selected !== null && i === selected && i !== current.correctIndex}
+        >
+          {c}
+        </Button>
+      ))}
 
-      {showExplanation ? (
-        <div className="explainBox">
-          <div className="explainTitle">{correct ? '✅ 正解！' : '❌ 不正解'}</div>
-          <div className="explainText">{current.explanation}</div>
+      {showExplanation && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanation}</div>
 
-          <div className="actions">
+          <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Button variant="main" onClick={next}>
               次へ
             </Button>
@@ -503,8 +577,10 @@ export default function NormalClient({ quiz }: Props) {
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="actions">
+      )}
+
+      {!showExplanation && (
+        <div style={{ marginTop: 12 }}>
           <Button variant="accent" onClick={interrupt}>
             中断して戻る
           </Button>

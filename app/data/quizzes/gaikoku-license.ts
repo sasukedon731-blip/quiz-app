@@ -3,13 +3,21 @@ import type { Quiz } from "@/app/data/types"
 export const gaikokuQuiz: Quiz = {
    id: "gaikoku-license", // ✅ 追加
   title: "外国免許切替",
+   // 👇 ここを追加
+  sections: [
+    { id: "law", label: "法規理解" },
+    { id: "safety", label: "安全運転行動" },
+    { id: "accident", label: "事故防止" },
+    { id: "compliance", label: "道交法遵守" },
+  ],
   questions: [
     {
     id: 1,
     question: "日本で車はどちら側を通行しますか？",
     choices: ["右側", "左側", "真ん中", "決まりはない"],
     correctIndex: 1,
-    explanation: "日本では左側通行です。"
+    explanation: "日本では左側通行です。",
+     sectionId: "law",   // ← 追加
   },
   {
     id: 2,
