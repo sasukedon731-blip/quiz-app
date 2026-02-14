@@ -14,12 +14,17 @@ export default function NormalClientWrapper() {
   const params = useSearchParams()
   const { user, loading } = useAuth()
 
+  // URL param -> QuizType（不正なら null）
   const quizType = useMemo(() => parseQuizType(params.get("type")), [params])
+
+  // Quizデータ取得（存在しなければ null）
   const quiz = useMemo(() => (quizType ? getQuizByType(quizType) : null), [quizType])
 
+  // 今月の受講教材（selectedQuizTypes）
   const [allowed, setAllowed] = useState<QuizType[] | null>(null)
   const [stateLoaded, setStateLoaded] = useState(false)
 
+  // ① user の plan state を読み込み（＋自動修復）
   useEffect(() => {
     if (loading) return
 
@@ -40,7 +45,7 @@ export default function NormalClientWrapper() {
       } catch (e) {
         console.error("loadAndRepairUserPlanState failed:", e)
         if (!alive) return
-        setAllowed([])
+        setAllowed([]) // 読めなかったら安全側（選択画面へ）
       } finally {
         if (!alive) return
         setStateLoaded(true)
@@ -52,32 +57,45 @@ export default function NormalClientWrapper() {
     }
   }, [loading, user?.uid, router, user])
 
+  // ② ガード（事故ゼロ）
   useEffect(() => {
     if (loading) return
     if (!user) return
     if (!stateLoaded) return
+    if (allowed === null) return
 
-    if (!quizType || !quiz) {
-      router.replace("/")
+    // (A) type が無い/不正 → hubへ
+    if (!quizType) {
+      router.replace("/select-mode")
       return
     }
 
-    if ((allowed ?? []).length === 0) {
+    // (B) quizデータが無い（IDズレ等） → hubへ
+    if (!quiz) {
+      router.replace("/select-mode")
+      return
+    }
+
+    // (C) 今月の受講教材が空 → 選択へ
+    if (allowed.length === 0) {
       router.replace("/select-quizzes")
       return
     }
 
-    if (!(allowed ?? []).includes(quizType)) {
-      router.replace("/select-quizzes")
+    // (D) 未選択教材へ直リンク → hubへ（選択済み一覧を見せる）
+    if (!allowed.includes(quizType)) {
+      router.replace("/select-mode")
       return
     }
   }, [loading, user, stateLoaded, allowed, quizType, quiz, router])
 
+  // ③ 画面描画ガード
   if (loading) return null
   if (!user) return null
   if (!stateLoaded) return null
-  if (!quizType || !quiz) return null
   if (allowed === null) return null
+  if (!quizType) return null
+  if (!quiz) return null
   if (!allowed.includes(quizType)) return null
 
   return <NormalClient quiz={quiz} />

@@ -33,7 +33,7 @@ export default function SelectModePage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
-        router.push("/login")
+        router.replace("/login")
         return
       }
       setUid(u.uid)
@@ -50,7 +50,7 @@ export default function SelectModePage() {
         const state = await loadAndRepairUserPlanState(uid)
         setPlan(state.plan)
         setSelected(state.selectedQuizTypes)
-        setDisplayName(state.displayName)
+        setDisplayName(state.displayName || "")
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -64,82 +64,221 @@ export default function SelectModePage() {
     return selected.filter((q) => quizzes[q])
   }, [selected])
 
-  if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
+  if (loading) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.shell}>
+          <div style={styles.skeletonCard}>読み込み中...</div>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-        <div>
-          <h1 style={{ margin: 0 }}>学習を始める</h1>
-          <p style={{ margin: "6px 0 0", opacity: 0.8 }}>
-            {displayName ? `${displayName} さん / ` : ""}
-            プラン：<b>{PLAN_LABEL[plan] ?? plan}</b>
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <Link href="/mypage" style={btnStyle("#111827")}>マイページ</Link>
-          <Link href="/plans" style={btnStyle("#2563eb")}>プラン変更</Link>
-        </div>
-      </header>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {selectedCards.length === 0 ? (
-        <section style={{ marginTop: 16, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
-          <div style={{ fontWeight: 900, fontSize: 16 }}>教材が選択されていません</div>
-          <p style={{ marginTop: 8, opacity: 0.85, lineHeight: 1.6 }}>
-            プランに応じて教材を選んでから学習を開始できます。
-          </p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/plans" style={btnStyle("#2563eb")}>プランを確認する</Link>
-            <Link href="/select-quizzes" style={btnStyle("#16a34a")}>教材を選ぶ</Link>
-          </div>
-        </section>
-      ) : (
-        <section style={{ marginTop: 16 }}>
-          <h2 style={{ margin: "0 0 12px", fontSize: 18 }}>あなたの教材（今月の受講）</h2>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-            {selectedCards.map((id) => {
-              const q = quizzes[id]
-              return (
-                <div key={id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff" }}>
-                  <div style={{ fontWeight: 900, fontSize: 16 }}>{q.title}</div>
-                  {q.description && (
-                    <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.5 }}>{q.description}</div>
-                  )}
-
-                  <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                    <Link href={`/normal?type=${encodeURIComponent(id)}`} style={btnStyle("#2563eb")}>通常</Link>
-                    <Link href={`/exam?type=${encodeURIComponent(id)}`} style={btnStyle("#111827")}>模擬試験</Link>
-                    <Link href={`/review?type=${encodeURIComponent(id)}`} style={btnStyle("#16a34a")}>復習</Link>
-                  </div>
-
-                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>ID: {id}</div>
-                </div>
-              )
-            })}
+    <main style={styles.page}>
+      <div style={styles.shell}>
+        {/* Header */}
+        <header style={styles.header}>
+          <div>
+            <h1 style={styles.h1}>学習を始める</h1>
+            <p style={styles.sub}>
+              {displayName ? (
+                <>
+                  <b>{displayName}</b> さん ・
+                </>
+              ) : null}{" "}
+              プラン：<b>{PLAN_LABEL[plan] ?? plan}</b>
+            </p>
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <Link href="/select-quizzes" style={btnStyle("#2563eb")}>教材を選び直す</Link>
+          <div style={styles.headerActions}>
+            <Link href="/mypage" style={{ ...styles.btn, ...styles.btnGray }}>
+              マイページ
+            </Link>
+            <Link href="/plans" style={{ ...styles.btn, ...styles.btnBlue }}>
+              プラン変更
+            </Link>
+            <Link href="/select-quizzes" style={{ ...styles.btn, ...styles.btnGreen }}>
+              教材選択
+            </Link>
           </div>
-        </section>
-      )}
+        </header>
+
+        {error ? <div style={styles.alert}>{error}</div> : null}
+
+        {/* Empty */}
+        {selectedCards.length === 0 ? (
+          <section style={styles.card}>
+            <div style={styles.cardTitle}>教材が選択されていません</div>
+            <p style={styles.cardText}>
+              まずは今月受講する教材を選びましょう。選択後、この画面から「通常 / 模擬 / 復習」を開始できます。
+            </p>
+
+            <div style={styles.row}>
+              <Link href="/select-quizzes" style={{ ...styles.btn, ...styles.btnGreen }}>
+                教材を選ぶ
+              </Link>
+              <Link href="/plans" style={{ ...styles.btn, ...styles.btnBlue }}>
+                プランを確認
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <>
+            {/* Selected */}
+            <section style={{ marginTop: 14 }}>
+              <div style={styles.sectionHead}>
+                <h2 style={styles.h2}>あなたの教材（今月の受講）</h2>
+                <span style={styles.badge}>{selectedCards.length} 件</span>
+              </div>
+
+              <div style={styles.grid}>
+                {selectedCards.map((id) => {
+                  const q = quizzes[id]
+                  return (
+                    <div key={id} style={styles.quizCard}>
+                      <div style={styles.quizTitle}>{q.title}</div>
+                      {q.description ? (
+                        <div style={styles.quizDesc}>{q.description}</div>
+                      ) : (
+                        <div style={styles.quizDescMuted}>（説明なし）</div>
+                      )}
+
+                      <div style={styles.quizActions}>
+                        <Link href={`/normal?type=${id}`} style={{ ...styles.btn, ...styles.btnBlue }}>
+                          通常
+                        </Link>
+                        <Link href={`/exam?type=${id}`} style={{ ...styles.btn, ...styles.btnGray }}>
+                          模擬試験
+                        </Link>
+                        <Link href={`/review?type=${id}`} style={{ ...styles.btn, ...styles.btnGreen }}>
+                          復習
+                        </Link>
+                      </div>
+
+                      <div style={styles.quizMeta}>ID: {id}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </>
+        )}
+
+        <footer style={styles.footer}>
+          <div style={styles.footerNote}>
+            ※ 直リンクで不正な教材を開いた場合も、この画面へ戻る仕様になっています。
+          </div>
+        </footer>
+      </div>
     </main>
   )
 }
 
-function btnStyle(bg: string): React.CSSProperties {
-  return {
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    background: "#f6f7fb",
+    padding: 18,
+  },
+  shell: {
+    maxWidth: 920,
+    margin: "0 auto",
+  },
+  header: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 12,
+  },
+  headerActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
+  h1: { margin: 0, fontSize: 26, letterSpacing: 0.2 },
+  h2: { margin: 0, fontSize: 18 },
+  sub: { margin: "6px 0 0", opacity: 0.78 },
+  alert: {
+    marginTop: 10,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 14,
+    border: "1px solid #fecaca",
+    background: "#fff1f2",
+    color: "#991b1b",
+    fontWeight: 800,
+  },
+  skeletonCard: {
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+  },
+  card: {
+    marginTop: 12,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+  },
+  cardTitle: { fontSize: 16, fontWeight: 900 },
+  cardText: { marginTop: 8, opacity: 0.85, lineHeight: 1.6 },
+  row: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 },
+
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  badge: {
+    fontSize: 12,
+    fontWeight: 900,
+    padding: "4px 10px",
+    borderRadius: 999,
+    background: "#eef2ff",
+    border: "1px solid #c7d2fe",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: 12,
+  },
+
+  quizCard: {
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 14,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+  },
+  quizTitle: { fontWeight: 900, fontSize: 16 },
+  quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5 },
+  quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55 },
+  quizActions: { marginTop: 12, display: "grid", gap: 8 },
+  quizMeta: { marginTop: 10, fontSize: 12, opacity: 0.6 },
+
+  btn: {
     display: "inline-block",
     padding: "10px 12px",
-    borderRadius: 12,
-    background: bg,
+    borderRadius: 14,
     color: "#fff",
     textDecoration: "none",
     fontWeight: 900,
     textAlign: "center",
-  }
+    border: "none",
+  },
+  btnBlue: { background: "#2563eb" },
+  btnGreen: { background: "#16a34a" },
+  btnGray: { background: "#111827" },
+
+  footer: { marginTop: 16, paddingTop: 8 },
+  footerNote: { fontSize: 12, opacity: 0.65 },
 }
