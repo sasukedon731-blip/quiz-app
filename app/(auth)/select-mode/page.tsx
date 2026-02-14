@@ -265,8 +265,23 @@ const styles: Record<string, React.CSSProperties> = {
   minHeight: 220, // 好みで調整（240とかでもOK）
 },
   quizTitle: { fontWeight: 900, fontSize: 16 },
-  quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5 },
-  quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55 },
+  quizDesc: {
+  marginTop: 6,
+  fontSize: 13,
+  opacity: 0.85,
+  lineHeight: 1.5,
+
+  // 追加：説明が短くても高さを確保
+  minHeight: 40, // 2行分くらい（好みで 44〜52）
+},
+quizDescMuted: {
+  marginTop: 6,
+  fontSize: 13,
+  opacity: 0.55,
+
+  // 追加
+  minHeight: 40,
+},
   quizActions: { marginTop: 12, display: "grid", gap: 8 },
   quizMeta: { marginTop: 10, fontSize: 12, opacity: 0.6 },
 
