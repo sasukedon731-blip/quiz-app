@@ -13,6 +13,8 @@ import {
   saveSelectedQuizTypesWithLock,
 } from "@/app/lib/userPlanState"
 
+
+
 function canChange(now: Date, nextAllowedAt?: Date | null) {
   if (!nextAllowedAt) return true
   return now.getTime() >= nextAllowedAt.getTime()
@@ -130,6 +132,11 @@ export default function SelectQuizzesPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+      {/* DEBUG（確認用） */}
+<div style={{ marginBottom: 8, opacity: 0.7, fontSize: 12 }}>
+  entitled={entitled.length} / selected={selected.length} / plan={plan}
+</div>
+
       <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <button onClick={() => router.push("/plans")} style={backBtn}>
           ← プランに戻る

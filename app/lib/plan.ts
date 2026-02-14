@@ -1,59 +1,62 @@
 // app/lib/plan.ts
-import type { QuizType } from "@/app/data/types"
 import { quizzes } from "@/app/data/quizzes"
+import type { QuizType } from "@/app/data/types"
 
 export type PlanId = "trial" | "free" | "3" | "5" | "all"
+export type SelectLimit = number | "ALL"
 
-export function getAllQuizTypes(): QuizType[] {
-  return Object.keys(quizzes) as QuizType[]
+export function getSelectLimit(plan: PlanId): SelectLimit {
+  if (plan === "trial" || plan === "free") return 1
+  if (plan === "3") return 3
+  if (plan === "5") return 5
+  return "ALL"
 }
 
 /**
- * entitledQuizTypes = 「候補（選べる一覧）」
- * - trial/free: 固定1教材のみ（お試し）
- * - 3/5: 全教材を候補にする（選ぶ数は selected で制御）
- * - all: 全教材
+ * ✅ entitled（候補）は「quizzesのキー」を採用（ズレ事故を根絶）
  */
 export function buildEntitledQuizTypes(plan: PlanId): QuizType[] {
-  const all = getAllQuizTypes()
-  const trialOne: QuizType = "gaikoku-license"
-
-  if (plan === "trial" || plan === "free") return [trialOne]
-  if (plan === "3" || plan === "5" || plan === "all") return all
-
-  return [trialOne]
+  const all = Object.keys(quizzes) as QuizType[]
+  // trial/free は固定1教材（先頭固定 or gaikoku固定にしたいならここで指定）
+  if (plan === "trial" || plan === "free") return all.slice(0, 1)
+  return all
 }
 
 /**
- * selectedQuizTypes = 「今月使う教材」
+ * ✅ selected を plan に合わせて正規化
  * - trial/free: 1つ固定
- * - 3/5: 選択数を上限に収める（空なら先頭から埋める）
- * - all: 空なら entitled 全部でもOK（運用次第）
+ * - 3/5: 上限までに丸める（足りなければ先頭から補完）
+ * - all: 空なら全件
  */
 export function normalizeSelectedForPlan(
   selected: QuizType[],
   entitled: QuizType[],
   plan: PlanId
 ): QuizType[] {
-  const filtered = selected.filter((q) => entitled.includes(q))
+  const uniq = Array.from(new Set(selected)).filter((q) => entitled.includes(q))
 
+  const limit = getSelectLimit(plan)
   if (plan === "all") {
-    // allは「選ばせない」運用なら空でもOKだが、
-    // 画面表示のために空なら全件にしておくと楽
-    return filtered.length ? filtered : entitled
+    return uniq.length > 0 ? uniq : [...entitled]
   }
 
-  const limit = plan === "3" ? 3 : plan === "5" ? 5 : 1
-  const sliced = filtered.slice(0, limit)
-  return sliced.length ? sliced : entitled.slice(0, limit)
-}
+  const n = limit === "ALL" ? entitled.length : limit
 
-/**
- * 上限数（UI表示用）
- */
-export function getSelectLimit(plan: PlanId): number | "ALL" {
-  if (plan === "all") return "ALL"
-  if (plan === "3") return 3
-  if (plan === "5") return 5
-  return 1 // trial/free
+  // trial/free
+  if (n <= 1) {
+    return entitled.length ? [entitled[0]] : []
+  }
+
+  // 上限まで切る
+  const trimmed = uniq.slice(0, n)
+
+  // 足りない分は entitled の先頭から補完
+  if (trimmed.length < n) {
+    for (const q of entitled) {
+      if (trimmed.length >= n) break
+      if (!trimmed.includes(q)) trimmed.push(q)
+    }
+  }
+
+  return trimmed
 }
