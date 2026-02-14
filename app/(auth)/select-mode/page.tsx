@@ -282,7 +282,11 @@ quizDescMuted: {
   // 追加
   minHeight: 40,
 },
-  quizActions: { marginTop: 12, display: "grid", gap: 8 },
+  quizActions: {
+  marginTop: "auto", // ←これが効く（下に押し下げ）
+  display: "grid",
+  gap: 8,
+},
   quizMeta: { marginTop: 10, fontSize: 12, opacity: 0.6 },
 
   btn: {
