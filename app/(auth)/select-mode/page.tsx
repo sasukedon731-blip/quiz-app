@@ -253,12 +253,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   quizCard: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 14,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-  },
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 16,
+  padding: 14,
+  boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+
+  // 追加
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 220, // 好みで調整（240とかでもOK）
+},
   quizTitle: { fontWeight: 900, fontSize: 16 },
   quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5 },
   quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55 },
