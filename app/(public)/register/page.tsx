@@ -1,14 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
 import { auth, db } from "@/app/lib/firebase"
+import { buildEntitledQuizTypes, normalizeSelectedForPlan, type PlanId } from "@/app/lib/plan"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -40,54 +38,46 @@ export default function RegisterPage() {
     }
 
     try {
-      // 1) Firebase Auth にユーザー作成
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      )
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 
-      // 2) Auth のプロフィールにユーザーネームを保存
-      await updateProfile(userCredential.user, {
-        displayName: username,
-      })
+      await updateProfile(userCredential.user, { displayName: username })
 
       const uid = userCredential.user.uid
 
-      // 3) Firestore に users/{uid} を作成（プラン運用の初期値もここで入れる）
+      // ✅ 初期プラン（おすすめ：trial）
+      const plan: PlanId = "trial"
+
+      // ✅ planから entitlement を自動生成
+      const entitledQuizTypes = buildEntitledQuizTypes(plan)
+
+      // ✅ selected も安全に正規化（基本は entitlement と同じでOK）
+      const selectedQuizTypes = normalizeSelectedForPlan([], entitledQuizTypes, plan)
+
       await setDoc(doc(db, "users", uid), {
         email: userCredential.user.email ?? email,
         displayName: username,
         role: "user",
 
-        // ✅ プラン・権限（最小構成）
-        plan: "free",
-        entitledQuizTypes: ["gaikoku-license"],
-        selectedQuizTypes: ["gaikoku-license"],
+        // ---- プラン運用 ----
+        plan,
+        entitledQuizTypes,
+        selectedQuizTypes,
 
-        // ✅ 1ヶ月ごとの変更制限（初回はすぐ変更OK扱い）
-        // select-quizzes側で「今 < nextChangeAllowedAt」ならロックする設計
+        // 初回はすぐ変更できる扱い（select-quizzesで制御）
         nextChangeAllowedAt: serverTimestamp(),
 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
 
-      // 登録成功 → TOPへ
-      router.push("/")
+      router.push("/") // or /select-mode でもOK
     } catch (err: any) {
       console.error(err)
-      // Firebase Auth の代表的なエラーメッセージを日本語に寄せる（最低限）
       const code = err?.code ?? ""
-      if (code === "auth/email-already-in-use") {
-        setError("このメールアドレスは既に登録されています")
-      } else if (code === "auth/invalid-email") {
-        setError("メールアドレスの形式が正しくありません")
-      } else if (code === "auth/weak-password") {
-        setError("パスワードが弱すぎます（6文字以上）")
-      } else {
-        setError(code || "登録に失敗しました")
-      }
+      if (code === "auth/email-already-in-use") setError("このメールアドレスは既に登録されています")
+      else if (code === "auth/invalid-email") setError("メールアドレスの形式が正しくありません")
+      else if (code === "auth/weak-password") setError("パスワードが弱すぎます（6文字以上）")
+      else setError(code || "登録に失敗しました")
     } finally {
       setLoading(false)
     }
@@ -97,30 +87,27 @@ export default function RegisterPage() {
     <div style={{ maxWidth: "400px", margin: "50px auto", textAlign: "center" }}>
       <h1>新規登録</h1>
 
-      {/* ユーザーネーム */}
       <input
         type="text"
         placeholder="ユーザーネーム"
         value={username}
-        onChange={e => setUsername(e.target.value)}
+        onChange={(e) => setUsername(e.target.value)}
         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
       />
 
-      {/* メールアドレス */}
       <input
         type="email"
         placeholder="メールアドレス"
         value={email}
-        onChange={e => setEmail(e.target.value)}
+        onChange={(e) => setEmail(e.target.value)}
         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
       />
 
-      {/* パスワード */}
       <input
         type="password"
         placeholder="パスワード（6文字以上）"
         value={password}
-        onChange={e => setPassword(e.target.value)}
+        onChange={(e) => setPassword(e.target.value)}
         style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
       />
 
@@ -139,7 +126,7 @@ export default function RegisterPage() {
           fontWeight: "bold",
         }}
       >
-        {loading ? "登録中..." : "新規登録"}
+        {loading ? "登録中..." : "新規登録（お試し開始）"}
       </button>
 
       <p style={{ marginTop: "15px" }}>

@@ -1,162 +1,191 @@
+// app/page.tsx
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import Card from "@/app/components/Card"
-import Button from "@/app/components/Button"
-import { quizCatalog } from "@/app/data/quizCatalog"
-import { useAuth } from "@/app/lib/useAuth"
-import { getUserEntitlement } from "@/app/lib/entitlement"
+import Link from "next/link"
+import { onAuthStateChanged } from "firebase/auth"
+import { auth } from "@/app/lib/firebase"
+import { quizzes } from "@/app/data/quizzes"
+import type { QuizType } from "@/app/data/types"
+
+type AuthState = "checking" | "guest" | "loggedIn"
 
 export default function HomePage() {
-  const router = useRouter()
-  const { user, loading } = useAuth()
+  const [authState, setAuthState] = useState<AuthState>("checking")
 
-  const [entLoaded, setEntLoaded] = useState(false)
-  const [selectedQuizTypes, setSelectedQuizTypes] = useState<string[]>([])
-  const [limit, setLimit] = useState(3)
-
-  // catalog側：有効教材（将来10+でもこれでOK）
-  const enabledList = useMemo(() => {
-    return quizCatalog
-      .filter((q) => q.enabled)
-      .sort((a, b) => a.order - b.order)
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setAuthState(u ? "loggedIn" : "guest")
+    })
+    return () => unsub()
   }, [])
 
-  // ✅ ログイン済みなら利用権を読む（TOPでも読み、表示を絞る）
-  useEffect(() => {
-    if (loading) return
-
-    // 未ログインは public 側導線に任せる（あなたの構成では /login がある）
-    if (!user) {
-      setEntLoaded(true)
-      setSelectedQuizTypes([])
-      return
-    }
-
-    ;(async () => {
-      try {
-        const ent = await getUserEntitlement(user.uid)
-        setLimit(ent.quizLimit ?? 3)
-        setSelectedQuizTypes(ent.selectedQuizTypes ?? [])
-      } finally {
-        setEntLoaded(true)
-      }
-    })()
-  }, [user, loading])
-
-  // ✅ 表示する教材 = 選択済みだけ（未ログインは全部見せてもいいが、今はシンプルにガイド表示）
-  const visibleList = useMemo(() => {
-    if (!user) return enabledList
-    const selectedSet = new Set(selectedQuizTypes)
-    return enabledList.filter((q) => selectedSet.has(q.id))
-  }, [enabledList, selectedQuizTypes, user])
-
-  // ロード中
-  if (loading || !entLoaded) {
-    return (
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <h1 style={{ textAlign: "center", marginBottom: 8 }}>クイズ学習アプリ</h1>
-        <p style={{ textAlign: "center" }}>読み込み中…</p>
-      </main>
-    )
-  }
+  const allQuizTypes = useMemo(() => {
+    return Object.keys(quizzes) as QuizType[]
+  }, [])
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-      <h1 style={{ textAlign: "center", marginBottom: 12 }}>クイズ学習アプリ</h1>
-
-      {/* 未ログイン */}
-      {!user ? (
-        <Card>
-          <h2 style={{ marginTop: 0 }}>ログインが必要です</h2>
-          <p style={{ color: "#6b7280", fontSize: 14 }}>
-            学習を開始するにはログインしてください。
+    <main style={{ maxWidth: 880, margin: "0 auto", padding: 24 }}>
+      {/* ヘッダー */}
+      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28 }}>学習クイズプラットフォーム</h1>
+          <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
+            外国免許 / 日本語 / 現場系資格など、今後10教材以上に拡張予定
           </p>
-          <Button variant="main" onClick={() => router.push("/login")}>
-            ログイン
-          </Button>
-          <div style={{ height: 8 }} />
-          <Button variant="sub" onClick={() => router.push("/register")}>
-            新規登録
-          </Button>
-
-          <hr style={{ margin: "16px 0" }} />
-
-          <p style={{ color: "#6b7280", fontSize: 12, marginBottom: 8 }}>
-            （ログイン後は、受講する教材を最大{limit}つ選んで学習できます）
-          </p>
-        </Card>
-      ) : selectedQuizTypes.length === 0 ? (
-        // ログイン済みで未選択
-        <Card>
-          <h2 style={{ marginTop: 0 }}>受講する教材を選びましょう</h2>
-          <p style={{ color: "#6b7280", fontSize: 14 }}>
-            利用できる教材は最大 <b>{limit}つ</b> です。
-          </p>
-          <Button variant="main" onClick={() => router.push("/select-quizzes")}>
-            教材を選択する
-          </Button>
-          <div style={{ height: 8 }} />
-          <Button variant="sub" onClick={() => router.push("/mypage")}>
-            マイページ
-          </Button>
-        </Card>
-      ) : (
-        // ログイン済みで選択済み
-        <Card>
-          <h2 style={{ marginTop: 0 }}>あなたの受講教材</h2>
-          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 12 }}>
-            選択済み：<b>{selectedQuizTypes.length}</b> / {limit}
-          </p>
-          <Button variant="sub" onClick={() => router.push("/select-quizzes")}>
-            教材を選び直す
-          </Button>
-        </Card>
-      )}
-
-      <div style={{ height: 16 }} />
-
-      {/* ✅ 教材一覧（選択済みだけ表示） */}
-      {user && selectedQuizTypes.length > 0 ? (
-        <>
-          <h2 style={{ marginBottom: 10 }}>学習を開始</h2>
-          <ul style={{ padding: 0, listStyle: "none", margin: 0 }}>
-            {visibleList.map((q) => (
-              <li key={q.id} style={{ marginBottom: 12 }}>
-                <button
-                  onClick={() => router.push(`/select-mode?type=${encodeURIComponent(q.id)}`)}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 12,
-                    padding: 14,
-                    background: "#fff",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontWeight: 900, marginBottom: 4 }}>{q.title}</div>
-                  {q.description ? (
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{q.description}</div>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          <div style={{ marginTop: 12 }}>
-            <Button variant="sub" onClick={() => router.push("/mypage")}>
-              マイページ
-            </Button>
-          </div>
-        </>
-      ) : (
-        // 未ログイン時は全部見せてもOKだが、今は簡潔に誘導のみ
-        <div style={{ color: "#6b7280", fontSize: 13, textAlign: "center" }}>
-          ログインすると、選択した教材だけがここに表示されます。
         </div>
-      )}
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {authState === "checking" ? (
+            <span style={{ opacity: 0.7 }}>確認中...</span>
+          ) : authState === "guest" ? (
+            <>
+              <Link href="/login" style={btnStyle("#111827")}>
+                ログイン
+              </Link>
+              <Link href="/register" style={btnStyle("#2563eb")}>
+                お試しで始める（無料）
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/mypage" style={btnStyle("#111827")}>
+                マイページ
+              </Link>
+              <Link href="/select-mode" style={btnStyle("#2563eb")}>
+                学習を開始
+              </Link>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* お試し案内 */}
+      <section
+        style={{
+          marginTop: 18,
+          padding: 16,
+          border: "1px solid #e5e7eb",
+          borderRadius: 14,
+          background: "#fff",
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 18 }}>まずはお試し（無料）</h2>
+        <p style={{ margin: 0, opacity: 0.85, lineHeight: 1.6 }}>
+          登録すると「外国免許切替」教材で学習を体験できます。気に入ったらプランを選んで、
+          3つ/5つ/ALL の教材を受講できるようにします（1ヶ月ごとに変更可能）。
+        </p>
+        <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {authState !== "loggedIn" && (
+            <Link href="/register" style={btnStyle("#16a34a")}>
+              無料でお試し開始
+            </Link>
+          )}
+          <Link href="/plans" style={btnStyle("#2563eb")}>
+            プランを見る（準備中でもOK）
+          </Link>
+        </div>
+      </section>
+
+      {/* 教材一覧 */}
+      <section style={{ marginTop: 18 }}>
+        <h2 style={{ margin: "0 0 12px", fontSize: 20 }}>教材一覧（登録不要で閲覧OK）</h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {allQuizTypes.map((id) => {
+            const q = quizzes[id]
+            return (
+              <div
+                key={id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "#fff",
+                }}
+              >
+                <div style={{ fontWeight: 900, fontSize: 16 }}>{q.title}</div>
+                {q.description && (
+                  <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.5 }}>
+                    {q.description}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <span style={pillStyle}>ID: {id}</span>
+                  <span style={pillStyle}>
+                    問題数: {q.questions?.length ?? 0}
+                  </span>
+                </div>
+
+                <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {authState === "loggedIn" ? (
+                    <>
+                      <Link href={`/select-mode?type=${id}`} style={btnMini("#2563eb")}>
+                        この教材で学習
+                      </Link>
+                      <Link href={`/normal?type=${id}`} style={btnMini("#111827")}>
+                        通常へ
+                      </Link>
+                    </>
+                  ) : (
+                    <Link href="/register" style={btnMini("#16a34a")}>
+                      登録して試す
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* フッター */}
+      <footer style={{ marginTop: 24, paddingTop: 14, borderTop: "1px solid #e5e7eb", opacity: 0.8 }}>
+        <p style={{ margin: 0, fontSize: 13 }}>
+          入口は公式LINE想定（後で導線追加）。個人＝カード決済、企業＝振込。企業には管理画面を提供予定。
+        </p>
+      </footer>
     </main>
   )
+}
+
+function btnStyle(bg: string): React.CSSProperties {
+  return {
+    display: "inline-block",
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: bg,
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 900,
+    fontSize: 14,
+  }
+}
+
+function btnMini(bg: string): React.CSSProperties {
+  return {
+    display: "inline-block",
+    padding: "8px 10px",
+    borderRadius: 12,
+    background: bg,
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 900,
+    fontSize: 13,
+  }
+}
+
+const pillStyle: React.CSSProperties = {
+  display: "inline-block",
+  padding: "4px 8px",
+  borderRadius: 999,
+  background: "#f3f4f6",
+  fontSize: 12,
 }
