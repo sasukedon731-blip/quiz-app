@@ -15,7 +15,27 @@ import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { stopSpeak } from '@/app/lib/tts'
 
 const EXAM_TIME_SEC = 20 * 60
-const EXAM_QUESTION_COUNT = 30
+
+// ✅ 科目ごとの模擬試験出題数
+function getExamQuestionCount(quizType: QuizType) {
+  // 外国免許：50問
+  if (quizType === 'gaikoku-license') return 50
+  // それ以外：今まで通り30問（必要なら科目別に増やせる）
+  return 30
+}
+
+// ✅ 科目ごとの合格ライン（表示/保存用）
+function getPassScore(quizType: QuizType, total: number) {
+  if (total <= 0) return 0
+
+  // 外国免許：50問中45問（90%）
+  if (quizType === 'gaikoku-license') {
+    return Math.min(45, total)
+  }
+
+  // それ以外：80%（切り上げ）
+  return Math.ceil(total * 0.8)
+}
 
 const STORAGE_WRONG_KEY = 'wrong'
 const STORAGE_EXAM_SESSION_KEY = 'exam-session'
@@ -130,6 +150,8 @@ export default function ExamClient({ quiz }: Props) {
             mode: 'exam',
             score: scoreRef.current,
             total: questions.length,
+            passScore: getPassScore(quizType, questions.length),
+            passed: scoreRef.current >= getPassScore(quizType, questions.length),
             byTimeout,
             timeLeft: timeLeftRef.current,
             createdAt: serverTimestamp(),
@@ -212,7 +234,7 @@ export default function ExamClient({ quiz }: Props) {
       }
     }
 
-    const built = buildExamQuestions(quiz.questions, EXAM_QUESTION_COUNT)
+    const built = buildExamQuestions(quiz.questions, getExamQuestionCount(quizType))
     setQuestions(built)
     setIndex(0)
     setSelected(null)
@@ -356,7 +378,7 @@ export default function ExamClient({ quiz }: Props) {
   const resetExam = () => {
     stopSpeak()
 
-    const built = buildExamQuestions(quiz.questions, EXAM_QUESTION_COUNT)
+    const built = buildExamQuestions(quiz.questions, getExamQuestionCount(quizType))
     setQuestions(built)
     setIndex(0)
     setSelected(null)
@@ -376,12 +398,17 @@ export default function ExamClient({ quiz }: Props) {
   if (finished) {
     const total = questions.length
     const pct = total > 0 ? Math.round((score / total) * 100) : 0
+    const passScore = getPassScore(quizType, total)
+    const passed = score >= passScore
 
     return (
       <QuizLayout title={`${quiz.title}（模擬試験）結果`}>
         <div className="resultMeta">
           <div style={{ fontWeight: 900, fontSize: 20 }}>
             {score} / {total}（{pct}%）
+          </div>
+          <div style={{ fontWeight: 800, marginTop: 6 }}>
+            {passed ? '🎉 合格' : '❗ 不合格'}（合格ライン: {passScore} / {total}）
           </div>
           <div style={{ opacity: 0.8 }}>残り時間: {formatTime(timeLeft)}</div>
         </div>

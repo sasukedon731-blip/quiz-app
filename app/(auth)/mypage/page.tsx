@@ -18,7 +18,13 @@ import Button from "@/app/components/Button"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import type { QuizType } from "@/app/data/types"
 
-const PASS_LINE = 0.8 // ✅ 模擬試験 合格ライン（80%）
+// ✅ 模擬試験 合格ライン（科目別）
+function getPassLine(quizType: string) {
+  // 外国免許：50問中45問正解（=90%）で合格
+  if (quizType === "gaikoku-license") return 0.9
+  // それ以外：従来どおり80%
+  return 0.8
+}
 
 type QuizResult = {
   score: number
@@ -169,7 +175,8 @@ export default function MyPage() {
       const s = safeNum(r.score, 0)
       if (t <= 0) continue
       attempts += 1
-      if (s / t >= PASS_LINE) passes += 1
+      const qt = r.quizType ?? "gaikoku-license"
+      if (s / t >= getPassLine(qt)) passes += 1
     }
     const passRate = attempts ? Math.round((passes / attempts) * 100) : 0
 
@@ -188,7 +195,7 @@ export default function MyPage() {
       const total = safeNum(r.total, 0)
       const score = safeNum(r.score, 0)
       const acc = total > 0 ? score / total : 0
-      const passed = acc >= PASS_LINE
+      const passed = acc >= getPassLine(qt)
 
       if (!stats[qt]) {
         stats[qt] = {
@@ -437,7 +444,9 @@ export default function MyPage() {
           <div className="panelSoft" style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 900, marginBottom: 6 }}>
               🧪 模擬試験 合格率{" "}
-              <span style={{ fontSize: 12, opacity: 0.7 }}>※ 合格ライン {Math.round(PASS_LINE * 100)}%</span>
+              <span style={{ fontSize: 12, opacity: 0.7 }}>
+                ※ 合格ライン {activeQuizTypes.length === 1 ? `${Math.round(getPassLine(activeQuizTypes[0]) * 100)}%` : "科目別"}
+              </span>
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
