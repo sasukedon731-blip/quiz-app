@@ -564,38 +564,54 @@ export default function MyPage() {
                     style={{
                       border: "1px solid var(--border)",
                       borderRadius: 16,
-                      padding: 14,
+                      padding: 12,
                       background: "white",
                       boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
                       display: "flex",
                       flexDirection: "column",
-                      minHeight: 200,
+                      minHeight: 0,
                     }}
                   >
-                    <div style={{ marginBottom: 8 }}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 10px",
-                          borderRadius: 999,
-                          backgroundColor: c.badge.bg,
-                          color: c.badge.fg,
-                          fontWeight: 900,
-                          fontSize: 12,
-                          marginRight: 10,
+                    <div style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            backgroundColor: c.badge.bg,
+                            color: c.badge.fg,
+                            fontWeight: 900,
+                            fontSize: 12,
+                            marginRight: 10,
+                          }}
+                        >
+                          {c.badge.text}
+                        </span>
+                        <span style={{ fontWeight: 900 }}>{c.title}</span>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setFocusType(c.quizType)
+                          setTimeout(() => {
+                            if (typeof window !== "undefined") {
+                              document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                            }
+                          }, 50)
                         }}
                       >
-                        {c.badge.text}
-                      </span>
-                      <span style={{ fontWeight: 900 }}>{c.title}</span>
+                        詳細
+                      </Button>
                     </div>
 
                     {c.description ? (
-                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, minHeight: 44 }}>
+                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, minHeight: 0 }}>
                         {c.description}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 13, opacity: 0.55, minHeight: 44 }}>（説明なし）</div>
+                      <div style={{ fontSize: 13, opacity: 0.55, minHeight: 0 }}>（説明なし）</div>
                     )}
 
                     <div style={{ marginTop: 10 }}>
@@ -660,22 +676,7 @@ export default function MyPage() {
                       </div>
                     ) : null}
 
-                    {/* ✅ カード内の「通常/模擬/復習」は廃止（上部の「学習を始める」で導線統一） */}
-                    <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setFocusType(c.quizType)
-                          setTimeout(() => {
-                            if (typeof window !== "undefined") {
-                              document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                            }
-                          }, 50)
-                        }}
-                      >
-                        詳細
-                      </Button>
-                    </div>
+                    
                   </div>
                 ))}
               </div>
