@@ -55,7 +55,8 @@ type ViewKey = "current" | "history"
 function toSeconds(ts: any): number | null {
   if (!ts) return null
   if (typeof ts?.seconds === "number") return ts.seconds
-  if (typeof ts?.toDate === "function") return Math.floor(ts.toDate().getTime() / 1000)
+  if (typeof ts?.toDate === "function")
+    return Math.floor(ts.toDate().getTime() / 1000)
   return null
 }
 
@@ -68,7 +69,7 @@ function safeNum(v: any, fallback = 0) {
 }
 
 function typeMeta(quizType: string) {
-  const fromCatalog = quizCatalog.find(q => q.id === quizType)
+  const fromCatalog = quizCatalog.find((q) => q.id === quizType)
   return {
     title: fromCatalog?.title ?? quizType,
     description: fromCatalog?.description ?? "",
@@ -78,8 +79,10 @@ function typeMeta(quizType: string) {
 }
 
 function badgeByType(quizType: string) {
-  if (quizType === "japanese-n4") return { text: "日本語検定N4", bg: "#ede9fe", fg: "#5b21b6" }
-  if (quizType === "genba-listening") return { text: "現場用語リスニング", bg: "#fef3c7", fg: "#92400e" }
+  if (quizType === "japanese-n4")
+    return { text: "日本語検定N4", bg: "#ede9fe", fg: "#5b21b6" }
+  if (quizType === "genba-listening")
+    return { text: "現場用語リスニング", bg: "#fef3c7", fg: "#92400e" }
   return { text: "外国免許切替", bg: "#dbeafe", fg: "#1d4ed8" }
 }
 
@@ -98,7 +101,9 @@ export default function MyPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [progressByType, setProgressByType] = useState<Record<string, ProgressDoc>>({})
+  const [progressByType, setProgressByType] = useState<
+    Record<string, ProgressDoc>
+  >({})
   const [results, setResults] = useState<QuizResult[]>([])
 
   // ✅ 今月の受講教材（selectedQuizTypes）をここで取得する
@@ -111,17 +116,21 @@ export default function MyPage() {
   // 詳細表示する教材（nullなら詳細非表示）
   const [focusType, setFocusType] = useState<QuizType | null>(null)
 
+  // ✅ 依存配列を空にしない（hydration対策）
   const quizTypesAll = useMemo(() => {
     return quizCatalog
-      .filter(q => q.enabled)
+      .filter((q) => q.enabled)
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-      .map(q => q.id) as QuizType[]
-  }, [])
+      .map((q) => q.id) as QuizType[]
+  }, [quizCatalog])
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.replace("/login")
-      else setUser(u)
+      if (!u) {
+        router.replace("/login")
+        return
+      }
+      setUser(u)
     })
     return () => unsub()
   }, [router])
@@ -133,9 +142,11 @@ export default function MyPage() {
     const run = async () => {
       setLoading(true)
       try {
-        const pSnap = await getDocs(collection(db, "users", user.uid, "progress"))
+        const pSnap = await getDocs(
+          collection(db, "users", user.uid, "progress")
+        )
         const p: Record<string, ProgressDoc> = {}
-        pSnap.forEach(doc => {
+        pSnap.forEach((doc) => {
           p[doc.id] = doc.data() as ProgressDoc
         })
         setProgressByType(p)
@@ -146,7 +157,7 @@ export default function MyPage() {
           limit(200)
         )
         const rSnap = await getDocs(rQ)
-        const r = rSnap.docs.map(d => d.data() as QuizResult)
+        const r = rSnap.docs.map((d) => d.data() as QuizResult)
         setResults(r)
       } catch (e) {
         console.error("mypage fetch error", e)
@@ -161,6 +172,7 @@ export default function MyPage() {
   // ✅ selectedQuizTypes を取得（今月の受講教材）
   useEffect(() => {
     if (!user) return
+
     let alive = true
     setSelectedLoaded(false)
 
@@ -168,7 +180,13 @@ export default function MyPage() {
       try {
         const st = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
-        setSelectedTypes((st.selectedQuizTypes ?? []) as QuizType[])
+
+        // ✅ stがundefinedでも落ちない
+        const arr =
+          st && Array.isArray((st as any).selectedQuizTypes)
+            ? ((st as any).selectedQuizTypes as QuizType[])
+            : []
+        setSelectedTypes(arr)
       } catch (e) {
         console.error("loadAndRepairUserPlanState failed:", e)
         if (!alive) return
@@ -179,7 +197,9 @@ export default function MyPage() {
       }
     })()
 
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [user])
 
   const handleLogout = async () => {
@@ -215,7 +235,14 @@ export default function MyPage() {
     }
     const passRate = attempts ? Math.round((passes / attempts) * 100) : 0
 
-    return { bestStreak: best, currentStreak: current, totalAll, todayAll, examAttempts: attempts, examPassRate: passRate }
+    return {
+      bestStreak: best,
+      currentStreak: current,
+      totalAll,
+      todayAll,
+      examAttempts: attempts,
+      examPassRate: passRate,
+    }
   }, [progressByType, results])
 
   // ---- exam合格率（クイズ別） ----
@@ -245,7 +272,7 @@ export default function MyPage() {
       if (passed) stats[qt].passes += 1
     }
 
-    Object.keys(stats).forEach(k => {
+    Object.keys(stats).forEach((k) => {
       const s = stats[k]
       s.passRate = s.attempts ? Math.round((s.passes / s.attempts) * 100) : 0
     })
@@ -256,8 +283,9 @@ export default function MyPage() {
   // ✅ 履歴あり（progress or results に存在）
   const historyTypes = useMemo(() => {
     const fromProgress = Object.keys(progressByType) as QuizType[]
-    const fromResults = results
-      .map(r => (r.quizType ?? "gaikoku-license") as QuizType)
+    const fromResults = results.map(
+      (r) => (r.quizType ?? "gaikoku-license") as QuizType
+    )
     return uniq([...fromProgress, ...fromResults])
   }, [progressByType, results])
 
@@ -267,25 +295,21 @@ export default function MyPage() {
     quizCatalog.forEach((q, i) => orderMap.set(q.id, q.order ?? i ?? 999))
     return (types: QuizType[]) => {
       return types
-        .filter(t => typeMeta(t).enabled)
+        .filter((t) => typeMeta(t).enabled)
         .sort((a, b) => (orderMap.get(a) ?? 999) - (orderMap.get(b) ?? 999))
     }
   }, [])
 
   const currentList = useMemo(() => {
-    // 今月の selected が最優先。カタログに存在するものだけ。
-    const list = sortedByCatalogOrder(selectedTypes)
-    return list
+    return sortedByCatalogOrder(selectedTypes)
   }, [selectedTypes, sortedByCatalogOrder])
 
   const historyList = useMemo(() => {
-    // 履歴あり から、進行中を除外
     const setSelected = new Set(selectedTypes)
-    const list = historyTypes.filter(t => !setSelected.has(t))
+    const list = historyTypes.filter((t) => !setSelected.has(t))
     return sortedByCatalogOrder(list)
   }, [historyTypes, selectedTypes, sortedByCatalogOrder])
 
-  // ✅ 表示対象（viewによって切替）
   const visibleList = useMemo(() => {
     return view === "current" ? currentList : historyList
   }, [view, currentList, historyList])
@@ -311,8 +335,10 @@ export default function MyPage() {
 
   const latest5 = useMemo(() => {
     if (!focusType) return []
-    const filtered = results.filter(r => (r.quizType ?? "gaikoku-license") === focusType)
-    return filtered.slice(0, 5).map(r => ({
+    const filtered = results.filter(
+      (r) => (r.quizType ?? "gaikoku-license") === focusType
+    )
+    return filtered.slice(0, 5).map((r) => ({
       ...r,
       quizType: r.quizType ?? "gaikoku-license",
       mode: r.mode ?? "exam",
@@ -342,9 +368,15 @@ export default function MyPage() {
           .join(" ")
       : ""
 
-  if (!user) return <p style={{ textAlign: "center" }}>確認中...</p>
+  // ✅ “Hooksの前にreturnしない” ため QuizLayout を返す
+  if (!user) {
+    return (
+      <QuizLayout title="マイページ">
+        <p style={{ textAlign: "center" }}>確認中...</p>
+      </QuizLayout>
+    )
+  }
 
-  // ---- カード用データ ----
   const cards = useMemo(() => {
     return visibleList.map((qt) => {
       const meta = typeMeta(qt)
@@ -421,7 +453,10 @@ export default function MyPage() {
       {/* View switch */}
       <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button
-          onClick={() => { setView("current"); setFocusType(null) }}
+          onClick={() => {
+            setView("current")
+            setFocusType(null)
+          }}
           style={{
             padding: "8px 12px",
             borderRadius: 999,
@@ -436,7 +471,10 @@ export default function MyPage() {
         </button>
 
         <button
-          onClick={() => { setView("history"); setFocusType(null) }}
+          onClick={() => {
+            setView("history")
+            setFocusType(null)
+          }}
           style={{
             padding: "8px 12px",
             borderRadius: 999,
@@ -526,13 +564,15 @@ export default function MyPage() {
                 )}
 
                 <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, marginTop: 6 }}>
-                  今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
+                  今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：
+                  <b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
                   <br />
                   最終学習：<b>{c.updatedText}</b>
                   {c.exam ? (
                     <>
                       <br />
-                      模擬：合格率 <b>{c.exam.passRate}%</b>（{c.exam.passes}/{c.exam.attempts}） / 直近 <b>{c.exam.lastScoreText}</b>（{c.exam.lastAccuracy}%）
+                      模擬：合格率 <b>{c.exam.passRate}%</b>（{c.exam.passes}/{c.exam.attempts}） / 直近{" "}
+                      <b>{c.exam.lastScoreText}</b>（{c.exam.lastAccuracy}%）
                     </>
                   ) : null}
                 </div>
@@ -552,9 +592,14 @@ export default function MyPage() {
                     variant="ghost"
                     onClick={() => {
                       setFocusType(c.quizType)
-                      // スクロールで詳細へ（UX向上）
+                      // ✅ windowガード（本番対策）
                       setTimeout(() => {
-                        document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        if (typeof window !== "undefined") {
+                          document.getElementById("detail")?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          })
+                        }
                       }, 50)
                     }}
                   >
@@ -586,7 +631,9 @@ export default function MyPage() {
 
             {examStatsByType[focusType] ? (
               <div style={{ fontWeight: 900 }}>
-                合格率 {examStatsByType[focusType].passRate}%（{examStatsByType[focusType].passes}/{examStatsByType[focusType].attempts}） / 直近 {examStatsByType[focusType].lastScoreText}（{examStatsByType[focusType].lastAccuracy}%）
+                合格率 {examStatsByType[focusType].passRate}%（{examStatsByType[focusType].passes}/
+                {examStatsByType[focusType].attempts}） / 直近 {examStatsByType[focusType].lastScoreText}（
+                {examStatsByType[focusType].lastAccuracy}%）
               </div>
             ) : (
               <div style={{ opacity: 0.7, fontWeight: 700 }}>まだ模擬試験の記録がありません</div>
