@@ -598,25 +598,59 @@ export default function MyPage() {
                       <div style={{ fontSize: 13, opacity: 0.55, minHeight: 44 }}>（説明なし）</div>
                     )}
 
-                    <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, marginTop: 6 }}>
-                      今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
-                      <br />
-                      最終学習：<b>{c.updatedText}</b>
-                      {c.exam ? (
-                        <>
-                          <br />
-                          模擬：合格率 <b>{c.exam.passRate}%</b>（{c.exam.passes}/{c.exam.attempts}） / 直近 <b>{c.exam.lastScoreText}</b>（{c.exam.lastAccuracy}%）
-                        </>
-                      ) : null}
-                      {c.lastResult ? (
-                        <>
-                          <br />
-                          直近結果：<b style={{ textTransform: "uppercase" }}>{c.lastResult.mode}</b>{" "}
-                          <b>{c.lastResult.score}</b>/<b>{c.lastResult.total}</b>（<b>{c.lastResult.acc}%</b>）{" "}
-                          <span style={{ fontSize: 12, opacity: 0.7 }}>{c.lastResult.dateText}</span>
-                        </>
-                      ) : null}
-                    
+                    <div style={{ marginTop: 10 }}>
+                      {/* ✅ カード内は “状況が一瞬でわかる” だけにする（重い表示は詳細へ） */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
+                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>学習（今日 / 累計）</div>
+                          <div style={{ fontSize: 18, fontWeight: 900 }}>
+                            {c.todaySessions} / {c.totalSessions}
+                          </div>
+                        </div>
+
+                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
+                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>連続（最高 / 現在）</div>
+                          <div style={{ fontSize: 18, fontWeight: 900 }}>
+                            {c.bestStreak} / {c.streak} 日
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
+                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>直近結果</div>
+                          {c.lastResult ? (
+                            <div style={{ fontSize: 14, fontWeight: 900 }}>
+                              {c.lastResult.score}/{c.lastResult.total}（{c.lastResult.acc}%）
+                              <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>
+                                {String(c.lastResult.mode).toUpperCase()} ・ {c.lastResult.dateText}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 14, opacity: 0.7, fontWeight: 800 }}>まだありません</div>
+                          )}
+                        </div>
+
+                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
+                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>模擬（合格率）</div>
+                          {c.exam ? (
+                            <div style={{ fontSize: 14, fontWeight: 900 }}>
+                              {c.exam.passRate}%
+                              <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>
+                                {c.exam.passes}/{c.exam.attempts} ・ 直近 {c.exam.lastScoreText}（{c.exam.lastAccuracy}%）
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 14, opacity: 0.7, fontWeight: 800 }}>まだありません</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+                        最終学習：<b style={{ opacity: 1 }}>{c.updatedText}</b>
+                      </div>
+                    </div>
+
                     {c.spark ? (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>模擬 正答率（最新5件）</div>
@@ -626,18 +660,8 @@ export default function MyPage() {
                       </div>
                     ) : null}
 
-</div>
-
+                    {/* ✅ カード内の「通常/模擬/復習」は廃止（上部の「学習を始める」で導線統一） */}
                     <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(c.quizType)}`)}>
-                        通常
-                      </Button>
-                      <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(c.quizType)}`)}>
-                        模擬
-                      </Button>
-                      <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(c.quizType)}`)}>
-                        復習
-                      </Button>
                       <Button
                         variant="ghost"
                         onClick={() => {
