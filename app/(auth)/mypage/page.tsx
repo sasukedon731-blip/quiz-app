@@ -242,52 +242,6 @@ export default function MyPage() {
     return stats
   }, [results])
 
-  // ✅ 最新結果/スパークライン（カード用）
-  const latestByType = useMemo(() => {
-    const map: Record<string, { latest: QuizResult | null; latest5Exam: QuizResult[]; examAcc: number[] }> = {}
-    const byType = new Map<string, QuizResult[]>()
-
-    for (const r of results) {
-      const qt = (r.quizType ?? "gaikoku-license") as string
-      if (!byType.has(qt)) byType.set(qt, [])
-      byType.get(qt)!.push({
-        ...r,
-        quizType: qt,
-        mode: r.mode ?? "exam",
-      })
-    }
-
-    for (const [qt, list] of byType.entries()) {
-      // list は createdAt desc のはずだが念のためそのまま先頭を最新扱い
-      const latest = list[0] ?? null
-
-      const latest5Exam = list.filter(x => (x.mode ?? "exam") === "exam").slice(0, 5)
-      const examAcc = latest5Exam
-        .slice()
-        .reverse()
-        .map(x => (x.total ? pct(x.score, x.total) : 0))
-
-      map[qt] = { latest, latest5Exam, examAcc }
-    }
-
-    return map
-  }, [results])
-
-  function sparkPoints(vals: number[], w = 120, h = 36) {
-    if (!vals || vals.length === 0) return ""
-    if (vals.length === 1) {
-      const y = h - (vals[0] / 100) * h
-      return `${w / 2},${y}`
-    }
-    return vals
-      .map((p, i) => {
-        const x = (w / (vals.length - 1)) * i
-        const y = h - (p / 100) * h
-        return `${x},${y}`
-      })
-      .join(" ")
-  }
-
   // ✅ 履歴あり
   const historyTypes = useMemo(() => {
     const fromProgress = Object.keys(progressByType) as QuizType[]
@@ -366,12 +320,6 @@ export default function MyPage() {
       const p = progressByType[qt] ?? {}
       const updatedSec = toSeconds(p.updatedAt)
       const exam = examStatsByType[qt]
-      const pack = latestByType[qt]
-      const latest = pack?.latest ?? null
-      const lastAcc = latest && latest.total ? pct(latest.score, latest.total) : null
-      const lastSec = latest ? toSeconds(latest.createdAt) : null
-      const lastDateText = lastSec ? formatDateSeconds(lastSec) : null
-      const spark = sparkPoints(pack?.examAcc ?? [], 120, 36)
       return {
         quizType: qt,
         title: meta.title,
@@ -383,11 +331,9 @@ export default function MyPage() {
         bestStreak: safeNum(p.bestStreak),
         updatedText: updatedSec ? formatDateSeconds(updatedSec) : "-",
         exam,
-        lastResult: latest ? { mode: latest.mode ?? "exam", score: latest.score, total: latest.total, acc: lastAcc ?? 0, dateText: lastDateText ?? "-" } : null,
-        spark,
       }
     })
-  }, [visibleList, progressByType, examStatsByType, latestByType])
+  }, [visibleList, progressByType, examStatsByType])
 
   const showEmptyState =
     selectedLoaded &&
@@ -488,49 +434,6 @@ export default function MyPage() {
               {view === "current" ? "🔥 進行中の教材" : "📚 履歴のある教材"}
             </div>
 
-            {/* Quick focus tabs（結果/グラフへの導線） */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                overflowX: "auto",
-                paddingBottom: 6,
-                marginBottom: 8,
-              }}
-            >
-              {visibleList.map((qt) => {
-                const b = badgeByType(qt)
-                const isActive = focusType === qt
-                return (
-                  <button
-                    key={qt}
-                    onClick={() => {
-                      setFocusType(qt)
-                      setTimeout(() => {
-                        if (typeof window !== "undefined") {
-                          document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                        }
-                      }, 50)
-                    }}
-                    style={{
-                      whiteSpace: "nowrap",
-                      padding: "8px 12px",
-                      borderRadius: 999,
-                      border: isActive ? "2px solid #111" : "1px solid var(--border)",
-                      background: isActive ? "#111" : "white",
-                      color: isActive ? "white" : "#111",
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                    title={typeMeta(qt).title}
-                  >
-                    {b.text}
-                  </button>
-                )
-              })}
-            </div>
-
-
             {loading ? (
               <p>読み込み中…</p>
             ) : showEmptyState ? (
@@ -564,33 +467,62 @@ export default function MyPage() {
                     style={{
                       border: "1px solid var(--border)",
                       borderRadius: 16,
-                      padding: 12,
+                      padding: 14,
                       background: "white",
                       boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
                       display: "flex",
                       flexDirection: "column",
-                      minHeight: 0,
+                      minHeight: 200,
                     }}
                   >
-                    <div style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            backgroundColor: c.badge.bg,
-                            color: c.badge.fg,
-                            fontWeight: 900,
-                            fontSize: 12,
-                            marginRight: 10,
-                          }}
-                        >
-                          {c.badge.text}
-                        </span>
-                        <span style={{ fontWeight: 900 }}>{c.title}</span>
-                      </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          backgroundColor: c.badge.bg,
+                          color: c.badge.fg,
+                          fontWeight: 900,
+                          fontSize: 12,
+                          marginRight: 10,
+                        }}
+                      >
+                        {c.badge.text}
+                      </span>
+                      <span style={{ fontWeight: 900 }}>{c.title}</span>
+                    </div>
 
+                    {c.description ? (
+                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, minHeight: 44 }}>
+                        {c.description}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, opacity: 0.55, minHeight: 44 }}>（説明なし）</div>
+                    )}
+
+                    <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, marginTop: 6 }}>
+                      今日：<b>{c.todaySessions}</b>回 / 累計：<b>{c.totalSessions}</b>回 / 連続：<b>{c.streak}</b>日（最高 <b>{c.bestStreak}</b>日）
+                      <br />
+                      最終学習：<b>{c.updatedText}</b>
+                      {c.exam ? (
+                        <>
+                          <br />
+                          模擬：合格率 <b>{c.exam.passRate}%</b>（{c.exam.passes}/{c.exam.attempts}） / 直近 <b>{c.exam.lastScoreText}</b>（{c.exam.lastAccuracy}%）
+                        </>
+                      ) : null}
+                    </div>
+
+                    <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(c.quizType)}`)}>
+                        通常
+                      </Button>
+                      <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(c.quizType)}`)}>
+                        模擬
+                      </Button>
+                      <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(c.quizType)}`)}>
+                        復習
+                      </Button>
                       <Button
                         variant="ghost"
                         onClick={() => {
@@ -605,78 +537,6 @@ export default function MyPage() {
                         詳細
                       </Button>
                     </div>
-
-                    {c.description ? (
-                      <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6, minHeight: 0 }}>
-                        {c.description}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 13, opacity: 0.55, minHeight: 0 }}>（説明なし）</div>
-                    )}
-
-                    <div style={{ marginTop: 10 }}>
-                      {/* ✅ カード内は “状況が一瞬でわかる” だけにする（重い表示は詳細へ） */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
-                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>学習（今日 / 累計）</div>
-                          <div style={{ fontSize: 18, fontWeight: 900 }}>
-                            {c.todaySessions} / {c.totalSessions}
-                          </div>
-                        </div>
-
-                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
-                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>連続（最高 / 現在）</div>
-                          <div style={{ fontSize: 18, fontWeight: 900 }}>
-                            {c.bestStreak} / {c.streak} 日
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
-                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>直近結果</div>
-                          {c.lastResult ? (
-                            <div style={{ fontSize: 14, fontWeight: 900 }}>
-                              {c.lastResult.score}/{c.lastResult.total}（{c.lastResult.acc}%）
-                              <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>
-                                {String(c.lastResult.mode).toUpperCase()} ・ {c.lastResult.dateText}
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 14, opacity: 0.7, fontWeight: 800 }}>まだありません</div>
-                          )}
-                        </div>
-
-                        <div style={{ padding: 10, borderRadius: 12, border: "1px solid var(--border)", background: "#fff" }}>
-                          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>模擬（合格率）</div>
-                          {c.exam ? (
-                            <div style={{ fontSize: 14, fontWeight: 900 }}>
-                              {c.exam.passRate}%
-                              <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 700 }}>
-                                {c.exam.passes}/{c.exam.attempts} ・ 直近 {c.exam.lastScoreText}（{c.exam.lastAccuracy}%）
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 14, opacity: 0.7, fontWeight: 800 }}>まだありません</div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-                        最終学習：<b style={{ opacity: 1 }}>{c.updatedText}</b>
-                      </div>
-                    </div>
-
-                    {c.spark ? (
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 800 }}>模擬 正答率（最新5件）</div>
-                        <svg width={120} height={36} style={{ display: "block", marginTop: 4 }}>
-                          <polyline fill="none" stroke="#111" strokeWidth="2.5" points={c.spark} />
-                        </svg>
-                      </div>
-                    ) : null}
-
-                    
                   </div>
                 ))}
               </div>

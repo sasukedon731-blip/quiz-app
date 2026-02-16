@@ -7,6 +7,7 @@ import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 import { useAuth } from "@/app/lib/useAuth"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
+import { assertActiveAccess } from "@/app/lib/guards"
 
 function isQuizType(v: string): v is QuizType {
   return (quizzes as any)[v] != null
@@ -32,6 +33,8 @@ export default function ReviewClientWrapper() {
 
   const [stateLoaded, setStateLoaded] = useState(false)
   const [allowed, setAllowed] = useState<QuizType[] | null>(null)
+  const [accessBlocked, setAccessBlocked] = useState(false)
+  const [billingStatus, setBillingStatus] = useState<"pending" | "active" | "past_due" | "canceled">("active")
 
   // ① plan state 読み込み（＋自動修復）
   useEffect(() => {
@@ -48,6 +51,14 @@ export default function ReviewClientWrapper() {
 
     ;(async () => {
       try {
+        setAccessBlocked(false)
+        const gate = await assertActiveAccess(user.uid)
+        setBillingStatus(gate.billingStatus)
+        if (!gate.ok) {
+          setAccessBlocked(true)
+          setAllowed([])
+          return
+        }
         const st = await loadAndRepairUserPlanState(user.uid)
         if (!alive) return
         setAllowed((st.selectedQuizTypes ?? []) as QuizType[])
@@ -98,10 +109,37 @@ export default function ReviewClientWrapper() {
     }
   }, [loading, user, stateLoaded, allowed, quizType, quiz, router])
 
+  
   // ③ 描画ガード
   if (loading) return null
   if (!user) return null
   if (!stateLoaded) return null
+  if (accessBlocked) {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+        <div style={{ padding: 14, borderRadius: 16, border: "1px solid #f59e0b", background: "#fffbeb" }}>
+          <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
+          <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
+            状態：<b>{billingStatus}</b>（コンビニ払いは入金確認後に利用可能になります）
+          </div>
+          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={() => router.push("/plans")}
+              style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #111", background: "#111", color: "white", fontWeight: 900 }}
+            >
+              プラン / 支払いへ
+            </button>
+            <button
+              onClick={() => router.push("/mypage")}
+              style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "white", fontWeight: 800 }}
+            >
+              マイページへ
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   if (allowed === null) return null
   if (!quizType) return null
   if (!quiz) return null

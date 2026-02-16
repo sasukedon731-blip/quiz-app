@@ -10,6 +10,7 @@ import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 import type { PlanId } from "@/app/lib/plan"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
+import { assertActiveAccess } from "@/app/lib/guards"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -25,6 +26,8 @@ export default function SelectModePage() {
   const [uid, setUid] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [accessBlocked, setAccessBlocked] = useState(false)
+  const [billingStatus, setBillingStatus] = useState<"pending" | "active" | "past_due" | "canceled">("active")
 
   const [plan, setPlan] = useState<PlanId>("trial")
   const [selected, setSelected] = useState<QuizType[]>([])
@@ -46,7 +49,15 @@ export default function SelectModePage() {
       if (!uid) return
       setLoading(true)
       setError("")
+      setAccessBlocked(false)
       try {
+        const gate = await assertActiveAccess(uid)
+        setBillingStatus(gate.billingStatus)
+        if (!gate.ok) {
+          setAccessBlocked(true)
+          setLoading(false)
+          return
+        }
         const state = await loadAndRepairUserPlanState(uid)
         setPlan(state.plan)
         setSelected(state.selectedQuizTypes)
@@ -68,6 +79,21 @@ export default function SelectModePage() {
     return (
       <main style={styles.page}>
         <div style={styles.shell}>
+
+        {accessBlocked ? (
+          <div style={{ marginBottom: 12, padding: 12, borderRadius: 14, border: "1px solid #f59e0b", background: "#fffbeb" }}>
+            <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
+            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
+              状態：<b>{billingStatus}</b>（コンビニ払いは入金確認後に利用可能になります）
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <button onClick={() => router.push("/plans")} style={{ ...styles.btn, ...styles.btnMain }}>
+                プラン / 支払いへ
+              </button>
+            </div>
+          </div>
+        ) : null}
+
           <div style={styles.skeletonCard}>読み込み中...</div>
         </div>
       </main>
@@ -77,6 +103,21 @@ export default function SelectModePage() {
   return (
     <main style={styles.page}>
       <div style={styles.shell}>
+
+        {accessBlocked ? (
+          <div style={{ marginBottom: 12, padding: 12, borderRadius: 14, border: "1px solid #f59e0b", background: "#fffbeb" }}>
+            <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
+            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
+              状態：<b>{billingStatus}</b>（コンビニ払いは入金確認後に利用可能になります）
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <button onClick={() => router.push("/plans")} style={{ ...styles.btn, ...styles.btnMain }}>
+                プラン / 支払いへ
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {/* Header */}
         <header style={styles.header}>
           <div>

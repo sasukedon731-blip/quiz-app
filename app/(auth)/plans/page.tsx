@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 
-import { auth } from "@/app/lib/firebase"
+import { auth, db } from "@/app/lib/firebase"
+import { doc, setDoc } from "firebase/firestore"
 import { quizzes } from "@/app/data/quizzes"
 import { type PlanId } from "@/app/lib/plan"
 import {
@@ -37,6 +38,8 @@ export default function PlansPage() {
   const [error, setError] = useState("")
 
   const [currentPlan, setCurrentPlan] = useState<PlanId>("trial")
+  const [billingMethod, setBillingMethod] = useState<"convenience" | "card">("convenience")
+  const [durationDays, setDurationDays] = useState<30 | 180 | 365>(30)
   const [displayName, setDisplayName] = useState<string>("")
 
   useEffect(() => {
@@ -70,18 +73,53 @@ export default function PlansPage() {
 
   const allCount = useMemo(() => Object.keys(quizzes).length, [])
 
+  const startCheckout = async (plan: PlanId) => {
+    if (!uid) return
+    setSaving(true)
+    setError("")
+
+    try {
+      const idToken = await auth.currentUser?.getIdToken()
+      if (!idToken) throw new Error("ログイン情報を取得できませんでした")
+
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken,
+          plan,
+          method: billingMethod,
+          durationDays,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? "決済開始に失敗しました")
+      if (!data?.url) throw new Error("決済URLが取得できませんでした")
+
+      window.location.href = data.url
+    } catch (e: any) {
+      console.error(e)
+      setError(e?.message ?? "決済開始に失敗しました")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleChoose = async (plan: PlanId) => {
     if (!uid) return
     setSaving(true)
     setError("")
 
     try {
-      await savePlanAndNormalizeSelected({ uid, plan })
-      if (plan === "3" || plan === "5") {
-        router.push("/select-quizzes")
-      } else {
-        router.push("/select-mode")
+      if (plan === "3" || plan === "5" || plan === "all") {
+        await startCheckout(plan)
+        return
       }
+
+      // trial/free（開発用）
+      await savePlanAndNormalizeSelected({ uid, plan })
+      router.push("/select-mode")
     } catch (e) {
       console.error(e)
       setError("プラン更新に失敗しました")
@@ -120,8 +158,52 @@ export default function PlansPage() {
         </div>
       </section>
 
+      <section style={{ marginTop: 16, padding: 14, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
+        <div style={{ fontWeight: 900 }}>お支払い方法（個人）</div>
+        <div style={{ marginTop: 6, opacity: 0.85, lineHeight: 1.6 }}>
+          外国人ユーザー向けに <b>コンビニ払い</b> をおすすめにします（カードは任意）。
+        </div>
+        <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="radio"
+              name="pay"
+              checked={billingMethod === "convenience"}
+              onChange={() => setBillingMethod("convenience")}
+            />
+            コンビニ払い（おすすめ）
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="radio"
+              name="pay"
+              checked={billingMethod === "card"}
+              onChange={() => setBillingMethod("card")}
+            />
+            カード払い
+          </label>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
+          <div style={{ marginTop: 6, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <select
+              value={durationDays}
+              onChange={(e) => setDurationDays(Number(e.target.value) as any)}
+              style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "white", fontWeight: 800 }}
+            >
+              <option value={30}>30日（通常）</option>
+              <option value={180}>半年（10%OFF）</option>
+              <option value={365}>年（20%OFF）</option>
+            </select>
+            <span style={{ fontSize: 13, opacity: 0.8 }}>
+              コンビニ払いでも「まとめ払い」で更新回数を減らせます
+            </span>
+          </div>
+        </div>
+      </section>
+
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 12 }}>
-        {(["trial", "3", "5", "all"] as PlanId[]).map((p) => {
+        {(["3", "5", "all"] as PlanId[]).map((p) => {
           const isCurrent = p === currentPlan
           return (
             <div key={p} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#fff" }}>

@@ -100,14 +100,39 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
   const patch: Record<string, any> = {}
   let needUpdate = false
 
-  if (data?.schemaVersion !== 2) {
-    patch.schemaVersion = 2
+
+  // ✅ billing（コンビニ決済前提）の後方互換追加
+  // - 既存ユーザーは billing が無くても動くが、以後の拡張のために default を付与しておく
+  const currentBilling = data?.billing ?? null
+  const ensureBilling = () => {
+    if (currentBilling) return
+    patch.billing = {
+      accountType: "personal",
+      method: "convenience",
+      status: "active", // 決済未実装の現段階では既存ユーザーを active 扱い（後で pending/active に切替）
+      currentPlan: plan,
+      currentPeriodEnd: null,
+    }
+    needUpdate = true
+  }
+
+  if (data?.schemaVersion !== 3) {
+    patch.schemaVersion = 3
     needUpdate = true
   }
 
   // plan を正規形で保存（数値->文字列など）
   if (!isPlanId(data?.plan) || data.plan !== plan) {
+
     patch.plan = plan
+    needUpdate = true
+  }
+
+  // billing が無ければ作る / 既にあれば currentPlan だけ同期（status/method は保持）
+  if (!data?.billing) {
+    ensureBilling()
+  } else if (data?.billing?.currentPlan !== plan) {
+    patch.billing = { ...data.billing, currentPlan: plan }
     needUpdate = true
   }
 
@@ -137,7 +162,7 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
     selectedQuizTypes: selected,
     nextChangeAllowedAt,
     displayName,
-    schemaVersion: 2,
+    schemaVersion: 3,
   }
 }
 
@@ -192,7 +217,16 @@ export async function savePlanAndNormalizeSelected(params: {
     ref,
     {
       plan: params.plan,
-      schemaVersion: 2,
+      schemaVersion: 3,
+      billing: data?.billing
+        ? { ...data.billing, currentPlan: params.plan }
+        : {
+            accountType: "personal",
+            method: "convenience",
+            status: "active",
+            currentPlan: params.plan,
+            currentPeriodEnd: null,
+          },
       selectedQuizTypes: selected,
       entitledQuizTypes: deleteField(),
       quizLimit: deleteField(),
@@ -207,6 +241,6 @@ export async function savePlanAndNormalizeSelected(params: {
     selectedQuizTypes: selected,
     nextChangeAllowedAt: toDateOrNull(data?.nextChangeAllowedAt),
     displayName: typeof data?.displayName === "string" ? data.displayName : "",
-    schemaVersion: 2,
+    schemaVersion: 3,
   }
 }

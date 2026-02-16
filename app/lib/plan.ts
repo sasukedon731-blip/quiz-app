@@ -60,3 +60,41 @@ export function normalizeSelectedForPlan(
 
   return trimmed
 }
+
+
+export type BillingStatus = "pending" | "active" | "past_due" | "canceled"
+export type BillingMethod = "convenience" | "card" | "bank_transfer"
+export type AccountType = "personal" | "company"
+
+/**
+ * ✅ 後方互換：billing が無い既存ユーザーは active とみなす（移行で壊さない）
+ */
+export function getBillingStatus(userDoc: any): BillingStatus {
+  const s = userDoc?.billing?.status
+  if (s === "pending" || s === "active" || s === "past_due" || s === "canceled") return s
+  return "active"
+}
+
+export function isAccessActive(userDoc: any): boolean {
+  if (getBillingStatus(userDoc) !== "active") return false
+
+  // ✅ 期限がある場合は期限も見る（都度払い / まとめ払い対応）
+  const end = userDoc?.billing?.currentPeriodEnd
+  if (!end) return true // 旧ユーザー互換（期限未導入でも壊さない）
+
+  try {
+    const endDate = typeof end?.toDate === "function" ? end.toDate() : new Date(end)
+    return endDate.getTime() > Date.now()
+  } catch {
+    return false
+  }
+}
+
+
+/**
+ * ✅ plan は billing.currentPlan を優先（無ければ従来 plan）
+ */
+export function getEffectivePlanId(userDoc: any): PlanId {
+  const p = userDoc?.billing?.currentPlan ?? userDoc?.plan
+  return (p === "trial" || p === "free" || p === "3" || p === "5" || p === "all") ? p : "trial"
+}
