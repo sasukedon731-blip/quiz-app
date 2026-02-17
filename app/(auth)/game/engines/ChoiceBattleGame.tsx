@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { QuizType } from "@/app/data/types"
 import { quizzes } from "@/app/data/quizzes"
@@ -22,6 +22,7 @@ export default function ChoiceBattleGame({ quizType }: Props) {
   const [life, setLife] = useState(BASE_LIFE)
   const [score, setScore] = useState(0)
   const [timeKey, setTimeKey] = useState(0)
+  const [flyingChoice, setFlyingChoice] = useState<string | null>(null)
   const [explosion, setExplosion] = useState(false)
 
   const q = questions[index % (questions.length || 1)]
@@ -45,12 +46,17 @@ export default function ChoiceBattleGame({ quizType }: Props) {
 
   function select(choice: string) {
     if (choice === correct) {
+      setFlyingChoice(choice)
       setScore((s) => s + 100)
-      setExplosion(true)
+
       setTimeout(() => {
-        setExplosion(false)
-        next()
-      }, 400)
+        setExplosion(true)
+        setTimeout(() => {
+          setExplosion(false)
+          setFlyingChoice(null)
+          next()
+        }, 300)
+      }, 300)
     } else {
       setLife((l) => l - 1)
     }
@@ -63,6 +69,7 @@ export default function ChoiceBattleGame({ quizType }: Props) {
         <div>🏆 {score}</div>
       </div>
 
+      {/* Time Bar */}
       <div style={{ height: 8, background: "#ddd", margin: "20px 0" }}>
         <motion.div
           key={timeKey}
@@ -74,15 +81,24 @@ export default function ChoiceBattleGame({ quizType }: Props) {
         />
       </div>
 
-      <div style={{ padding: 20, background: "#fff", textAlign: "center" }}>
+      {/* Question */}
+      <div style={{ position: "relative", padding: 20, background: "#fff", textAlign: "center" }}>
         {q.question}
+
         <AnimatePresence>
           {explosion && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 2, opacity: 0 }}
               transition={{ duration: 0.4 }}
-              style={{ fontSize: 40 }}
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 40
+              }}
             >
               💥
             </motion.div>
@@ -90,6 +106,7 @@ export default function ChoiceBattleGame({ quizType }: Props) {
         </AnimatePresence>
       </div>
 
+      {/* Choices */}
       <div style={{ marginTop: 20 }}>
         {q.choices.map((c, i) => (
           <button
@@ -110,6 +127,31 @@ export default function ChoiceBattleGame({ quizType }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Flying Copy */}
+      <AnimatePresence>
+        {flyingChoice && (
+          <motion.div
+            initial={{ y: 0, opacity: 1 }}
+            animate={{ y: -200, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              position: "fixed",
+              bottom: 120,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "#2563eb",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: 6,
+              pointerEvents: "none"
+            }}
+          >
+            {flyingChoice}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
