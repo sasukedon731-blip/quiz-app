@@ -281,7 +281,7 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
   return (
-    <main style={styles.page}>
+    <main style={styles.page} className="game-root">
       <div style={styles.shell}>
         {/* Top nav */}
         <div style={styles.topRow}>
@@ -540,9 +540,9 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh",
+    minHeight: "100svh",
     background: "#f6f7fb",
-    padding: 18,
+    padding: "clamp(10px, 3vw, 18px)" as any,
   },
   shell: {
     maxWidth: 980,
@@ -635,7 +635,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: "absolute",
     left: 0,
     right: 0,
-    top: 420,
+    top: "58%" as any,
     height: 2,
     background: "rgba(239,68,68,0.6)",
   },
@@ -662,7 +662,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.18)",
   },
-  prompt: { fontSize: 22, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
+  prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
   dot: {
     width: 10,
@@ -689,23 +689,23 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 14,
+    padding: "14px 14px calc(14px + env(safe-area-inset-bottom))" as any,
     background: "linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.8))",
     borderTop: "1px solid #e5e7eb",
   },
   tilesTitle: { fontWeight: 900, marginBottom: 10 },
   tilesGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))",
     gap: 10,
   },
   tileBtn: {
-    padding: "14px 10px",
+    padding: "clamp(10px, 2.6vw, 14px) clamp(8px, 2.2vw, 10px)" as any,
     borderRadius: 16,
     border: "1px solid #e5e7eb",
     background: "#fff",
     fontWeight: 900,
-    fontSize: 18,
+    fontSize: "clamp(14px, 4.2vw, 18px)" as any,
     cursor: "pointer",
     boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
   },

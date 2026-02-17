@@ -79,8 +79,8 @@ export default function SelectModePage() {
 
   if (loading) {
     return (
-      <main style={styles.page}>
-        <div style={styles.shell}>
+      <main style={styles.page} className="mobile-page">
+        <div style={styles.shell} className="mobile-shell">
           <div style={styles.skeletonCard}>読み込み中...</div>
         </div>
       </main>
@@ -88,11 +88,11 @@ export default function SelectModePage() {
   }
 
   return (
-    <main style={styles.page}>
-      <div style={styles.shell}>
+    <main style={styles.page} className="mobile-page">
+      <div style={styles.shell} className="mobile-shell">
 
         {/* Header */}
-        <header style={styles.header}>
+        <header style={styles.header} className="mobile-header">
           <div>
             <h1 style={styles.h1}>学習を始める</h1>
             <p style={styles.sub}>
@@ -101,7 +101,7 @@ export default function SelectModePage() {
             </p>
           </div>
 
-          <div style={styles.headerActions}>
+          <div style={styles.headerActions} className="mobile-header-actions">
             <Link href="/mypage" style={{ ...styles.btn, ...styles.btnGray }}>
               マイページ
             </Link>
@@ -125,7 +125,7 @@ export default function SelectModePage() {
               教材が選択されていません。
             </div>
           ) : (
-            <div style={styles.grid}>
+            <div style={styles.grid} className="mobile-grid">
               {selectedCards.map((id) => {
                 const q = quizzes[id]
                 return (
@@ -133,7 +133,7 @@ export default function SelectModePage() {
                     <div style={styles.quizTitle}>{q.title}</div>
                     <div style={styles.quizDesc}>{q.description}</div>
 
-                    <div style={styles.quizActions}>
+                    <div style={styles.quizActions} className="mobile-quiz-actions">
                       <Link href={`/normal?type=${id}`} style={{ ...styles.btn, ...styles.btnBlue }}>
                         通常
                       </Link>
@@ -163,7 +163,7 @@ export default function SelectModePage() {
               ゲームは1つに固定。日本語検定N4の問題を使用します。
             </div>
 
-            <div style={styles.quizActions}>
+            <div style={styles.quizActions} className="mobile-quiz-actions">
               <Link href={`/game?mode=normal`} style={{ ...styles.btn, ...styles.btnBlue }}>
                 ノーマル
               </Link>
