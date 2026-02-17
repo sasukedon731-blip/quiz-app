@@ -5,6 +5,8 @@ export type GameQuestionType = "reading" | "fill" | "particle"
 
 export type GameQuestion = {
   id: string
+  // 教材（/game?type=...）の識別。既存quizzes変換で埋まる。
+  quizType?: string
   type: GameQuestionType
   prompt: string
   answer: string[] // sequence of tiles to press in order

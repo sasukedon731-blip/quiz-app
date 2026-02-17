@@ -3,14 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { auth, db } from "@/app/lib/firebase"
+import { quizzes } from "@/app/data/quizzes"
+import type { QuizType } from "@/app/data/types"
 import type { GameDifficulty, GameMode, GameQuestion } from "./types"
 import { fallbackQuestions } from "./questions"
-import { fetchAttackLeaderboard, fetchGameQuestions, submitAttackScore } from "./firestore"
+import { fetchAttackLeaderboard, submitAttackScore } from "./firestore"
+import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -38,16 +42,40 @@ function speedFor(mode: GameMode, level: number) {
 
 export default function GameClient() {
   const router = useRouter()
+  const params = useSearchParams()
+
+  const quizType = (params.get("type") as QuizType) || "gaikoku-license"
+  const modeParam = params.get("mode")
 
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [mode, setMode] = useState<GameMode>("normal")
+  const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
-  const [loadingPool, setLoadingPool] = useState(false)
-  const [pool, setPool] = useState<GameQuestion[]>([])
+  // ✅ quizzes から作る（Firestore手入力不要）
+  const pool = useMemo(() => {
+    const built = buildGamePoolFromQuizzes(quizType)
+    if (built.length) return built.filter((q) => q.enabled)
+    // hard fallback
+    return fallbackQuestions.filter((q) => q.enabled)
+  }, [quizType])
+
+  // 教材が変わったら、表示用の難易度も合わせる
+  useEffect(() => {
+    const d = pool[0]?.difficulty
+    if (d) setDifficulty(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizType])
+
+  // URLの mode=attack を反映（ready のときだけ）
+  useEffect(() => {
+    if (phase !== "ready") return
+    if (modeParam === "attack") setMode("attack")
+    else if (modeParam === "normal") setMode("normal")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeParam, quizType, phase])
 
   const [score, setScore] = useState(0)
   const [life, setLife] = useState(3)
@@ -92,34 +120,7 @@ export default function GameClient() {
     return () => unsub()
   }, [router])
 
-  // ===== Pool loading =====
-  async function loadPool(nextMode: GameMode, nextDifficulty: GameDifficulty) {
-    setLoadingPool(true)
-    try {
-      const items = await fetchGameQuestions({
-        mode: nextMode,
-        difficulty: nextDifficulty,
-        take: 120,
-      })
-
-      // Fallback if Firestore empty
-      const merged = items.length ? items : fallbackQuestions
-      setPool(merged.filter((q) => q.enabled))
-    } catch (e) {
-      console.error(e)
-      setPool(fallbackQuestions.filter((q) => q.enabled))
-    } finally {
-      setLoadingPool(false)
-    }
-  }
-
-  // Load pool when entering ready screen or changing settings
-  useEffect(() => {
-    if (!uid) return
-    if (phase !== "ready") return
-    loadPool(mode, difficulty)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, phase, mode, difficulty])
+  // quizzes方式なのでロードは不要（UIの余計な再読込ボタンも不要）
 
   const poolByDifficulty = useMemo(() => {
     const map = new Map<string, GameQuestion[]>()
@@ -282,6 +283,8 @@ export default function GameClient() {
   const plateKey = current ? activeKeyRef.current : "none"
 
   // ===== Render =====
+  const quizTitle = (quizzes as any)[quizType]?.title || quizType
+
   return (
     <main style={styles.page}>
       <div style={styles.shell}>
@@ -298,8 +301,10 @@ export default function GameClient() {
         {/* Header */}
         <header style={styles.header}>
           <div>
-            <h1 style={styles.h1}>落ち物ネプリーグ（学習ゲーム）</h1>
-            <div style={styles.sub}>タイルを正しい順に押してプレート破壊。ミスでライフ減。</div>
+            <h1 style={styles.h1}>落ち物ネプリーグ（{quizTitle}）</h1>
+            <div style={styles.sub}>
+              教材別ゲーム：<b>{quizType}</b>（同じ問題をゲーム化）
+            </div>
           </div>
 
           <div style={styles.stats}>
@@ -328,6 +333,10 @@ export default function GameClient() {
           <div style={{ display: phase === "ready" ? "block" : "none" }}>
             <div style={styles.panelTitle}>スタート設定</div>
 
+            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+              教材：<b>{quizTitle}</b>（変更は「学習メニューへ」から）
+            </div>
+
             <div style={styles.row}>
               <div style={styles.field}>
                 <div style={styles.label}>モード</div>
@@ -351,49 +360,34 @@ export default function GameClient() {
               </div>
 
               <div style={styles.field}>
-                <div style={styles.label}>難易度（ノーマルのみ）</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {(["N5", "N4", "N3", "N2", "N1"] as GameDifficulty[]).map((d) => (
-                    <button
-                      key={d}
-                      disabled={mode !== "normal"}
-                      onClick={() => setDifficulty(d)}
-                      style={{
-                        ...styles.pill,
-                        opacity: mode === "normal" ? 1 : 0.45,
-                        ...(difficulty === d ? styles.pillActive : {}),
-                      }}
-                    >
-                      {d}
-                    </button>
-                  ))}
+                <div style={styles.label}>難易度</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
+                    {pool[0]?.difficulty ?? difficulty}
+                  </span>
                 </div>
-                <div style={styles.help}>※ アタックはレベルに合わせて N5→N1 に上がる</div>
+                <div style={styles.help}>
+                  ※ 教材ごとに難易度は固定（例：日本語N4→N4）。アタックは速度UPで難しくなります。
+                </div>
               </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
                 onClick={startGame}
-                disabled={loadingPool || pool.length === 0}
-                style={{ ...styles.btn, ...styles.btnMain, opacity: loadingPool ? 0.7 : 1 }}
+                disabled={pool.length === 0}
+                style={{ ...styles.btn, ...styles.btnMain }}
               >
-                {loadingPool ? "ロード中…" : "ゲーム開始"}
-              </button>
-              <button
-                onClick={() => loadPool(mode, difficulty)}
-                style={{ ...styles.btn, ...styles.btnGhost }}
-              >
-                問題を再読込
+                ゲーム開始
               </button>
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              問題数：<b>{pool.length}</b>（Firestoreが空なら内蔵サンプルを使用）
+              問題数：<b>{pool.length}</b>（この教材の既存クイズから生成）
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              Firestore推奨：<code>gameQuestions</code> / <code>attackLeaderboard</code>
+              ※ランキングは <code>attackLeaderboard</code> に保存（教材別に分けたい場合は次で対応）
             </div>
           </div>
 

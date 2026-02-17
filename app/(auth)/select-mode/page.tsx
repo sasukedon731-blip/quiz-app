@@ -214,17 +214,40 @@ export default function SelectModePage() {
             <span style={styles.badge}>NEW</span>
           </div>
 
-          <div style={styles.quizCard}>
-            <div style={styles.quizTitle}>落ち物ネプリーグ（MVP）</div>
-            <div style={styles.quizDesc}>
-              上から落ちる問題プレートを、タイルを正しい順に押して破壊。ノーマル/アタック対応。
+          {selectedCards.length === 0 ? (
+            <div style={styles.quizCard}>
+              <div style={styles.quizTitle}>落ち物ネプリーグ</div>
+              <div style={styles.quizDesc}>まずは「教材選択」で教材を選んでください。</div>
+              <div style={styles.quizActions}>
+                <Link href="/select-quizzes" style={{ ...styles.btn, ...styles.btnGreen }}>
+                  教材を選ぶ
+                </Link>
+              </div>
             </div>
-            <div style={styles.quizActions}>
-              <Link href="/game" style={{ ...styles.btn, ...styles.btnBlue }}>
-                ゲームを開始
-              </Link>
+          ) : (
+            <div style={styles.grid}>
+              {selectedCards.map((id) => {
+                const q = quizzes[id]
+                return (
+                  <div key={`game-${id}`} style={styles.quizCard}>
+                    <div style={styles.quizTitle}>落ち物ネプリーグ（{q.title}）</div>
+                    <div style={styles.quizDesc}>
+                      この教材の既存クイズを、そのままゲーム化（手入力なし）。
+                    </div>
+                    <div style={styles.quizMeta}>ID: {id}</div>
+                    <div style={styles.quizActions}>
+                      <Link href={`/game?type=${id}&mode=normal`} style={{ ...styles.btn, ...styles.btnBlue }}>
+                        ノーマル
+                      </Link>
+                      <Link href={`/game?type=${id}&mode=attack`} style={{ ...styles.btn, ...styles.btnGray }}>
+                        アタック
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          )}
         </section>
 
         <footer style={styles.footer}>
