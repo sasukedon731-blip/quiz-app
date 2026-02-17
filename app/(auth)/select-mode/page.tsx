@@ -207,6 +207,26 @@ export default function SelectModePage() {
           </section>
         )}
 
+        {/* ✅ Game entry */}
+        <section style={{ marginTop: 16 }}>
+          <div style={styles.sectionHead}>
+            <h2 style={styles.h2}>ゲームで学ぶ</h2>
+            <span style={styles.badge}>NEW</span>
+          </div>
+
+          <div style={styles.quizCard}>
+            <div style={styles.quizTitle}>落ち物ネプリーグ（MVP）</div>
+            <div style={styles.quizDesc}>
+              上から落ちる問題プレートを、タイルを正しい順に押して破壊。ノーマル/アタック対応。
+            </div>
+            <div style={styles.quizActions}>
+              <Link href="/game" style={{ ...styles.btn, ...styles.btnBlue }}>
+                ゲームを開始
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <footer style={styles.footer}>
           <div style={styles.footerNote}>
             ※ 直リンクで不正な教材を開いた場合も、この画面へ戻る仕様になっています。
