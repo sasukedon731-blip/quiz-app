@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Button from "@/app/components/Button"
@@ -10,6 +10,16 @@ import { quizCatalog } from "@/app/data/quizCatalog"
 export default function HomePage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+
+  // ✅ Mobile判定（LPをスマホで読みやすく）
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)")
+    const apply = () => setIsMobile(mq.matches)
+    apply()
+    mq.addEventListener?.("change", apply)
+    return () => mq.removeEventListener?.("change", apply)
+  }, [])
 
   // ✅ 上位6件だけ表示（LPを長くしない）
   const quizzes = useMemo(() => {
@@ -32,9 +42,9 @@ export default function HomePage() {
 
   return (
     <main style={styles.page}>
-      <div style={styles.shell}>
+      <div style={isMobile ? { ...styles.shell, maxWidth: 560, padding: "0 6px" } : styles.shell}>
         {/* Header */}
-        <header style={styles.header}>
+        <header style={isMobile ? { ...styles.header, flexDirection: "column", alignItems: "stretch" } : styles.header}>
           <div style={styles.brand}>
             <div style={styles.logo}>📚</div>
             <div>
@@ -43,7 +53,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <nav style={styles.nav}>
+          <nav style={isMobile ? { ...styles.nav, overflowX: "auto", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" } : styles.nav}>
             <a href="#features" style={styles.navLink}>特徴</a>
             <a href="#contents" style={styles.navLink}>教材</a>
             <a href="#plans" style={styles.navLink}>プラン</a>
@@ -67,17 +77,17 @@ export default function HomePage() {
         </header>
 
         {/* Hero */}
-        <section style={styles.hero}>
+        <section style={isMobile ? { ...styles.hero, gridTemplateColumns: "1fr" } : styles.hero}>
           <div>
-            <h1 style={styles.h1}>
+            <h1 style={isMobile ? { ...styles.h1, fontSize: 26, lineHeight: 1.15 } : styles.h1}>
               迷わず学べる<br />
               “今月の教材” に集中できる学習体験
             </h1>
-            <p style={styles.lead}>
+            <p style={isMobile ? { ...styles.lead, fontSize: 15 } : styles.lead}>
               プランに応じて教材を選び、通常・模擬・復習を回すだけ。
             </p>
 
-            <div style={styles.heroActions}>
+            <div style={isMobile ? { ...styles.heroActions, flexDirection: "column" } : styles.heroActions}>
               <Button variant="main" onClick={cta}>
                 {user ? "学習を始める" : "ログインして始める"}
               </Button>
@@ -94,9 +104,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={styles.heroCard}>
+          <div style={isMobile ? { ...styles.heroCard, padding: 12 } : styles.heroCard}>
             <div style={styles.heroCardTitle}>できること</div>
-            <ul style={styles.checkList}>
+            <ul style={isMobile ? { ...styles.checkList, fontSize: 14, paddingLeft: 18 } : styles.checkList}>
               <li>✅ 1ヶ月単位で受講教材をえらべる</li>
               <li>✅ 通常 / 模擬 / 復習で習熟アップ</li>
               <li>✅ 学習回数・連続日数・合格率を可視化</li>
