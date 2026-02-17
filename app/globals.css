@@ -399,43 +399,16 @@ input:focus, select:focus, textarea:focus{
   background: #b91c1c;
 }
 
-
-/* --- Mobile-first tweaks (UI + Game) --- */
-body{
+/* -------------------------
+   Mobile & Game Safety Patch
+   ------------------------- */
+html, body { height: 100%; }
+body {
   overscroll-behavior: none;
-}
-.game-root{
-  height: 100svh;
-  overflow: hidden;
-  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-.safe-bottom{
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
-/* Select-mode (mobile) */
-@media (max-width: 640px){
-  .mobile-shell{
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-  .mobile-header{
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-  .mobile-header-actions{
-    width: 100% !important;
-    justify-content: stretch !important;
-  }
-  .mobile-header-actions a{
-    flex: 1 1 auto !important;
-  }
-  .mobile-grid{
-    grid-template-columns: 1fr !important;
-  }
-  .mobile-quiz-actions{
-    grid-template-columns: 1fr !important;
-  }
+/* iPhone safe-area helpers */
+.safe-bottom {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }

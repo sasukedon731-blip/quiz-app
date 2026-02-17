@@ -1,11 +1,3 @@
-// app/layout.tsx
-import "./globals.css"
-import type { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Quiz App",
-  description: "Learning quiz app",
-}
 
 export const viewport = {
   width: "device-width",
@@ -14,7 +6,14 @@ export const viewport = {
   userScalable: false,
   viewportFit: "cover",
 }
+// app/layout.tsx
+import "./globals.css"
+import type { Metadata } from "next"
 
+export const metadata: Metadata = {
+  title: "Quiz App",
+  description: "Learning quiz app",
+}
 
 export default function RootLayout({
   children,
