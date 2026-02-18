@@ -352,7 +352,7 @@ export default function MyPage() {
       ) : (
         <>
           {/* Header actions */}
-          <div className="actions">
+          <div className="actionsGrid">
             <Button variant="main" onClick={() => router.push("/select-mode")}>
               学習を始める
             </Button>
@@ -437,7 +437,8 @@ export default function MyPage() {
             {loading ? (
               <p>読み込み中…</p>
             ) : showEmptyState ? (
-              <div style={{ padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
+              <div style={{ padding: 12, borderRadius: 12, background: "white",
+                      cursor: "pointer", border: "1px solid var(--border)" }}>
                 {view === "current" ? (
                   <>
                     <div style={{ fontWeight: 900 }}>今月の教材が未選択です</div>
@@ -464,6 +465,27 @@ export default function MyPage() {
                 {cards.map((c) => (
                   <div
                     key={c.quizType}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setFocusType(c.quizType)
+                      setTimeout(() => {
+                        if (typeof window !== "undefined") {
+                          document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                      }, 50)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setFocusType(c.quizType)
+                        setTimeout(() => {
+                          if (typeof window !== "undefined") {
+                            document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                          }
+                        }, 50)
+                      }
+                    }}
                     style={{
                       border: "1px solid var(--border)",
                       borderRadius: 16,
@@ -513,29 +535,9 @@ export default function MyPage() {
                       ) : null}
                     </div>
 
-                    <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(c.quizType)}`)}>
-                        通常
-                      </Button>
-                      <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(c.quizType)}`)}>
-                        模擬
-                      </Button>
-                      <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(c.quizType)}`)}>
-                        復習
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setFocusType(c.quizType)
-                          setTimeout(() => {
-                            if (typeof window !== "undefined") {
-                              document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                            }
-                          }, 50)
-                        }}
-                      >
-                        詳細
-                      </Button>
+                    <div className="cardHint">
+                      <span style={{ fontWeight: 900 }}>タップで詳細</span>
+                      <span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>›</span>
                     </div>
                   </div>
                 ))}
@@ -552,6 +554,13 @@ export default function MyPage() {
             <div id="detail" className="panelSoft" style={{ marginTop: 12 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>
                 🔎 詳細：{badgeByType(focusType).text} / {focusMeta?.title ?? focusType}
+              </div>
+
+              <div className="detailActions">
+                <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>通常</Button>
+                <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(focusType)}`)}>模擬</Button>
+                <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(focusType)}`)}>復習</Button>
+                <Button variant="ghost" onClick={() => router.push("/game")}>ゲーム</Button>
               </div>
 
               <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
