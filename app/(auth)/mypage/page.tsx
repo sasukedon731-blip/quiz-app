@@ -556,11 +556,41 @@ export default function MyPage() {
                 🔎 詳細：{badgeByType(focusType).text} / {focusMeta?.title ?? focusType}
               </div>
 
-              <div className="detailActions">
-                <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>通常</Button>
-                <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(focusType)}`)}>模擬</Button>
-                <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(focusType)}`)}>復習</Button>
-                <Button variant="ghost" onClick={() => router.push("/game")}>ゲーム</Button>
+              <div className="detailActionsV2">
+                {focusType === "japanese-n4" ? (
+                  <div className="gameHero">
+                    <div className="gameHeroTop">
+                      <span className="tagHot">🔥 今月のおすすめ</span>
+                      <span className="tagSoft">中毒装置（スコア・レベルを育てる）</span>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      className="btnGamePrimary"
+                      onClick={() => router.push("/game")}
+                    >
+                      🎮 N4バトルを遊ぶ
+                    </Button>
+
+                    <div className="gameHeroSub">
+                      ※ ゲームは現在 N4 固定です（今後 教材連動予定）
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="detailActionsGrid">
+                  <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>通常</Button>
+                  <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(focusType)}`)}>模擬</Button>
+                  <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(focusType)}`)}>復習</Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => router.push("/game")}
+                    disabled={focusType !== "japanese-n4"}
+                    title={focusType !== "japanese-n4" ? "ゲームは現在 N4 固定です" : undefined}
+                  >
+                    ゲーム（N4）
+                  </Button>
+                </div>
               </div>
 
               <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>

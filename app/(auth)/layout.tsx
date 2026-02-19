@@ -17,10 +17,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   const isSelectQuizzes = pathname === "/select-quizzes"
   const isAdmin = pathname.startsWith("/admin")
+  // ✅ ゲームは「無料体験（未ログインOK）」を許可する
+  const isGame = pathname === "/game"
 
   // ✅ 重要：ルートが変わるたびに state を読み直す（保存直後の反映が遅れない）
   useEffect(() => {
     if (loading) return
+
+    // ✅ /game は未ログインでも表示（ゲスト制限はゲーム側で制御）
+    if (isGame && !user) {
+      setStateLoaded(true)
+      setSelectedLen(0)
+      return
+    }
 
     // 未ログインは login
     if (!user) {
@@ -63,6 +72,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     if (!user) return
     if (!stateLoaded) return
 
+    // ✅ /game は受講教材チェック不要
+    if (isGame) return
+
     // 受講教材が未選択なら強制的に選択へ（select-quizzes / admin は除外）
     if (!isSelectQuizzes && !isAdmin && selectedLen === 0) {
       router.replace("/select-quizzes")
@@ -70,7 +82,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [loading, user, stateLoaded, selectedLen, isSelectQuizzes, isAdmin, router])
 
   if (loading) return <p style={{ textAlign: "center" }}>読み込み中…</p>
-  if (!user) return null
+  // ✅ /game は未ログインOK
+  if (!user && !isGame) return null
+
+  if (!user && isGame) return <>{children}</>
 
   if (!stateLoaded) return <p style={{ textAlign: "center" }}>読み込み中…</p>
 

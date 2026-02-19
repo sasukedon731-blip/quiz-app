@@ -17,6 +17,15 @@ import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 
 type Phase = "ready" | "playing" | "over"
 
+// ✅ ゲスト（未ログイン）の「1日1回」制限キー
+function guestTodayKey() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `guest-play-${y}-${m}-${day}`
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
@@ -44,6 +53,11 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
 
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
+
+  // ✅ ゲスト（未ログイン）: 1日1回プレイ + 終了後に登録導線
+  const isGuest = !uid
+  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false)
+  const [showGuestUpsellModal, setShowGuestUpsellModal] = useState(false)
 
   const [phase, setPhase] = useState<Phase>("ready")
   const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
@@ -93,7 +107,9 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        router.replace("/login")
+        // ✅ /game は未ログイン（ゲスト）でも遊べる
+        setUid(null)
+        setDisplayName("")
         return
       }
       setUid(u.uid)
@@ -114,6 +130,20 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
     })
     return () => unsub()
   }, [router])
+
+  // ✅ ゲスト：今日すでに遊んだかを初回チェック
+  useEffect(() => {
+    if (!isGuest) {
+      setShowGuestLimitModal(false)
+      return
+    }
+    try {
+      const played = localStorage.getItem(guestTodayKey())
+      if (played) setShowGuestLimitModal(true)
+    } catch {
+      // ignore
+    }
+  }, [isGuest])
 
   // quizzes方式なのでロードは不要（UIの余計な再読込ボタンも不要）
 
@@ -150,6 +180,21 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   }
 
   function startGame() {
+    // ✅ ゲスト：1日1回だけプレイ可（開始時点で消費してリロード回避）
+    if (isGuest) {
+      try {
+        const key = guestTodayKey()
+        const played = localStorage.getItem(key)
+        if (played) {
+          setShowGuestLimitModal(true)
+          return
+        }
+        localStorage.setItem(key, "1")
+      } catch {
+        // ignore（localStorageが使えない場合でもプレイは許可）
+      }
+    }
+
     setScore(0)
     setCombo(0)
     setLife(3)
@@ -166,6 +211,12 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
 
   async function endGame() {
     setPhase("over")
+
+    // ✅ ゲスト：終了後に「保存/ランキング」を見せて登録導線
+    if (isGuest) {
+      setShowGuestUpsellModal(true)
+      return
+    }
 
     if (mode !== "attack" || !uid) return
 
@@ -288,8 +339,9 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
           <Link href="/select-mode" style={styles.link}>
             ← 学習メニューへ
           </Link>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            {displayName ? `User: ${displayName}` : ""}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {isGuest ? <span style={styles.guestBadge}>無料体験（1日1回）</span> : null}
+            <div style={{ fontSize: 12, opacity: 0.7 }}>{displayName ? `User: ${displayName}` : ""}</div>
           </div>
         </div>
 
@@ -344,7 +396,14 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                   </button>
                   <button
                     style={{ ...styles.segBtn, ...(mode === "attack" ? styles.segActive : {}) }}
-                    onClick={() => setMode("attack")}
+                    onClick={() => {
+                      if (isGuest) {
+                        setShowGuestUpsellModal(true)
+                        return
+                      }
+                      setMode("attack")
+                    }}
+                    disabled={isGuest}
                   >
                     アタック（ランキング）
                   </button>
@@ -352,6 +411,11 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                 <div style={styles.help}>
                   ノーマル：難易度固定 / アタック：速度UP + 難易度が徐々に上がる
                 </div>
+                {isGuest ? (
+                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72, lineHeight: 1.6 }}>
+                    ※ アタック（ランキング）は<strong>ログイン後</strong>に解放されます
+                  </div>
+                ) : null}
               </div>
 
               <div style={styles.field}>
@@ -533,6 +597,95 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
         <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
           ※ Firestoreが空でも動くように内蔵問題を用意。Firestoreに入れれば自動でそちらが優先。
         </div>
+
+        {/* ===== Guest Modals ===== */}
+        <AnimatePresence>
+          {showGuestLimitModal ? (
+            <motion.div
+              key="guest-limit"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={styles.modalOverlay}
+            >
+              <motion.div
+                initial={{ y: 10, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 10, opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                style={styles.modal}
+              >
+                <div style={styles.modalTitle}>🎮 今日の無料プレイは終了しました</div>
+                <div style={styles.modalText}>
+                  明日また挑戦できます。<br />
+                  会員登録すると、<b>無制限プレイ</b>・<b>スコア保存</b>・<b>ランキング</b>が解放されます。
+                </div>
+
+                <div style={styles.modalBtns}>
+                  <button
+                    style={{ ...styles.btn, ...styles.btnMain, flex: 1 }}
+                    onClick={() => router.push("/register")}
+                  >
+                    無料で会員登録
+                  </button>
+                  <button
+                    style={{ ...styles.btn, ...styles.btnSub, flex: 1 }}
+                    onClick={() => router.push("/login")}
+                  >
+                    ログイン
+                  </button>
+                </div>
+
+                <button
+                  style={{ ...styles.btn, ...styles.btnGhost, width: "100%", marginTop: 10 }}
+                  onClick={() => setShowGuestLimitModal(false)}
+                >
+                  明日また来る
+                </button>
+              </motion.div>
+            </motion.div>
+          ) : null}
+
+          {showGuestUpsellModal ? (
+            <motion.div
+              key="guest-upsell"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={styles.modalOverlay}
+            >
+              <motion.div
+                initial={{ y: 10, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 10, opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                style={styles.modal}
+              >
+                <div style={styles.modalTitle}>🔥 記録を残す？</div>
+                <div style={styles.modalText}>
+                  今日のスコア：<b style={{ fontSize: 18 }}>{score}</b>
+                  <br />
+                  ゲストの記録は保存されません。会員登録で <b>保存</b> / <b>ランキング</b> / <b>レベル保持</b> を解放できます。
+                </div>
+
+                <div style={styles.modalBtns}>
+                  <button
+                    style={{ ...styles.btn, ...styles.btnMain, flex: 1 }}
+                    onClick={() => router.push("/register")}
+                  >
+                    無料で続ける
+                  </button>
+                  <button
+                    style={{ ...styles.btn, ...styles.btnSub, flex: 1 }}
+                    onClick={() => setShowGuestUpsellModal(false)}
+                  >
+                    今はいい
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </main>
   )
@@ -630,6 +783,18 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btnMain: { background: "#2563eb", color: "#fff" },
   btnGhost: { background: "#111827", color: "#fff" },
+  btnSub: { background: "#e5e7eb", color: "#111827" },
+
+  guestBadge: {
+    fontSize: 12,
+    fontWeight: 900,
+    padding: "8px 12px",
+    borderRadius: 999,
+    background: "#111827",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+  },
 
   dangerLine: {
     position: "absolute",
@@ -716,4 +881,26 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: 12,
   },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(17,24,39,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 80,
+  },
+  modal: {
+    width: "min(520px, 92vw)",
+    background: "#fff",
+    borderRadius: 18,
+    border: "1px solid #e5e7eb",
+    padding: 16,
+    boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
+  },
+  modalTitle: { fontSize: 16, fontWeight: 900 },
+  modalText: { marginTop: 10, fontSize: 13, opacity: 0.88, lineHeight: 1.7 },
+  modalBtns: { marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" },
 }
