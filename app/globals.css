@@ -285,78 +285,6 @@ input:focus, select:focus, textarea:focus{
   min-width:180px;
 }
 
-
-/* MyPage: compact header actions (mobile-first) */
-.actionsGrid{
-  margin-top:12px;
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0, 1fr));
-  gap:10px;
-}
-@media (min-width: 720px){
-  .actionsGrid{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
-}
-.actionsGrid > .btn{
-  width:100%;
-  min-width:0;
-  padding:12px 12px;
-}
-
-/* MyPage: card hint row (no per-card mode buttons) */
-.cardHint{
-  margin-top:auto;
-  padding-top:10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  color:var(--muted);
-  font-size:13px;
-  font-weight:800;
-}
-
-/* MyPage: actions shown only in detail section */
-.detailActions{
-  margin-top:10px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.detailActions > .btn{
-  width:auto;
-  min-width:120px;
-}
-@media (max-width: 420px){
-  .detailActions > .btn{
-    flex:1 1 45%;
-    min-width:0;
-  }
-}
-
-/* MyPage: v2 actions (Game is the hero) */
-.detailActionsV2{ margin-top:10px; display:flex; flex-direction:column; gap:12px; }
-.gameHero{ border:1px solid rgba(124,58,237,.25); background:rgba(124,58,237,.08); border-radius:16px; padding:12px; }
-.gameHeroTop{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.tagHot{ display:inline-flex; padding:4px 10px; border-radius:999px; font-weight:900; font-size:12px; background:rgba(124,58,237,.16); border:1px solid rgba(124,58,237,.25); }
-.tagSoft{ display:inline-flex; padding:4px 10px; border-radius:999px; font-weight:800; font-size:12px; color:var(--muted); background:#fff; border:1px solid var(--border); }
-.btnGamePrimary{
-  width:100%;
-  padding:18px 16px;
-  font-size:18px;
-  font-weight:900;
-  border-radius:16px;
-  border:1px solid rgba(124,58,237,.35);
-  background:linear-gradient(135deg, rgba(124,58,237,.28), rgba(91,33,182,.18));
-}
-.btnGamePrimary:hover{ background:linear-gradient(135deg, rgba(124,58,237,.34), rgba(91,33,182,.22)); }
-.gameHeroSub{ margin-top:10px; font-size:12px; color:var(--muted); font-weight:700; }
-
-.detailActionsGrid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
-.detailActionsGrid > .btn{ width:100%; min-width:0; }
-@media (max-width: 640px){
-  .detailActionsGrid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-}
-
 .note{
   margin-top:10px;
   color:var(--muted);
@@ -483,4 +411,59 @@ body {
 /* iPhone safe-area helpers */
 .safe-bottom {
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+/* -------------------------
+   MyPage: Game Hero (C)
+   ------------------------- */
+.detailActionGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin-top: 12px;
+}
+
+@media (min-width: 640px){
+  .detailActionGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.gameHero{
+  border:1px solid rgba(124,58,237,.22);
+  background: linear-gradient(180deg, rgba(237,233,254,.8), #fff);
+  border-radius:16px;
+  padding:12px;
+}
+
+.gameHeroTag{
+  font-size:12px;
+  font-weight:900;
+  color:#5b21b6;
+  margin-bottom:8px;
+}
+
+.gameHeroBtn{
+  width:100%;
+  border:none;
+  border-radius:14px;
+  padding:16px 14px;
+  font-size:18px;
+  font-weight:900;
+  cursor:pointer;
+  color:white;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  box-shadow: 0 10px 18px rgba(91,33,182,.22);
+}
+
+.gameHeroBtn:active{
+  transform: translateY(1px);
+}
+
+.gameHeroNote{
+  margin-top:8px;
+  font-size:12px;
+  opacity:.75;
+}
+
+.gameHeroMiniRow{
+  margin-top:10px;
 }
