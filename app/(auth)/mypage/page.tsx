@@ -6,12 +6,13 @@ import Link from "next/link"
 import { onAuthStateChanged, signOut, User } from "firebase/auth"
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
-  doc,
-  getDoc,
+  where, // ✅ 必須
 } from "firebase/firestore"
 
 import { auth, db } from "@/app/lib/firebase"
