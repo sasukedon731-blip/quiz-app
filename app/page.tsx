@@ -43,6 +43,12 @@ export default function HomePage() {
     else router.push("/login") // ルート違うならここだけ修正
   }
 
+  // ✅ TOPからゲームへ（ゲストでもOK）
+  const goJapaneseBattle = () => {
+    // normal = カジュアル（ゲスト1日1回） / attack = ランキング（ログイン推奨）
+    router.push("/game?mode=normal")
+  }
+
   const closeMenu = () => setMenuOpen(false)
 
   return (
@@ -143,6 +149,25 @@ export default function HomePage() {
             <p style={isMobile ? { ...styles.lead, fontSize: 15 } : styles.lead}>
               プランに応じて教材を選び、通常・模擬・復習を回すだけ。
             </p>
+
+            {/* 🎮 Game Hero（TOPでもゲームを主役に） */}
+            <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16 } : styles.gameHero}>
+              <div style={styles.gameHeroTop}>
+                <div style={styles.gameHeroBadge}>🔥 今月のおすすめ</div>
+                <div style={styles.gameHeroTitle}>🎮 日本語バトル</div>
+                <div style={styles.gameHeroSub}>
+                  {user ? "今日も腕試し！スコア・レベルが保存されます" : "登録不要でまず体験。ゲストは1日1回プレイOK"}
+                </div>
+              </div>
+
+              <button type="button" onClick={goJapaneseBattle} style={styles.gameHeroBtn}>
+                今すぐバトルする
+              </button>
+
+              <div style={styles.gameHeroNote}>
+                {user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}
+              </div>
+            </div>
 
             {/* ✅ LPとしてのCTAは残す（学習導線はメニューにもある） */}
             <div style={isMobile ? { ...styles.heroActions, flexDirection: "column" } : styles.heroActions}>
@@ -457,6 +482,44 @@ const styles: Record<string, React.CSSProperties> = {
   h1: { margin: 0, fontSize: 34, letterSpacing: 0.2, lineHeight: 1.1 },
   lead: { marginTop: 10, opacity: 0.85, lineHeight: 1.7, fontSize: 14 },
   heroActions: { marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" },
+
+  // ✅ Game Hero（TOPでゲームを目立たせる）
+  gameHero: {
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 18,
+    background: "linear-gradient(135deg, #7c3aed, #4c1d95)",
+    color: "#fff",
+    boxShadow: "0 10px 26px rgba(0,0,0,0.14)",
+    border: "1px solid rgba(255,255,255,0.12)",
+  },
+  gameHeroTop: { display: "flex", flexDirection: "column", gap: 6 },
+  gameHeroBadge: {
+    display: "inline-flex",
+    alignSelf: "flex-start",
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.16)",
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: 0.2,
+  },
+  gameHeroTitle: { fontSize: 18, fontWeight: 900, letterSpacing: 0.2 },
+  gameHeroSub: { opacity: 0.92, fontSize: 13, lineHeight: 1.5 },
+  gameHeroBtn: {
+    marginTop: 12,
+    width: "100%",
+    padding: "14px 14px",
+    borderRadius: 14,
+    border: "none",
+    background: "#fff",
+    color: "#4c1d95",
+    fontWeight: 900,
+    fontSize: 16,
+    cursor: "pointer",
+    boxShadow: "0 10px 18px rgba(0,0,0,0.10)",
+  },
+  gameHeroNote: { marginTop: 8, opacity: 0.86, fontSize: 12 },
 
   heroCard: {
     background: "#fff",
