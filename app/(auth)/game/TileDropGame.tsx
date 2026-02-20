@@ -35,7 +35,6 @@ function difficultyForAttack(level: number): GameDifficulty {
 
 function speedFor(mode: GameMode, level: number) {
   if (mode === "normal") return 5.5
-  // attack: gets faster
   return clamp(6 - (level - 1) * 0.28, 2.2, 6)
 }
 
@@ -55,22 +54,18 @@ export default function TileDropGame({
   const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
-  // ✅ quizzes から作る（Firestore手入力不要）
   const pool = useMemo(() => {
     const built = buildGamePoolFromQuizzes(quizType)
     if (built.length) return built.filter((q) => q.enabled)
-    // hard fallback
     return fallbackQuestions.filter((q) => q.enabled)
   }, [quizType])
 
-  // 教材が変わったら、表示用の難易度も合わせる
   useEffect(() => {
     const d = pool[0]?.difficulty
     if (d) setDifficulty(d)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType])
 
-  // URLの mode=attack を反映（ready のときだけ）
   useEffect(() => {
     if (phase !== "ready") return
     if (modeParam === "attack") setMode("attack")
@@ -88,15 +83,17 @@ export default function TileDropGame({
   const [shake, setShake] = useState(0)
   const [toast, setToast] = useState<string>("")
 
-  const [bestScore, setBestScore] = useState<number>(0) // attack best
+  // ✅ コンボポップ
+  const [comboPop, setComboPop] = useState<number | null>(null)
+  const comboPopTimer = useRef<number | null>(null)
+
+  const [bestScore, setBestScore] = useState<number>(0)
   const [leaderboard, setLeaderboard] = useState<{ displayName: string; bestScore: number }[]>([])
 
-  // Guards against double-judgement (success then animationComplete miss)
   const activeKeyRef = useRef<string>("")
   const resolvedRef = useRef<boolean>(false)
 
-  // ===== Auth =====
-  // ✅ ゲストでも遊べる前提：ログインしていれば uid/displayName を補完するだけ（未ログインでもリダイレクトしない）
+  // ===== Auth（ゲストOK）=====
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
@@ -107,7 +104,6 @@ export default function TileDropGame({
 
       setUid(u.uid)
 
-      // displayName: prefer Auth, fallback Firestore users/{uid}
       const dn = u.displayName || ""
       if (dn) {
         setDisplayName(dn)
@@ -124,6 +120,13 @@ export default function TileDropGame({
     return () => unsub()
   }, [])
 
+  // ✅ タイマー掃除
+  useEffect(() => {
+    return () => {
+      if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+    }
+  }, [])
+
   const poolByDifficulty = useMemo(() => {
     const map = new Map<string, GameQuestion[]>()
     for (const q of pool) {
@@ -137,13 +140,8 @@ export default function TileDropGame({
   function pickQuestion(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
     const wantDifficulty = nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
     const candidates = poolByDifficulty.get(wantDifficulty) ?? []
-
     if (candidates.length > 0) return pickRandom(candidates)
-
-    // fallback: any
     if (pool.length > 0) return pickRandom(pool)
-
-    // hard fallback
     return fallbackQuestions[0]
   }
 
@@ -157,7 +155,6 @@ export default function TileDropGame({
   }
 
   function startGame() {
-    // ゲストが attack を選んだ場合：ノーマルに落とす（ランキングはログイン必須）
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")
@@ -174,9 +171,9 @@ export default function TileDropGame({
     setLevel(1)
     setBestScore(0)
     setLeaderboard([])
+    setComboPop(null)
 
     setPhase("playing")
-    // delay a tick so poolByDifficulty is ready
     setTimeout(() => {
       resetRound(nextMode, difficulty, 1)
     }, 0)
@@ -187,7 +184,6 @@ export default function TileDropGame({
 
     if (mode !== "attack" || !uid) return
 
-    // 1) get current best from Firestore (optional, cheap)
     let currentBest = 0
     try {
       const snap = await getDoc(doc(db, "attackLeaderboard", uid))
@@ -199,7 +195,6 @@ export default function TileDropGame({
       // ignore
     }
 
-    // 2) submit
     try {
       const res = await submitAttackScore({
         uid,
@@ -212,7 +207,6 @@ export default function TileDropGame({
       console.error(e)
     }
 
-    // 3) leaderboard
     try {
       const lb = await fetchAttackLeaderboard(30)
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
@@ -227,16 +221,15 @@ export default function TileDropGame({
 
     resolvedRef.current = true
     setCombo(0)
+    setComboPop(null)
     setShake((x) => x + 1)
 
     setLife((prev) => {
       const next = prev - 1
       if (next <= 0) {
-        // game over
         setTimeout(() => endGame(), 50)
         return 0
       }
-      // next question
       setTimeout(() => {
         const nextLevel = mode === "attack" ? level + 1 : level
         if (mode === "attack") setLevel(nextLevel)
@@ -245,8 +238,16 @@ export default function TileDropGame({
       return next
     })
 
-    if (reason === "timeout") setToast("時間切れ！")
-    else setToast("ミス！")
+    setToast(reason === "timeout" ? "時間切れ！" : "ミス！")
+  }
+
+  function fireComboPop(nextCombo: number) {
+    // ✅ 2以上から出す（うるさくしない）
+    if (nextCombo < 2) return
+
+    setComboPop(nextCombo)
+    if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+    comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
   }
 
   function success() {
@@ -261,7 +262,12 @@ export default function TileDropGame({
     const gained = base + comboBonus
 
     setScore((s) => s + gained)
-    setCombo((c) => c + 1)
+
+    // ✅ 次のコンボ値を先に計算して演出
+    const nextCombo = combo + 1
+    setCombo(nextCombo)
+    fireComboPop(nextCombo)
+
     setToast(`+${gained}`)
 
     setTimeout(() => {
@@ -284,28 +290,22 @@ export default function TileDropGame({
 
     const next = inputIndex + 1
     setInputIndex(next)
-
-    if (next >= current.answer.length) {
-      success()
-    }
+    if (next >= current.answer.length) success()
   }
 
   const speedSec = useMemo(() => speedFor(mode, level), [mode, level])
   const fallY = 420
-
   const plateKey = current ? activeKeyRef.current : "none"
 
-  // ===== Render =====
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
-  // Playing領域（上のコンパクトバー＋カードpadding分を差し引く）
-  // ※ 後で詰める前提でまず効かせる値
-  const playAreaHeight = "calc(100svh - 140px)"
+  // ✅ 下の中断を消した分、さらに広く
+  const playAreaHeight = "calc(100svh - 128px)"
 
   return (
     <main style={styles.page} className="game-root">
       <div style={styles.shell}>
-        {/* Compact bar（スマホ最適） */}
+        {/* Compact bar */}
         <div style={styles.compactBar}>
           <Link href="/select-mode" style={styles.compactBack}>
             ←
@@ -322,14 +322,13 @@ export default function TileDropGame({
           </div>
         </div>
 
-        {/* Content */}
         <section style={styles.card}>
           {/* Ready */}
           <div style={{ display: phase === "ready" ? "block" : "none" }}>
             <div style={styles.panelTitle}>スタート設定</div>
 
             <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
-              教材：<b>{quizTitle}</b>（変更は「学習メニュー」から）
+              教材：<b>{quizTitle}</b>
             </div>
 
             <div style={styles.row}>
@@ -356,6 +355,7 @@ export default function TileDropGame({
                     アタック（ランキング）
                   </button>
                 </div>
+
                 <div style={styles.help}>
                   ノーマル：難易度固定 / アタック：速度UP + 難易度が徐々に上がる
                 </div>
@@ -363,10 +363,7 @@ export default function TileDropGame({
                 {!uid ? (
                   <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
                     ※ ゲストはノーマルのみ。ランキング参加は
-                    <button
-                      onClick={() => router.push("/login")}
-                      style={{ ...styles.inlineLinkBtn }}
-                    >
+                    <button onClick={() => router.push("/login")} style={styles.inlineLinkBtn}>
                       ログイン
                     </button>
                     が必要です。
@@ -381,35 +378,24 @@ export default function TileDropGame({
                     {pool[0]?.difficulty ?? difficulty}
                   </span>
                 </div>
-                <div style={styles.help}>
-                  ※ 教材ごとに難易度は固定（例：日本語N4→N4）。アタックは速度UPで難しくなります。
-                </div>
+                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
               </div>
             </div>
 
-            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={startGame}
-                disabled={pool.length === 0}
-                style={{ ...styles.btn, ...styles.btnMain }}
-              >
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <button onClick={startGame} disabled={pool.length === 0} style={{ ...styles.btn, ...styles.btnMain }}>
                 ゲーム開始
               </button>
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              問題数：<b>{pool.length}</b>（この教材の既存クイズから生成）
-            </div>
-
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              ※ランキングは <code>attackLeaderboard</code> に保存（教材別に分けたい場合は次で対応）
+              問題数：<b>{pool.length}</b>
             </div>
           </div>
 
           {/* Playing */}
           <div style={{ display: phase === "playing" ? "block" : "none" }}>
             <div style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }}>
-              {/* Danger line */}
               <div style={styles.dangerLine} />
 
               {/* Overlay chips */}
@@ -418,6 +404,22 @@ export default function TileDropGame({
                 <span style={styles.chip}>Combo {combo}</span>
                 {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
               </div>
+
+              {/* ✅ Combo Pop（中毒演出） */}
+              <AnimatePresence>
+                {comboPop ? (
+                  <motion.div
+                    key={`combo-${comboPop}`}
+                    initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 1.06, y: -8 }}
+                    transition={{ duration: 0.18 }}
+                    style={styles.comboPop}
+                  >
+                    COMBO <span style={{ fontSize: 30, marginLeft: 6 }}>{comboPop}</span>!
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
 
               {/* Toast */}
               <AnimatePresence>
@@ -441,15 +443,10 @@ export default function TileDropGame({
                   {current ? (
                     <motion.div
                       key={plateKey}
-                      initial={{ y: -120, opacity: 1, x: 0 }}
-                      animate={{
-                        y: fallY,
-                        opacity: 1,
-                        x: shake % 2 === 0 ? 0 : 0,
-                      }}
+                      initial={{ y: -120, opacity: 1 }}
+                      animate={{ y: fallY, opacity: 1 }}
                       transition={{ duration: speedSec, ease: "linear" }}
                       onAnimationComplete={() => {
-                        // If this plate is still the active one and not resolved, it's a miss.
                         if (resolvedRef.current) return
                         miss("timeout")
                       }}
@@ -459,13 +456,7 @@ export default function TileDropGame({
                       <div style={styles.prompt}>{current.prompt}</div>
                       <div style={styles.progress}>
                         {current.answer.map((a, i) => (
-                          <span
-                            key={`${a}-${i}`}
-                            style={{
-                              ...styles.dot,
-                              opacity: i < inputIndex ? 1 : 0.25,
-                            }}
-                          />
+                          <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
                         ))}
                       </div>
                     </motion.div>
@@ -483,19 +474,7 @@ export default function TileDropGame({
                     </button>
                   ))}
                 </div>
-
-                <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => {
-                      setPhase("ready")
-                      setCurrent(null)
-                      setToast("")
-                    }}
-                    style={{ ...styles.btn, ...styles.btnGhost }}
-                  >
-                    中断して戻る
-                  </button>
-                </div>
+                {/* ✅ 中断ボタンは撤去（左上矢印で十分） */}
               </div>
             </div>
           </div>
@@ -549,11 +528,6 @@ export default function TileDropGame({
             </div>
           </div>
         </section>
-
-        {/* Footer note */}
-        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
-          ※ Firestoreが空でも動くように内蔵問題を用意。Firestoreに入れれば自動でそちらが優先。
-        </div>
       </div>
     </main>
   )
@@ -565,12 +539,8 @@ const styles: Record<string, CSSProperties> = {
     background: "#f6f7fb",
     padding: "clamp(10px, 3vw, 18px)" as any,
   },
-  shell: {
-    maxWidth: 980,
-    margin: "0 auto",
-  },
+  shell: { maxWidth: 980, margin: "0 auto" },
 
-  // ✅ Compact bar（スマホ最適）
   compactBar: {
     position: "sticky",
     top: 0,
@@ -602,13 +572,7 @@ const styles: Record<string, CSSProperties> = {
   },
   compactCenter: { flex: 1, minWidth: 0 },
   compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
-  compactSub: {
-    fontSize: 12,
-    opacity: 0.7,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
+  compactSub: { fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   compactStats: { display: "flex", gap: 8, alignItems: "center" },
   badge: {
     display: "inline-flex",
@@ -633,34 +597,15 @@ const styles: Record<string, CSSProperties> = {
   panelTitle: { fontWeight: 900, fontSize: 16 },
 
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12 },
-  field: {
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 12,
-  },
+  field: { background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 },
   label: { fontWeight: 900, fontSize: 12, opacity: 0.75 },
   help: { marginTop: 8, fontSize: 12, opacity: 0.7, lineHeight: 1.5 },
 
   seg: { display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" },
-  segBtn: {
-    padding: "10px 12px",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  segBtn: { padding: "10px 12px", borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
   segActive: { border: "1px solid #2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.12)" },
 
-  pill: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  pill: { padding: "8px 12px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
   inlineLinkBtn: {
@@ -674,42 +619,34 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "underline",
   },
 
-  btn: {
-    padding: "10px 14px",
-    borderRadius: 14,
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 900,
-  },
+  btn: { padding: "10px 14px", borderRadius: 14, border: "none", cursor: "pointer", fontWeight: 900 },
   btnMain: { background: "#2563eb", color: "#fff" },
   btnGhost: { background: "#111827", color: "#fff" },
 
-  dangerLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: "58%" as any,
-    height: 2,
-    background: "rgba(239,68,68,0.6)",
-  },
+  dangerLine: { position: "absolute", left: 0, right: 0, top: "58%" as any, height: 2, background: "rgba(239,68,68,0.6)" },
 
-  // ✅ Lv/Combo などを小さく浮かせる
-  overlayChips: {
+  overlayChips: { position: "absolute", top: 10, right: 12, display: "flex", gap: 8, zIndex: 20 },
+  chip: { padding: "8px 10px", borderRadius: 999, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, fontSize: 12, boxShadow: "0 10px 20px rgba(0,0,0,0.06)" },
+
+  // ✅ Combo Pop（中央にドンッ）
+  comboPop: {
     position: "absolute",
-    top: 10,
-    right: 12,
-    display: "flex",
-    gap: 8,
-    zIndex: 20,
-  },
-  chip: {
-    padding: "8px 10px",
+    left: "50%",
+    top: "44%",
+    transform: "translate(-50%, -50%)",
+    zIndex: 35,
+    padding: "10px 14px",
     borderRadius: 999,
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    fontWeight: 900,
-    fontSize: 12,
-    boxShadow: "0 10px 20px rgba(0,0,0,0.06)",
+    background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+    color: "#fff",
+    fontWeight: 1000 as any,
+    letterSpacing: 0.4,
+    boxShadow: "0 18px 36px rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.16)",
+    display: "flex",
+    alignItems: "baseline",
+    gap: 6,
+    whiteSpace: "nowrap",
   },
 
   plate: {
@@ -734,20 +671,9 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.18)",
   },
-  prompt: {
-    fontSize: "clamp(18px, 5vw, 22px)" as any,
-    fontWeight: 900,
-    textAlign: "center",
-    padding: "14px 0 8px",
-  },
+  prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    background: "#fff",
-    display: "inline-block",
-  },
+  dot: { width: 10, height: 10, borderRadius: 999, background: "#fff", display: "inline-block" },
 
   toast: {
     position: "absolute",
@@ -767,16 +693,12 @@ const styles: Record<string, CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    padding: "14px 14px calc(14px + env(safe-area-inset-bottom))" as any,
+    padding: "10px 12px calc(10px + env(safe-area-inset-bottom))" as any,
     background: "linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.8))",
     borderTop: "1px solid #e5e7eb",
   },
-  tilesTitle: { fontWeight: 900, marginBottom: 10 },
-  tilesGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))",
-    gap: 10,
-  },
+  tilesTitle: { fontWeight: 900, marginBottom: 8 },
+  tilesGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 10 },
   tileBtn: {
     padding: "clamp(10px, 2.6vw, 14px) clamp(8px, 2.2vw, 10px)" as any,
     borderRadius: 16,
@@ -788,10 +710,5 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
   },
 
-  lbBox: {
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 12,
-  },
+  lbBox: { background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 },
 }
