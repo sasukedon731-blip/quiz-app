@@ -12,7 +12,6 @@ import {
   limit,
   orderBy,
   query,
-  where, // ✅ 必須
 } from "firebase/firestore"
 
 import { auth, db } from "@/app/lib/firebase"
@@ -89,6 +88,9 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // ✅ インデックス不要にするため、結果をまとめて持つ（直近N件）
+  const [allResults, setAllResults] = useState<QuizResult[]>([])
+
   // summary data
   const [latestResults, setLatestResults] = useState<QuizResult[]>([]) // global latest 5
   const [progressMap, setProgressMap] = useState<Record<string, Progress>>({})
@@ -103,6 +105,7 @@ export default function MyPage() {
     progress: null,
   })
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailTargetId, setDetailTargetId] = useState<string | null>(null)
 
   // Auth
   useEffect(() => {
@@ -123,11 +126,13 @@ export default function MyPage() {
       setLoading(true)
       setError("")
       try {
-        // latest 5 overall
         const resultsRef = collection(db, "users", user.uid, "results")
-        const q1 = query(resultsRef, orderBy("createdAt", "desc"), limit(5))
-        const snap = await getDocs(q1)
-        const list: QuizResult[] = snap.docs.map((d) => {
+
+        // ✅ 直近200件まとめて取得（orderByだけなら単一インデックスでOK）
+        const qAll = query(resultsRef, orderBy("createdAt", "desc"), limit(200))
+        const snapAll = await getDocs(qAll)
+
+        const all: QuizResult[] = snapAll.docs.map((d) => {
           const data = d.data() as any
           return {
             score: Number(data.score ?? 0),
@@ -138,7 +143,9 @@ export default function MyPage() {
             createdAt: data.createdAt ?? null,
           }
         })
-        setLatestResults(list)
+
+        setAllResults(all)
+        setLatestResults(all.slice(0, 5))
 
         // progress per quiz (optional)
         const pMap: Record<string, Progress> = {}
@@ -155,35 +162,13 @@ export default function MyPage() {
         )
         setProgressMap(pMap)
 
-        // latest result per quizType (1件だけ)
+        // ✅ 教材ごとの最新1件（all を先頭から埋める＝最新が先に出てくる）
         const lbq: Record<string, QuizResult | null> = {}
-        await Promise.all(
-          quizCatalog.map(async (q) => {
-            try {
-              const qx = query(
-                resultsRef,
-                where("quizType", "==", q.id),
-                orderBy("createdAt", "desc"),
-                limit(1)
-              )
-              const s = await getDocs(qx)
-              lbq[q.id] = s.docs.length ? (s.docs[0].data() as any) : null
-              if (lbq[q.id]) {
-                const d = lbq[q.id] as any
-                lbq[q.id] = {
-                  score: Number(d.score ?? 0),
-                  total: Number(d.total ?? 0),
-                  accuracy: typeof d.accuracy === "number" ? d.accuracy : undefined,
-                  quizType: d.quizType,
-                  mode: d.mode,
-                  createdAt: d.createdAt ?? null,
-                }
-              }
-            } catch {
-              lbq[q.id] = null
-            }
-          })
-        )
+        for (const q of quizCatalog) lbq[q.id] = null
+        for (const r of all) {
+          const qt = String(r.quizType ?? "")
+          if (lbq[qt] == null) lbq[qt] = r
+        }
         setLatestByQuiz(lbq)
       } catch (e) {
         console.error(e)
@@ -215,42 +200,17 @@ export default function MyPage() {
     }
   }
 
+  // ✅ 詳細：Firestoreへ問い合わせず、allResultsからフィルタして即表示
   const openDetail = async (quizId: string, title: string) => {
-    if (!user?.uid) return
-    setDetailLoading(true)
     setError("")
+    setDetailLoading(true)
+    setDetailTargetId(quizId)
     try {
-      const resultsRef = collection(db, "users", user.uid, "results")
+      const list = allResults
+        .filter((r) => String(r.quizType ?? "") === quizId)
+        .slice(0, 5)
 
-      // latest 5 for this quizType
-      const qx = query(
-        resultsRef,
-        where("quizType", "==", quizId),
-        orderBy("createdAt", "desc"),
-        limit(5)
-      )
-      const s = await getDocs(qx)
-      const list: QuizResult[] = s.docs.map((d) => {
-        const data = d.data() as any
-        return {
-          score: Number(data.score ?? 0),
-          total: Number(data.total ?? 0),
-          accuracy: typeof data.accuracy === "number" ? data.accuracy : undefined,
-          quizType: data.quizType,
-          mode: data.mode,
-          createdAt: data.createdAt ?? null,
-        }
-      })
-
-      // progress
-      let prog: Progress | null = null
-      try {
-        const pRef = doc(db, "users", user.uid, "progress", quizId)
-        const pSnap = await getDoc(pRef)
-        prog = pSnap.exists() ? (pSnap.data() as any) : null
-      } catch {
-        prog = null
-      }
+      const prog = progressMap[quizId] ?? null
 
       setDetail({
         open: true,
@@ -261,9 +221,10 @@ export default function MyPage() {
       })
     } catch (e) {
       console.error(e)
-      setError("詳細の読み込みに失敗しました")
+      setError("詳細の表示に失敗しました")
     } finally {
       setDetailLoading(false)
+      setDetailTargetId(null)
     }
   }
 
@@ -277,17 +238,9 @@ export default function MyPage() {
     <main style={S.main}>
       {/* Topbar (52px) - ☰を右上に */}
       <header style={S.topbar}>
-        <div style={S.leftSlot}>
-          {/* 左は空（TOPと同じで右に寄せたい） */}
-        </div>
-
+        <div style={S.leftSlot} />
         <div style={S.topbarTitle}>マイページ</div>
-
-        <button
-          aria-label="menu"
-          onClick={() => setDrawerOpen(true)}
-          style={S.iconBtn}
-        >
+        <button aria-label="menu" onClick={() => setDrawerOpen(true)} style={S.iconBtn}>
           ☰
         </button>
       </header>
@@ -376,10 +329,7 @@ export default function MyPage() {
             <div style={S.bigNumber}>
               {(() => {
                 const vals = Object.values(progressMap)
-                const best = vals.reduce(
-                  (m, p) => Math.max(m, Number(p.streak ?? 0)),
-                  0
-                )
+                const best = vals.reduce((m, p) => Math.max(m, Number(p.streak ?? 0)), 0)
                 return best ? `${best}日` : "—"
               })()}
             </div>
@@ -387,7 +337,7 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* ✅ 教材カード（コンパクト：記録だけ + 詳細ボタン） */}
+        {/* 教材カード：記録だけ + 詳細ボタン */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
             <div style={S.cardTitle}>教材</div>
@@ -405,6 +355,8 @@ export default function MyPage() {
               const streak = Number(p.streak ?? 0)
               const lastAcc = last ? calcAcc(last as any) : null
 
+              const isThisLoading = detailLoading && detailTargetId === q.id
+
               return (
                 <div key={q.id} style={S.compactRow}>
                   <div style={{ minWidth: 0 }}>
@@ -415,13 +367,20 @@ export default function MyPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
                     <button
                       style={S.smallGhostBtn}
                       onClick={() => openDetail(q.id, q.title)}
                       disabled={detailLoading}
                     >
-                      {detailLoading && detail.quizType === q.id ? "読込中..." : "詳細"}
+                      {isThisLoading ? "読込中..." : "詳細"}
                     </button>
                     <button
                       style={S.smallBtn}
@@ -483,7 +442,7 @@ export default function MyPage() {
         <div style={{ height: 32 }} />
       </section>
 
-      {/* ✅ 詳細モーダル（グラフ + 詳細記録） */}
+      {/* 詳細モーダル（グラフ + 詳細記録） */}
       {detail.open && (
         <>
           <div style={S.modalOverlay} onClick={closeDetail} />
@@ -501,7 +460,14 @@ export default function MyPage() {
             {/* progress */}
             <div style={S.modalCard}>
               <div style={S.cardTitle}>進捗</div>
-              <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 10 }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0,1fr))",
+                  gap: 10,
+                }}
+              >
                 <div style={S.kpiBox}>
                   <div style={S.kpiLabel}>総回数</div>
                   <div style={S.kpiValue}>{Number(detail.progress?.totalSessions ?? 0)}</div>
@@ -558,9 +524,7 @@ export default function MyPage() {
               <div style={S.cardTitle}>記録</div>
               <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                 {detail.results.length === 0 ? (
-                  <div style={{ opacity: 0.7, fontSize: 13 }}>
-                    まだ記録がありません。
-                  </div>
+                  <div style={{ opacity: 0.7, fontSize: 13 }}>まだ記録がありません。</div>
                 ) : (
                   detail.results.map((r, idx) => {
                     const d = toDate(r.createdAt)
@@ -569,9 +533,7 @@ export default function MyPage() {
                       <div key={idx} style={S.rowCard}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                           <div style={{ minWidth: 0 }}>
-                            <div style={S.rowTitle}>
-                              {r.mode ? `mode: ${r.mode}` : "mode: —"}
-                            </div>
+                            <div style={S.rowTitle}>{r.mode ? `mode: ${r.mode}` : "mode: —"}</div>
                             <div style={S.rowSub}>{d ? fmtDate(d) : ""}</div>
                           </div>
                           <div style={S.rowScoreBox}>
@@ -613,7 +575,6 @@ const S: Record<string, React.CSSProperties> = {
     padding: "0 14px 18px",
   },
 
-  // 52px top bar
   topbar: {
     position: "sticky",
     top: 0,
@@ -815,7 +776,6 @@ const S: Record<string, React.CSSProperties> = {
 
   error: { color: "#dc2626", fontWeight: 900, marginTop: 10 },
 
-  // modal
   modalOverlay: {
     position: "fixed",
     inset: 0,
