@@ -94,6 +94,9 @@ export default function TileDropGame({
   const [inputIndex, setInputIndex] = useState(0)
   const [toast, setToast] = useState<string>("")
 
+  // ✅ 正解時の「弾ける」演出（対象プレートのみ）
+  const [plateFx, setPlateFx] = useState<"none" | "success">("none")
+
   // ✅ コンボポップ
   const [comboPop, setComboPop] = useState<number | null>(null)
   const comboPopTimer = useRef<number | null>(null)
@@ -241,6 +244,7 @@ export default function TileDropGame({
     resolvedRef.current = false
     activeKeyRef.current = `${q.id}:${Date.now()}`
     setToast("")
+    setPlateFx("none")
   }
 
   function startGame() {
@@ -378,11 +382,14 @@ export default function TileDropGame({
 
     setToast(`+${gained}`)
 
+    // ✅ 正解演出：scale 1 → 1.08 → 0.95 → fade
+    setPlateFx("success")
+
     setTimeout(() => {
       const nextLevel = mode === "attack" ? level + 1 : level
       if (mode === "attack") setLevel(nextLevel)
       resetRound(mode, difficulty, nextLevel)
-    }, 220)
+    }, 320)
   }
 
   function onTilePress(label: string) {
@@ -568,22 +575,33 @@ export default function TileDropGame({
                   {current ? (
                     <motion.div
                       key={plateKey}
-                      initial={{ y: -120, opacity: 1 }}
-                      animate={{ y: fallY, opacity: 1 }}
-                      transition={{ duration: speedSec, ease: "linear" }}
-                      onAnimationComplete={() => {
-                        if (resolvedRef.current) return
-                        miss("timeout")
-                      }}
-                      style={styles.plate}
+                      initial={{ opacity: 1, scale: 1 }}
+                      animate={
+                        plateFx === "success"
+                          ? { opacity: [1, 1, 0], scale: [1, 1.08, 0.95] }
+                          : { opacity: 1, scale: 1 }
+                      }
+                      transition={plateFx === "success" ? { duration: 0.32, ease: "easeOut" } : { duration: 0.05 }}
+                      style={{ transformOrigin: "center" }}
                     >
-                      <div style={styles.plateBadge}>{current.type.toUpperCase()}</div>
-                      <div style={styles.prompt}>{current.prompt}</div>
-                      <div style={styles.progress}>
-                        {current.answer.map((a, i) => (
-                          <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
-                        ))}
-                      </div>
+                      <motion.div
+                        initial={{ y: -120, opacity: 1 }}
+                        animate={{ y: fallY, opacity: 1 }}
+                        transition={{ duration: speedSec, ease: "linear" }}
+                        onAnimationComplete={() => {
+                          if (resolvedRef.current) return
+                          miss("timeout")
+                        }}
+                        style={styles.plate}
+                      >
+                        <div style={styles.plateBadge}>{current.type.toUpperCase()}</div>
+                        <div style={styles.prompt}>{current.prompt}</div>
+                        <div style={styles.progress}>
+                          {current.answer.map((a, i) => (
+                            <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
+                          ))}
+                        </div>
+                      </motion.div>
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
