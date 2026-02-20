@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion"
 
 import { auth, db } from "@/app/lib/firebase"
 import { quizzes } from "@/app/data/quizzes"
@@ -37,6 +37,18 @@ function speedFor(mode: GameMode, level: number) {
   if (mode === "normal") return 5.5
   return clamp(6 - (level - 1) * 0.28, 2.2, 6)
 }
+
+function vib(pattern: number | number[]) {
+  try {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      ;(navigator as any).vibrate(pattern)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+type SfxType = "hit" | "miss" | "combo"
 
 export default function TileDropGame({
   quizType,
@@ -80,12 +92,18 @@ export default function TileDropGame({
 
   const [current, setCurrent] = useState<GameQuestion | null>(null)
   const [inputIndex, setInputIndex] = useState(0)
-  const [shake, setShake] = useState(0)
   const [toast, setToast] = useState<string>("")
 
   // ✅ コンボポップ
   const [comboPop, setComboPop] = useState<number | null>(null)
   const comboPopTimer = useRef<number | null>(null)
+
+  // ✅ 画面揺れ（framer controls）
+  const shakeControls = useAnimationControls()
+
+  // ✅ サウンド
+  const [soundOn, setSoundOn] = useState(true)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   const [bestScore, setBestScore] = useState<number>(0)
   const [leaderboard, setLeaderboard] = useState<{ displayName: string; bestScore: number }[]>([])
@@ -120,12 +138,83 @@ export default function TileDropGame({
     return () => unsub()
   }, [])
 
-  // ✅ タイマー掃除
+  // ✅ 掃除
   useEffect(() => {
     return () => {
       if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+      try {
+        audioCtxRef.current?.close()
+      } catch {
+        // ignore
+      }
+      audioCtxRef.current = null
     }
   }, [])
+
+  // ✅ TypeScript的に null を確実に潰した版
+  function ensureAudio(): AudioContext | null {
+    if (!soundOn) return null
+    if (typeof window === "undefined") return null
+
+    const w = window as any
+    const Ctx = w.AudioContext || w.webkitAudioContext
+    if (!Ctx) return null
+
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new Ctx()
+    }
+
+    const ctx = audioCtxRef.current
+    if (!ctx) return null
+
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => null)
+    }
+    return ctx
+  }
+
+  function playSfx(type: SfxType) {
+    if (!soundOn) return
+    const ctx = ensureAudio()
+    if (!ctx) return
+
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    if (type === "hit") {
+      osc.type = "triangle"
+      osc.frequency.setValueAtTime(660, now)
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.05)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08)
+    } else if (type === "miss") {
+      osc.type = "sawtooth"
+      osc.frequency.setValueAtTime(220, now)
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.10)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
+    } else {
+      osc.type = "square"
+      osc.frequency.setValueAtTime(880, now)
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(0.10, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10)
+    }
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    try {
+      osc.start(now)
+      osc.stop(now + 0.22)
+    } catch {
+      // ignore
+    }
+  }
 
   const poolByDifficulty = useMemo(() => {
     const map = new Map<string, GameQuestion[]>()
@@ -215,6 +304,17 @@ export default function TileDropGame({
     }
   }
 
+  async function triggerShake() {
+    try {
+      await shakeControls.start({
+        x: [0, -8, 8, -6, 6, -3, 3, 0],
+        transition: { duration: 0.18 },
+      })
+    } catch {
+      // ignore
+    }
+  }
+
   function miss(reason: "timeout" | "wrong") {
     if (phase !== "playing") return
     if (resolvedRef.current) return
@@ -222,7 +322,11 @@ export default function TileDropGame({
     resolvedRef.current = true
     setCombo(0)
     setComboPop(null)
-    setShake((x) => x + 1)
+
+    // ✅ ミス演出：揺れ + バイブ + 音
+    triggerShake()
+    vib([40, 20, 40])
+    playSfx("miss")
 
     setLife((prev) => {
       const next = prev - 1
@@ -246,6 +350,8 @@ export default function TileDropGame({
     if (nextCombo < 2) return
 
     setComboPop(nextCombo)
+    playSfx("combo")
+
     if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
     comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
   }
@@ -263,7 +369,9 @@ export default function TileDropGame({
 
     setScore((s) => s + gained)
 
-    // ✅ 次のコンボ値を先に計算して演出
+    // ✅ 正解音（軽く）
+    playSfx("hit")
+
     const nextCombo = combo + 1
     setCombo(nextCombo)
     fireComboPop(nextCombo)
@@ -278,6 +386,9 @@ export default function TileDropGame({
   }
 
   function onTilePress(label: string) {
+    // ✅ iOS等に備えて、最初のタップでAudioContextを起こす
+    ensureAudio()
+
     if (phase !== "playing") return
     if (!current) return
     if (resolvedRef.current) return
@@ -299,7 +410,7 @@ export default function TileDropGame({
 
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
-  // ✅ 下の中断を消した分、さらに広く
+  // ✅ 下の中断を消した分、広く
   const playAreaHeight = "calc(100svh - 128px)"
 
   return (
@@ -315,6 +426,20 @@ export default function TileDropGame({
             <div style={styles.compactTitle}>日本語バトル（落ち物）</div>
             <div style={styles.compactSub}>{quizTitle}</div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSoundOn((v) => !v)
+              // ONにした瞬間、起動
+              setTimeout(() => ensureAudio(), 0)
+            }}
+            style={styles.soundBtn}
+            aria-label="toggle sound"
+            title="Sound"
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
 
           <div style={styles.compactStats}>
             <span style={styles.badge}>S {score}</span>
@@ -395,7 +520,7 @@ export default function TileDropGame({
 
           {/* Playing */}
           <div style={{ display: phase === "playing" ? "block" : "none" }}>
-            <div style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }}>
+            <motion.div style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }} animate={shakeControls}>
               <div style={styles.dangerLine} />
 
               {/* Overlay chips */}
@@ -405,7 +530,7 @@ export default function TileDropGame({
                 {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
               </div>
 
-              {/* ✅ Combo Pop（中毒演出） */}
+              {/* Combo Pop */}
               <AnimatePresence>
                 {comboPop ? (
                   <motion.div
@@ -476,7 +601,7 @@ export default function TileDropGame({
                 </div>
                 {/* ✅ 中断ボタンは撤去（左上矢印で十分） */}
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Over */}
@@ -573,6 +698,18 @@ const styles: Record<string, CSSProperties> = {
   compactCenter: { flex: 1, minWidth: 0 },
   compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
   compactSub: { fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+
+  soundBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    cursor: "pointer",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
+    fontSize: 16,
+  },
+
   compactStats: { display: "flex", gap: 8, alignItems: "center" },
   badge: {
     display: "inline-flex",
@@ -608,16 +745,7 @@ const styles: Record<string, CSSProperties> = {
   pill: { padding: "8px 12px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
-  inlineLinkBtn: {
-    marginLeft: 6,
-    border: "none",
-    background: "transparent",
-    padding: 0,
-    color: "#2563eb",
-    fontWeight: 900,
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
+  inlineLinkBtn: { marginLeft: 6, border: "none", background: "transparent", padding: 0, color: "#2563eb", fontWeight: 900, cursor: "pointer", textDecoration: "underline" },
 
   btn: { padding: "10px 14px", borderRadius: 14, border: "none", cursor: "pointer", fontWeight: 900 },
   btnMain: { background: "#2563eb", color: "#fff" },
@@ -628,7 +756,6 @@ const styles: Record<string, CSSProperties> = {
   overlayChips: { position: "absolute", top: 10, right: 12, display: "flex", gap: 8, zIndex: 20 },
   chip: { padding: "8px 10px", borderRadius: 999, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, fontSize: 12, boxShadow: "0 10px 20px rgba(0,0,0,0.06)" },
 
-  // ✅ Combo Pop（中央にドンッ）
   comboPop: {
     position: "absolute",
     left: "50%",
@@ -660,33 +787,12 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
     position: "relative",
   },
-  plateBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    fontSize: 11,
-    fontWeight: 900,
-    opacity: 0.75,
-    padding: "4px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-  },
+  plateBadge: { position: "absolute", top: 12, right: 12, fontSize: 11, fontWeight: 900, opacity: 0.75, padding: "4px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" },
   prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
   dot: { width: 10, height: 10, borderRadius: 999, background: "#fff", display: "inline-block" },
 
-  toast: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    padding: "8px 12px",
-    borderRadius: 14,
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    fontWeight: 900,
-    boxShadow: "0 10px 22px rgba(0,0,0,0.08)",
-    zIndex: 30,
-  },
+  toast: { position: "absolute", top: 12, left: 12, padding: "8px 12px", borderRadius: 14, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, boxShadow: "0 10px 22px rgba(0,0,0,0.08)", zIndex: 30 },
 
   tilesArea: {
     position: "absolute",
