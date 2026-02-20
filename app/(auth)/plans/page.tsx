@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 
-import { auth, db } from "@/app/lib/firebase"
-import { doc, setDoc } from "firebase/firestore"
+import { auth } from "@/app/lib/firebase"
 import { quizzes } from "@/app/data/quizzes"
 import { type PlanId } from "@/app/lib/plan"
 import {
@@ -39,7 +38,9 @@ export default function PlansPage() {
   const [error, setError] = useState("")
 
   const [currentPlan, setCurrentPlan] = useState<PlanId>("trial")
-  const [billingMethod, setBillingMethod] = useState<"convenience" | "card">("convenience")
+  const [billingMethod, setBillingMethod] = useState<"convenience" | "card">(
+    "convenience"
+  )
   const [durationDays, setDurationDays] = useState<30 | 180 | 365>(30)
   const [displayName, setDisplayName] = useState<string>("")
 
@@ -132,90 +133,115 @@ export default function PlansPage() {
   if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
+    <main style={styles.main}>
       <AppHeader title="プラン" />
 
-      <section
-        style={{
-          marginTop: 12,
-          padding: 14,
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          background: "#fff",
-        }}
-      >
-        <div style={{ fontWeight: 900, marginBottom: 6 }}>現在のプラン</div>
-        <div style={{ opacity: 0.85 }}>
-          {displayName ? `${displayName} さん：` : ""} <b>{PLAN_LABEL[currentPlan]}</b>
+      {/* 現在のプラン */}
+      <section style={styles.card}>
+        <div style={styles.cardTitle}>現在のプラン</div>
+        <div style={styles.cardText}>
+          {displayName ? `${displayName} さん：` : ""}{" "}
+          <b>{PLAN_LABEL[currentPlan]}</b>
         </div>
       </section>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={styles.error}>{error}</p>}
 
-      <section style={{ marginTop: 16, padding: 14, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
-        <div style={{ fontWeight: 900 }}>教材数</div>
-        <div style={{ marginTop: 6, opacity: 0.85 }}>
+      {/* 教材数 */}
+      <section style={styles.card}>
+        <div style={styles.secTitle}>教材数</div>
+        <div style={styles.secText}>
           現在 <b>{allCount}</b> 教材（今後10以上に拡張）
         </div>
-        <div style={{ marginTop: 6, opacity: 0.85 }}>
+        <div style={styles.secText}>
           3/5プランでは、ここから選んで受講できます（1ヶ月ごとに変更可能）。
         </div>
       </section>
 
-      <section style={{ marginTop: 16, padding: 14, border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff" }}>
-        <div style={{ fontWeight: 900 }}>お支払い方法（個人）</div>
-        <div style={{ marginTop: 6, opacity: 0.85, lineHeight: 1.6 }}>
+      {/* お支払い方法（Stripe風） */}
+      <section style={styles.card}>
+        <div style={styles.secTitle}>お支払い方法（個人）</div>
+        <div style={styles.secTextStrong}>
           外国人ユーザー向けに <b>コンビニ払い</b> をおすすめにします（カードは任意）。
         </div>
-        <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+        <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          {/* convenience */}
+          <label
+            style={{
+              ...styles.pmCard,
+              ...(billingMethod === "convenience" ? styles.pmCardOn : null),
+            }}
+          >
             <input
               type="radio"
               name="pay"
               checked={billingMethod === "convenience"}
               onChange={() => setBillingMethod("convenience")}
+              style={styles.pmRadio}
             />
-            コンビニ払い（おすすめ）
+            <div style={styles.pmBody}>
+              <div style={styles.pmTop}>
+                <div style={styles.pmLabel}>コンビニ払い</div>
+                <span style={styles.pmBadge}>おすすめ</span>
+              </div>
+              <div style={styles.pmDesc}>現金で支払い可能。カードがなくてもOK。</div>
+            </div>
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+          {/* card */}
+          <label
+            style={{
+              ...styles.pmCard,
+              ...(billingMethod === "card" ? styles.pmCardOn : null),
+            }}
+          >
             <input
               type="radio"
               name="pay"
               checked={billingMethod === "card"}
               onChange={() => setBillingMethod("card")}
+              style={styles.pmRadio}
             />
-            カード払い
+            <div style={styles.pmBody}>
+              <div style={styles.pmTop}>
+                <div style={styles.pmLabel}>カード払い</div>
+              </div>
+              <div style={styles.pmDesc}>即時決済。更新もスムーズ。</div>
+            </div>
           </label>
         </div>
-        <div style={{ marginTop: 12 }}>
+
+        {/* 期間 */}
+        <div style={styles.durationWrap}>
           <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
-          <div style={{ marginTop: 6, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={styles.durationRow}>
             <select
               value={durationDays}
               onChange={(e) => setDurationDays(Number(e.target.value) as any)}
-              style={{ padding: "10px 12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "white", fontWeight: 800 }}
+              style={styles.select}
             >
               <option value={30}>30日（通常）</option>
               <option value={180}>半年（10%OFF）</option>
               <option value={365}>年（20%OFF）</option>
             </select>
-            <span style={{ fontSize: 13, opacity: 0.8 }}>
+            <span style={styles.hint}>
               コンビニ払いでも「まとめ払い」で更新回数を減らせます
             </span>
           </div>
         </div>
       </section>
 
-      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 12 }}>
+      {/* プラン一覧（カード統一） */}
+      <div style={styles.planGrid}>
         {(["3", "5", "all"] as PlanId[]).map((p) => {
           const isCurrent = p === currentPlan
           return (
-            <div key={p} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#fff" }}>
-              <div style={{ fontWeight: 900, fontSize: 16 }}>{PLAN_LABEL[p]}</div>
-              <div style={{ marginTop: 6, opacity: 0.8, lineHeight: 1.5 }}>{PLAN_DESC[p]}</div>
+            <div key={p} style={styles.planCard}>
+              <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
+              <div style={styles.planDesc}>{PLAN_DESC[p]}</div>
 
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.85 }}>
-                {p === "trial" && "利用可能：固定1教材（お試し）"}
+              <div style={styles.planMeta}>
                 {p === "3" && "利用可能：3教材（選択式）"}
                 {p === "5" && "利用可能：5教材（選択式）"}
                 {p === "all" && "利用可能：全教材"}
@@ -225,16 +251,10 @@ export default function PlansPage() {
                 onClick={() => handleChoose(p)}
                 disabled={saving || isCurrent}
                 style={{
-                  width: "100%",
-                  marginTop: 12,
-                  padding: 12,
-                  borderRadius: 14,
-                  border: "none",
+                  ...styles.planBtn,
                   background: isCurrent ? "#9ca3af" : "#2563eb",
-                  color: "#fff",
-                  fontWeight: 900,
                   cursor: saving || isCurrent ? "not-allowed" : "pointer",
-                  opacity: saving ? 0.8 : 1,
+                  opacity: saving ? 0.85 : 1,
                 }}
               >
                 {isCurrent ? "現在のプラン" : saving ? "更新中..." : "このプランにする"}
@@ -247,11 +267,189 @@ export default function PlansPage() {
   )
 }
 
-const backBtn: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#fff",
-  fontWeight: 800,
-  cursor: "pointer",
+const styles: Record<string, React.CSSProperties> = {
+  main: {
+    maxWidth: 820,
+    margin: "0 auto",
+    padding: "16px 14px",
+  },
+
+  card: {
+    marginTop: 12,
+    padding: 14,
+    border: "1px solid rgba(17,24,39,.10)",
+    borderRadius: 16,
+    background: "#fff",
+  },
+
+  cardTitle: {
+    fontWeight: 900,
+    marginBottom: 6,
+    fontSize: 14,
+  },
+
+  cardText: {
+    opacity: 0.88,
+    lineHeight: 1.5,
+  },
+
+  error: {
+    color: "#dc2626",
+    marginTop: 10,
+    fontWeight: 800,
+  },
+
+  secTitle: {
+    fontWeight: 900,
+    fontSize: 16,
+  },
+
+  secText: {
+    marginTop: 6,
+    opacity: 0.85,
+    lineHeight: 1.55,
+    fontSize: 13,
+  },
+
+  secTextStrong: {
+    marginTop: 6,
+    opacity: 0.85,
+    lineHeight: 1.6,
+    fontSize: 13,
+  },
+
+  // PayMethod Cards (Stripe-ish)
+  pmCard: {
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 14,
+    background: "#fff",
+    border: "1px solid rgba(17,24,39,.12)",
+    cursor: "pointer",
+    userSelect: "none",
+  },
+
+  pmCardOn: {
+    border: "1px solid rgba(37,99,235,.55)",
+    boxShadow: "0 6px 18px rgba(17,24,39,.08)",
+  },
+
+  pmRadio: {
+    marginTop: 3,
+    width: 18,
+    height: 18,
+    flex: "0 0 auto",
+  },
+
+  pmBody: {
+    minWidth: 0, // ✅ 折り返し崩壊防止（重要）
+    flex: 1,
+  },
+
+  pmTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  pmLabel: {
+    fontWeight: 900,
+    fontSize: 15,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap", // ✅ “縦書き化”防止
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  pmBadge: {
+    fontSize: 11,
+    fontWeight: 900,
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: "rgba(37,99,235,.10)",
+    color: "rgba(37,99,235,1)",
+    flex: "0 0 auto",
+    whiteSpace: "nowrap",
+  },
+
+  pmDesc: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 1.45,
+    opacity: 0.75,
+  },
+
+  durationWrap: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTop: "1px solid rgba(17,24,39,.08)",
+  },
+
+  durationRow: {
+    marginTop: 8,
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+
+  select: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(17,24,39,.12)",
+    background: "white",
+    fontWeight: 800,
+    minWidth: 180,
+  },
+
+  hint: {
+    fontSize: 13,
+    opacity: 0.75,
+    lineHeight: 1.4,
+  },
+
+  planGrid: {
+    marginTop: 16,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: 12,
+  },
+
+  planCard: {
+    border: "1px solid rgba(17,24,39,.10)",
+    borderRadius: 16,
+    padding: 14,
+    background: "#fff",
+  },
+
+  planTitle: {
+    fontWeight: 900,
+    fontSize: 16,
+  },
+
+  planDesc: {
+    marginTop: 6,
+    opacity: 0.8,
+    lineHeight: 1.5,
+    fontSize: 13,
+  },
+
+  planMeta: {
+    marginTop: 10,
+    fontSize: 13,
+    opacity: 0.85,
+  },
+
+  planBtn: {
+    width: "100%",
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 14,
+    border: "none",
+    color: "#fff",
+    fontWeight: 900,
+  },
 }
