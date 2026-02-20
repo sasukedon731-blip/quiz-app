@@ -98,6 +98,9 @@ export default function MyPage() {
   // 詳細表示する教材
   const [focusType, setFocusType] = useState<QuizType | null>(null)
 
+  // ハンバーガーメニュー
+  const [menuOpen, setMenuOpen] = useState(false)
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -351,21 +354,90 @@ export default function MyPage() {
         <p style={{ textAlign: "center" }}>確認中...</p>
       ) : (
         <>
-          {/* Header actions */}
-          <div className="actions">
-            <Button variant="main" onClick={() => router.push("/select-mode")}>
-              学習を始める
-            </Button>
-            <Button variant="accent" onClick={() => router.push("/select-quizzes")}>
-              教材選択
-            </Button>
-            <Button variant="sub" onClick={() => router.push("/plans")}>
-              プラン
-            </Button>
-            <Button variant="danger" onClick={handleLogout}>
-              ログアウト
-            </Button>
+
+          {/* Header bar */}
+          <div className="mypageTopbar">
+            <div className="mypageTopbarLeft" />
+            <button
+              className="hamburgerBtn"
+              aria-label="メニュー"
+              onClick={() => setMenuOpen(true)}
+              type="button"
+            >
+              ☰
+            </button>
           </div>
+
+          {/* Drawer */}
+          {menuOpen && (
+            <div className="drawerOverlay" onClick={() => setMenuOpen(false)}>
+              <div className="drawerPanel" onClick={(e) => e.stopPropagation()}>
+                <div className="drawerHead">
+                  <div style={{ fontWeight: 900 }}>メニュー</div>
+                  <button
+                    className="drawerClose"
+                    aria-label="閉じる"
+                    onClick={() => setMenuOpen(false)}
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="drawerBody">
+                  <Button
+                    variant="sub"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      router.push("/")
+                    }}
+                  >
+                    TOPへ
+                  </Button>
+
+                  <Button
+                    variant="main"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      router.push("/select-mode")
+                    }}
+                  >
+                    学習を始める
+                  </Button>
+
+                  <Button
+                    variant="accent"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      router.push("/select-quizzes")
+                    }}
+                  >
+                    教材選択
+                  </Button>
+
+                  <Button
+                    variant="sub"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      router.push("/plans")
+                    }}
+                  >
+                    プラン
+                  </Button>
+
+                  <Button
+                    variant="danger"
+                    onClick={async () => {
+                      setMenuOpen(false)
+                      await handleLogout()
+                    }}
+                  >
+                    ログアウト
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Overall summary */}
           <div className="panelSoft" style={{ marginTop: 12 }}>
