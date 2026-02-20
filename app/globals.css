@@ -469,6 +469,50 @@ body {
 }
 
 /* --- MyPage Hamburger / Drawer --- */
+.appHeader{
+  margin-top: 6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.appHeaderLeft{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width: 0;
+}
+.appHeaderBrand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  text-decoration:none;
+  color:inherit;
+  font-weight:900;
+}
+.appHeaderLogo{
+  display:inline-flex;
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  align-items:center;
+  justify-content:center;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+.appHeaderName{
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+.appHeaderTitle{
+  font-size: 12px;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
 .mypageTopbar{
   margin-top:12px;
   display:flex;
@@ -524,4 +568,24 @@ body {
 }
 .drawerBody .btn{
   width:100%;
+}
+
+.drawerLink{
+  display:block;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 800;
+}
+.drawerLink:hover{
+  filter: brightness(0.98);
+}
+
+.drawerDivider{
+  height:1px;
+  background: var(--border);
+  margin: 4px 0;
 }

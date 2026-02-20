@@ -12,6 +12,7 @@ import {
   loadAndRepairUserPlanState,
   savePlanAndNormalizeSelected,
 } from "@/app/lib/userPlanState"
+import AppHeader from "@/app/components/AppHeader"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -132,19 +133,22 @@ export default function PlansPage() {
 
   return (
     <main style={{ maxWidth: 820, margin: "0 auto", padding: 24 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-        <div>
-          <h1 style={{ margin: 0 }}>プラン選択</h1>
-          <p style={{ margin: "6px 0 0", opacity: 0.8 }}>
-            {displayName ? `${displayName} さんの現在プラン：` : "現在プラン："}{" "}
-            <b>{PLAN_LABEL[currentPlan]}</b>
-          </p>
-        </div>
+      <AppHeader title="プラン" />
 
-        <button onClick={() => router.push("/mypage")} style={backBtn}>
-          マイページへ
-        </button>
-      </header>
+      <section
+        style={{
+          marginTop: 12,
+          padding: 14,
+          border: "1px solid var(--border)",
+          borderRadius: 16,
+          background: "#fff",
+        }}
+      >
+        <div style={{ fontWeight: 900, marginBottom: 6 }}>現在のプラン</div>
+        <div style={{ opacity: 0.85 }}>
+          {displayName ? `${displayName} さん：` : ""} <b>{PLAN_LABEL[currentPlan]}</b>
+        </div>
+      </section>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 

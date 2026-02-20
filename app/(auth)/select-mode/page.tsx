@@ -11,6 +11,7 @@ import type { QuizType } from "@/app/data/types"
 import type { PlanId } from "@/app/lib/plan"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import { assertActiveAccess } from "@/app/lib/guards"
+import AppHeader from "@/app/components/AppHeader"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -156,32 +157,25 @@ export default function SelectModePage() {
           </div>
         ) : null}
 
-        {/* Header */}
-        <header style={headerStyle}>
-          <div>
-            <h1 style={{ ...styles.h1, fontSize: isMobile ? 22 : 26 }}>学習を始める</h1>
-            <p style={styles.sub}>
-              {displayName ? (
-                <>
-                  <b>{displayName}</b> さん ・
-                </>
-              ) : null}{" "}
-              プラン：<b>{PLAN_LABEL[plan] ?? plan}</b>
-            </p>
-          </div>
+        <AppHeader title="学習を始める" />
 
-          <div style={headerActionsStyle}>
-            <Link href="/mypage" style={{ ...btnStyle, ...styles.btnGray }}>
-              マイページ
-            </Link>
-            <Link href="/plans" style={{ ...btnStyle, ...styles.btnBlue }}>
-              プラン変更
-            </Link>
-            <Link href="/select-quizzes" style={{ ...btnStyle, ...styles.btnGreen }}>
-              教材選択
-            </Link>
+        <div
+          style={{
+            marginTop: 12,
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            background: "white",
+            padding: isMobile ? "12px 12px" : "14px 14px",
+          }}
+        >
+          <div style={{ fontWeight: 900, fontSize: 14 }}>
+            {displayName ? `${displayName} さん ・ ` : ""}
+            プラン：{PLAN_LABEL[plan] ?? plan}
           </div>
-        </header>
+          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+            教材を選んで「通常 / 模擬 / 復習 / 日本語バトル」を開始できます。
+          </div>
+        </div>
 
         {error ? <div style={styles.alert}>{error}</div> : null}
 

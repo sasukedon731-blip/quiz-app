@@ -12,6 +12,7 @@ import {
   loadAndRepairUserPlanState,
   saveSelectedQuizTypesWithLock,
 } from "@/app/lib/userPlanState"
+import AppHeader from "@/app/components/AppHeader"
 
 function canChange(now: Date, nextAllowedAt?: Date | null) {
   if (!nextAllowedAt) return true
@@ -144,25 +145,24 @@ export default function SelectQuizzesPage() {
   return (
     <main style={styles.page}>
       <div style={styles.shell}>
-        {/* Top Bar */}
-        <header style={styles.header}>
-          <div>
-            <h1 style={styles.h1}>教材を選択</h1>
-            <div style={styles.sub}>
-              プラン：<b>{plan}</b> ・ 選択上限：<b>{limit === "ALL" ? "ALL" : `${limit}つ`}</b> ・
-              選択中：<b>{selected.length}</b> ・ 残り：<b>{remaining}</b>
-            </div>
-          </div>
+        <AppHeader title="教材を選択" />
 
-          <div style={styles.headerActions}>
-            <button onClick={() => router.push("/select-mode")} style={{ ...styles.btn, ...styles.btnGray }}>
-              モード選択へ
-            </button>
-            <button onClick={() => router.push("/plans")} style={{ ...styles.btn, ...styles.btnBlue }}>
-              プランへ
-            </button>
+        <section
+          style={{
+            marginTop: 12,
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            background: "white",
+            padding: "12px 12px",
+          }}
+        >
+          <div style={{ fontWeight: 900 }}>
+            プラン：{plan} ・ 選択上限：{limit === "ALL" ? "ALL" : `${limit}つ`} ・ 選択中：{selected.length} ・ 残り：{remaining}
           </div>
-        </header>
+          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+            保存後は一定期間ロックされます（初回確定までは例外）。
+          </div>
+        </section>
 
         {/* Status */}
         <section style={styles.infoCard}>
