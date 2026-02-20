@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
@@ -16,15 +16,6 @@ import { fetchAttackLeaderboard, submitAttackScore } from "./firestore"
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 
 type Phase = "ready" | "playing" | "over"
-
-// ✅ ゲスト（未ログイン）の「1日1回」制限キー
-function guestTodayKey() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `guest-play-${y}-${m}-${day}`
-}
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -48,16 +39,17 @@ function speedFor(mode: GameMode, level: number) {
   return clamp(6 - (level - 1) * 0.28, 2.2, 6)
 }
 
-export default function TileDropGame({ quizType, modeParam }: { quizType: QuizType; modeParam: string | null }) {
+export default function TileDropGame({
+  quizType,
+  modeParam,
+}: {
+  quizType: QuizType
+  modeParam: string | null
+}) {
   const router = useRouter()
 
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
-
-  // ✅ ゲスト（未ログイン）: 1日1回プレイ + 終了後に登録導線
-  const isGuest = !uid
-  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false)
-  const [showGuestUpsellModal, setShowGuestUpsellModal] = useState(false)
 
   const [phase, setPhase] = useState<Phase>("ready")
   const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
@@ -104,14 +96,15 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   const resolvedRef = useRef<boolean>(false)
 
   // ===== Auth =====
+  // ✅ ゲストでも遊べる前提：ログインしていれば uid/displayName を補完するだけ（未ログインでもリダイレクトしない）
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        // ✅ /game は未ログイン（ゲスト）でも遊べる
         setUid(null)
         setDisplayName("")
         return
       }
+
       setUid(u.uid)
 
       // displayName: prefer Auth, fallback Firestore users/{uid}
@@ -129,23 +122,7 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
       }
     })
     return () => unsub()
-  }, [router])
-
-  // ✅ ゲスト：今日すでに遊んだかを初回チェック
-  useEffect(() => {
-    if (!isGuest) {
-      setShowGuestLimitModal(false)
-      return
-    }
-    try {
-      const played = localStorage.getItem(guestTodayKey())
-      if (played) setShowGuestLimitModal(true)
-    } catch {
-      // ignore
-    }
-  }, [isGuest])
-
-  // quizzes方式なのでロードは不要（UIの余計な再読込ボタンも不要）
+  }, [])
 
   const poolByDifficulty = useMemo(() => {
     const map = new Map<string, GameQuestion[]>()
@@ -180,21 +157,17 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   }
 
   function startGame() {
-    // ✅ ゲスト：1日1回だけプレイ可（開始時点で消費してリロード回避）
-    if (isGuest) {
-      try {
-        const key = guestTodayKey()
-        const played = localStorage.getItem(key)
-        if (played) {
-          setShowGuestLimitModal(true)
-          return
-        }
-        localStorage.setItem(key, "1")
-      } catch {
-        // ignore（localStorageが使えない場合でもプレイは許可）
-      }
+    // ゲストが attack を選んだ場合：ノーマルに落とす（ランキングはログイン必須）
+    if (mode === "attack" && !uid) {
+      setToast("ランキングはログインが必要です（ノーマルで開始します）")
+      setMode("normal")
+      setTimeout(() => startGameAs("normal"), 0)
+      return
     }
+    startGameAs(mode)
+  }
 
+  function startGameAs(nextMode: GameMode) {
     setScore(0)
     setCombo(0)
     setLife(3)
@@ -205,18 +178,12 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
     setPhase("playing")
     // delay a tick so poolByDifficulty is ready
     setTimeout(() => {
-      resetRound(mode, difficulty, 1)
+      resetRound(nextMode, difficulty, 1)
     }, 0)
   }
 
   async function endGame() {
     setPhase("over")
-
-    // ✅ ゲスト：終了後に「保存/ランキング」を見せて登録導線
-    if (isGuest) {
-      setShowGuestUpsellModal(true)
-      return
-    }
 
     if (mode !== "attack" || !uid) return
 
@@ -331,48 +298,29 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
   // ===== Render =====
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
+  // Playing領域（上のコンパクトバー＋カードpadding分を差し引く）
+  // ※ 後で詰める前提でまず効かせる値
+  const playAreaHeight = "calc(100svh - 140px)"
+
   return (
     <main style={styles.page} className="game-root">
       <div style={styles.shell}>
-        {/* Top nav */}
-        <div style={styles.topRow}>
-          <Link href="/select-mode" style={styles.link}>
-            ← 学習メニューへ
+        {/* Compact bar（スマホ最適） */}
+        <div style={styles.compactBar}>
+          <Link href="/select-mode" style={styles.compactBack}>
+            ←
           </Link>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {isGuest ? <span style={styles.guestBadge}>無料体験（1日1回）</span> : null}
-            <div style={{ fontSize: 12, opacity: 0.7 }}>{displayName ? `User: ${displayName}` : ""}</div>
+
+          <div style={styles.compactCenter}>
+            <div style={styles.compactTitle}>日本語バトル（落ち物）</div>
+            <div style={styles.compactSub}>{quizTitle}</div>
+          </div>
+
+          <div style={styles.compactStats}>
+            <span style={styles.badge}>S {score}</span>
+            <span style={styles.badge}>❤ {life}</span>
           </div>
         </div>
-
-        {/* Header */}
-        <header style={styles.header}>
-          <div>
-            <h1 style={styles.h1}>落ち物ネプリーグ（{quizTitle}）</h1>
-            <div style={styles.sub}>
-              教材別ゲーム：<b>{quizType}</b>（同じ問題をゲーム化）
-            </div>
-          </div>
-
-          <div style={styles.stats}>
-            <div style={styles.stat}>
-              <div style={styles.statLabel}>SCORE</div>
-              <div style={styles.statValue}>{score}</div>
-            </div>
-            <div style={styles.stat}>
-              <div style={styles.statLabel}>LIFE</div>
-              <div style={styles.statValue}>{"❤".repeat(life)}{life === 0 ? "" : ""}</div>
-            </div>
-            <div style={styles.stat}>
-              <div style={styles.statLabel}>LEVEL</div>
-              <div style={styles.statValue}>{level}</div>
-            </div>
-            <div style={styles.stat}>
-              <div style={styles.statLabel}>COMBO</div>
-              <div style={styles.statValue}>{combo}</div>
-            </div>
-          </div>
-        </header>
 
         {/* Content */}
         <section style={styles.card}>
@@ -381,7 +329,7 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
             <div style={styles.panelTitle}>スタート設定</div>
 
             <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
-              教材：<b>{quizTitle}</b>（変更は「学習メニューへ」から）
+              教材：<b>{quizTitle}</b>（変更は「学習メニュー」から）
             </div>
 
             <div style={styles.row}>
@@ -397,13 +345,13 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                   <button
                     style={{ ...styles.segBtn, ...(mode === "attack" ? styles.segActive : {}) }}
                     onClick={() => {
-                      if (isGuest) {
-                        setShowGuestUpsellModal(true)
+                      if (!uid) {
+                        setToast("ランキングはログインが必要です（ノーマル推奨）")
+                        setMode("normal")
                         return
                       }
                       setMode("attack")
                     }}
-                    disabled={isGuest}
                   >
                     アタック（ランキング）
                   </button>
@@ -411,9 +359,17 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                 <div style={styles.help}>
                   ノーマル：難易度固定 / アタック：速度UP + 難易度が徐々に上がる
                 </div>
-                {isGuest ? (
-                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72, lineHeight: 1.6 }}>
-                    ※ アタック（ランキング）は<strong>ログイン後</strong>に解放されます
+
+                {!uid ? (
+                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
+                    ※ ゲストはノーマルのみ。ランキング参加は
+                    <button
+                      onClick={() => router.push("/login")}
+                      style={{ ...styles.inlineLinkBtn }}
+                    >
+                      ログイン
+                    </button>
+                    が必要です。
                   </div>
                 ) : null}
               </div>
@@ -452,9 +408,16 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
 
           {/* Playing */}
           <div style={{ display: phase === "playing" ? "block" : "none" }}>
-            <div style={{ position: "relative", height: 520, overflow: "hidden" }}>
+            <div style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }}>
               {/* Danger line */}
               <div style={styles.dangerLine} />
+
+              {/* Overlay chips */}
+              <div style={styles.overlayChips}>
+                <span style={styles.chip}>Lv {level}</span>
+                <span style={styles.chip}>Combo {combo}</span>
+                {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
+              </div>
 
               {/* Toast */}
               <AnimatePresence>
@@ -515,11 +478,7 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                 <div style={styles.tilesTitle}>タイルを順番に押せ</div>
                 <div style={styles.tilesGrid}>
                   {(current?.choices ?? []).map((c, idx) => (
-                    <button
-                      key={`${c}-${idx}`}
-                      onClick={() => onTilePress(c)}
-                      style={styles.tileBtn}
-                    >
+                    <button key={`${c}-${idx}`} onClick={() => onTilePress(c)} style={styles.tileBtn}>
                       {c}
                     </button>
                   ))}
@@ -570,9 +529,7 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
-                ノーマルはランキング保存しません（学習用）
-              </div>
+              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
             <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -597,101 +554,12 @@ export default function TileDropGame({ quizType, modeParam }: { quizType: QuizTy
         <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
           ※ Firestoreが空でも動くように内蔵問題を用意。Firestoreに入れれば自動でそちらが優先。
         </div>
-
-        {/* ===== Guest Modals ===== */}
-        <AnimatePresence>
-          {showGuestLimitModal ? (
-            <motion.div
-              key="guest-limit"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={styles.modalOverlay}
-            >
-              <motion.div
-                initial={{ y: 10, opacity: 0, scale: 0.98 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 10, opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.18 }}
-                style={styles.modal}
-              >
-                <div style={styles.modalTitle}>🎮 今日の無料プレイは終了しました</div>
-                <div style={styles.modalText}>
-                  明日また挑戦できます。<br />
-                  会員登録すると、<b>無制限プレイ</b>・<b>スコア保存</b>・<b>ランキング</b>が解放されます。
-                </div>
-
-                <div style={styles.modalBtns}>
-                  <button
-                    style={{ ...styles.btn, ...styles.btnMain, flex: 1 }}
-                    onClick={() => router.push("/register")}
-                  >
-                    無料で会員登録
-                  </button>
-                  <button
-                    style={{ ...styles.btn, ...styles.btnSub, flex: 1 }}
-                    onClick={() => router.push("/login")}
-                  >
-                    ログイン
-                  </button>
-                </div>
-
-                <button
-                  style={{ ...styles.btn, ...styles.btnGhost, width: "100%", marginTop: 10 }}
-                  onClick={() => setShowGuestLimitModal(false)}
-                >
-                  明日また来る
-                </button>
-              </motion.div>
-            </motion.div>
-          ) : null}
-
-          {showGuestUpsellModal ? (
-            <motion.div
-              key="guest-upsell"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={styles.modalOverlay}
-            >
-              <motion.div
-                initial={{ y: 10, opacity: 0, scale: 0.98 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 10, opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.18 }}
-                style={styles.modal}
-              >
-                <div style={styles.modalTitle}>🔥 記録を残す？</div>
-                <div style={styles.modalText}>
-                  今日のスコア：<b style={{ fontSize: 18 }}>{score}</b>
-                  <br />
-                  ゲストの記録は保存されません。会員登録で <b>保存</b> / <b>ランキング</b> / <b>レベル保持</b> を解放できます。
-                </div>
-
-                <div style={styles.modalBtns}>
-                  <button
-                    style={{ ...styles.btn, ...styles.btnMain, flex: 1 }}
-                    onClick={() => router.push("/register")}
-                  >
-                    無料で続ける
-                  </button>
-                  <button
-                    style={{ ...styles.btn, ...styles.btnSub, flex: 1 }}
-                    onClick={() => setShowGuestUpsellModal(false)}
-                  >
-                    今はいい
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
       </div>
     </main>
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100svh",
     background: "#f6f7fb",
@@ -701,38 +569,58 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 980,
     margin: "0 auto",
   },
-  topRow: {
+
+  // ✅ Compact bar（スマホ最適）
+  compactBar: {
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    height: 52,
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
+    padding: "10px 12px",
+    background: "rgba(246,247,251,0.92)",
+    backdropFilter: "blur(10px)",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    boxShadow: "0 10px 22px rgba(0,0,0,0.06)",
     marginBottom: 10,
   },
-  link: {
-    color: "#2563eb",
+  compactBack: {
+    width: 36,
+    height: 36,
+    display: "grid",
+    placeItems: "center",
+    borderRadius: 12,
     textDecoration: "none",
     fontWeight: 900,
-  },
-  header: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-    marginBottom: 12,
-  },
-  h1: { margin: 0, fontSize: 22, letterSpacing: 0.2 },
-  sub: { marginTop: 6, fontSize: 13, opacity: 0.75 },
-  stats: { display: "flex", gap: 10, flexWrap: "wrap" },
-  stat: {
     background: "#fff",
     border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    padding: "10px 12px",
-    minWidth: 110,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+    color: "#111827",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
   },
-  statLabel: { fontSize: 11, opacity: 0.6, fontWeight: 900, letterSpacing: 0.3 },
-  statValue: { marginTop: 2, fontSize: 16, fontWeight: 900 },
+  compactCenter: { flex: 1, minWidth: 0 },
+  compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
+  compactSub: {
+    fontSize: 12,
+    opacity: 0.7,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  compactStats: { display: "flex", gap: 8, alignItems: "center" },
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 10px",
+    borderRadius: 999,
+    background: "#111827",
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: 12,
+  },
 
   card: {
     background: "#fff",
@@ -743,6 +631,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   panelTitle: { fontWeight: 900, fontSize: 16 },
+
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12 },
   field: {
     background: "#f8fafc",
@@ -774,6 +663,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
+  inlineLinkBtn: {
+    marginLeft: 6,
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    color: "#2563eb",
+    fontWeight: 900,
+    cursor: "pointer",
+    textDecoration: "underline",
+  },
+
   btn: {
     padding: "10px 14px",
     borderRadius: 14,
@@ -783,18 +683,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btnMain: { background: "#2563eb", color: "#fff" },
   btnGhost: { background: "#111827", color: "#fff" },
-  btnSub: { background: "#e5e7eb", color: "#111827" },
-
-  guestBadge: {
-    fontSize: 12,
-    fontWeight: 900,
-    padding: "8px 12px",
-    borderRadius: 999,
-    background: "#111827",
-    color: "#fff",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
-  },
 
   dangerLine: {
     position: "absolute",
@@ -803,6 +691,25 @@ const styles: Record<string, React.CSSProperties> = {
     top: "58%" as any,
     height: 2,
     background: "rgba(239,68,68,0.6)",
+  },
+
+  // ✅ Lv/Combo などを小さく浮かせる
+  overlayChips: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    display: "flex",
+    gap: 8,
+    zIndex: 20,
+  },
+  chip: {
+    padding: "8px 10px",
+    borderRadius: 999,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    fontWeight: 900,
+    fontSize: 12,
+    boxShadow: "0 10px 20px rgba(0,0,0,0.06)",
   },
 
   plate: {
@@ -827,7 +734,12 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.18)",
   },
-  prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
+  prompt: {
+    fontSize: "clamp(18px, 5vw, 22px)" as any,
+    fontWeight: 900,
+    textAlign: "center",
+    padding: "14px 0 8px",
+  },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
   dot: {
     width: 10,
@@ -847,6 +759,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #e5e7eb",
     fontWeight: 900,
     boxShadow: "0 10px 22px rgba(0,0,0,0.08)",
+    zIndex: 30,
   },
 
   tilesArea: {
@@ -881,26 +794,4 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: 12,
   },
-
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(17,24,39,0.55)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    zIndex: 80,
-  },
-  modal: {
-    width: "min(520px, 92vw)",
-    background: "#fff",
-    borderRadius: 18,
-    border: "1px solid #e5e7eb",
-    padding: 16,
-    boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
-  },
-  modalTitle: { fontSize: 16, fontWeight: 900 },
-  modalText: { marginTop: 10, fontSize: 13, opacity: 0.88, lineHeight: 1.7 },
-  modalBtns: { marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" },
 }
