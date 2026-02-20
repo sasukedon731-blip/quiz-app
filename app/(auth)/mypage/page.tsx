@@ -10,7 +10,6 @@ import {
   limit,
   orderBy,
   query,
-  where,
   doc,
   getDoc,
 } from "firebase/firestore"
@@ -25,7 +24,7 @@ type QuizResult = {
   accuracy?: number
   quizType?: QuizType | string
   mode?: string
-  createdAt?: { seconds: number } | Date | null
+  createdAt?: any
 }
 
 type Progress = {
@@ -62,17 +61,47 @@ function titleByQuizType(qt?: string) {
   return hit?.title ?? qt ?? "不明"
 }
 
+function calcAcc(r: QuizResult) {
+  if (typeof r.accuracy === "number") return Math.round(r.accuracy)
+  if (r.total > 0) return Math.round((r.score / r.total) * 100)
+  return 0
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n))
+}
+
+type DetailState = {
+  open: boolean
+  quizType: string | null
+  title: string
+  results: QuizResult[]
+  progress: Progress | null
+}
+
 export default function MyPage() {
   const router = useRouter()
 
   const [user, setUser] = useState<User | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  const [results, setResults] = useState<QuizResult[]>([])
+  // summary data
+  const [latestResults, setLatestResults] = useState<QuizResult[]>([]) // global latest 5
   const [progressMap, setProgressMap] = useState<Record<string, Progress>>({})
+  const [latestByQuiz, setLatestByQuiz] = useState<Record<string, QuizResult | null>>({})
+
+  // detail modal
+  const [detail, setDetail] = useState<DetailState>({
+    open: false,
+    quizType: null,
+    title: "",
+    results: [],
+    progress: null,
+  })
+  const [detailLoading, setDetailLoading] = useState(false)
 
   // Auth
   useEffect(() => {
@@ -86,15 +115,14 @@ export default function MyPage() {
     return () => unsub()
   }, [router])
 
-  // Load mypage data
+  // Load summary
   useEffect(() => {
     ;(async () => {
       if (!user?.uid) return
       setLoading(true)
       setError("")
       try {
-        // 1) latest results (global latest 5)
-        // users/{uid}/results
+        // latest 5 overall
         const resultsRef = collection(db, "users", user.uid, "results")
         const q1 = query(resultsRef, orderBy("createdAt", "desc"), limit(5))
         const snap = await getDocs(q1)
@@ -109,26 +137,53 @@ export default function MyPage() {
             createdAt: data.createdAt ?? null,
           }
         })
-        setResults(list)
+        setLatestResults(list)
 
-        // 2) progress (optional)
-        // users/{uid}/progress/{quizType}
-        // quizCatalogのid一覧で取りに行く（存在しない場合は無視）
+        // progress per quiz (optional)
         const pMap: Record<string, Progress> = {}
         await Promise.all(
           quizCatalog.map(async (q) => {
             try {
               const pRef = doc(db, "users", user.uid, "progress", q.id)
               const pSnap = await getDoc(pRef)
-              if (pSnap.exists()) {
-                pMap[q.id] = pSnap.data() as any
-              }
+              if (pSnap.exists()) pMap[q.id] = pSnap.data() as any
             } catch {
               // ignore
             }
           })
         )
         setProgressMap(pMap)
+
+        // latest result per quizType (1件だけ)
+        const lbq: Record<string, QuizResult | null> = {}
+        await Promise.all(
+          quizCatalog.map(async (q) => {
+            try {
+              const qx = query(
+                resultsRef,
+                where("quizType", "==", q.id),
+                orderBy("createdAt", "desc"),
+                limit(1)
+              )
+              const s = await getDocs(qx)
+              lbq[q.id] = s.docs.length ? (s.docs[0].data() as any) : null
+              if (lbq[q.id]) {
+                const d = lbq[q.id] as any
+                lbq[q.id] = {
+                  score: Number(d.score ?? 0),
+                  total: Number(d.total ?? 0),
+                  accuracy: typeof d.accuracy === "number" ? d.accuracy : undefined,
+                  quizType: d.quizType,
+                  mode: d.mode,
+                  createdAt: d.createdAt ?? null,
+                }
+              }
+            } catch {
+              lbq[q.id] = null
+            }
+          })
+        )
+        setLatestByQuiz(lbq)
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -139,34 +194,15 @@ export default function MyPage() {
   }, [user?.uid])
 
   const displayName = useMemo(() => {
-    return (
-      user?.displayName ||
-      user?.email?.split("@")[0] ||
-      "ユーザー"
-    )
+    return user?.displayName || user?.email?.split("@")[0] || "ユーザー"
   }, [user])
 
-  const latestAccList = useMemo(() => {
-    // accuracy がない場合 score/total から計算
-    return results
-      .map((r) => {
-        const acc =
-          typeof r.accuracy === "number"
-            ? r.accuracy
-            : r.total > 0
-            ? Math.round((r.score / r.total) * 100)
-            : 0
-        return { ...r, acc }
-      })
-      .slice()
-      .reverse() // 古い→新しいの順（グラフ向き）
-  }, [results])
-
   const avgAcc = useMemo(() => {
-    if (!latestAccList.length) return null
-    const sum = latestAccList.reduce((a, b) => a + (b as any).acc, 0)
-    return Math.round(sum / latestAccList.length)
-  }, [latestAccList])
+    if (!latestResults.length) return null
+    const accs = latestResults.map(calcAcc)
+    const sum = accs.reduce((a, b) => a + b, 0)
+    return Math.round(sum / accs.length)
+  }, [latestResults])
 
   const handleLogout = async () => {
     try {
@@ -178,10 +214,74 @@ export default function MyPage() {
     }
   }
 
+  const openDetail = async (quizId: string, title: string) => {
+    if (!user?.uid) return
+    setDetailLoading(true)
+    setError("")
+    try {
+      const resultsRef = collection(db, "users", user.uid, "results")
+
+      // latest 5 for this quizType
+      const qx = query(
+        resultsRef,
+        where("quizType", "==", quizId),
+        orderBy("createdAt", "desc"),
+        limit(5)
+      )
+      const s = await getDocs(qx)
+      const list: QuizResult[] = s.docs.map((d) => {
+        const data = d.data() as any
+        return {
+          score: Number(data.score ?? 0),
+          total: Number(data.total ?? 0),
+          accuracy: typeof data.accuracy === "number" ? data.accuracy : undefined,
+          quizType: data.quizType,
+          mode: data.mode,
+          createdAt: data.createdAt ?? null,
+        }
+      })
+
+      // progress
+      let prog: Progress | null = null
+      try {
+        const pRef = doc(db, "users", user.uid, "progress", quizId)
+        const pSnap = await getDoc(pRef)
+        prog = pSnap.exists() ? (pSnap.data() as any) : null
+      } catch {
+        prog = null
+      }
+
+      setDetail({
+        open: true,
+        quizType: quizId,
+        title,
+        results: list,
+        progress: prog,
+      })
+    } catch (e) {
+      console.error(e)
+      setError("詳細の読み込みに失敗しました")
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const closeDetail = () => {
+    setDetail((d) => ({ ...d, open: false }))
+  }
+
+  if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
+
   return (
     <main style={S.main}>
-      {/* Topbar (52px) */}
+      {/* Topbar (52px) - ☰を右上に */}
       <header style={S.topbar}>
+        <div style={S.leftSlot}>
+          {/* 左は空（TOPと同じで右に寄せたい） */}
+        </div>
+
+        <div style={S.topbarTitle}>マイページ</div>
+
         <button
           aria-label="menu"
           onClick={() => setDrawerOpen(true)}
@@ -189,17 +289,12 @@ export default function MyPage() {
         >
           ☰
         </button>
-        <div style={S.topbarTitle}>マイページ</div>
-        <div style={{ width: 40 }} />
       </header>
 
       {/* Drawer */}
       {drawerOpen && (
         <>
-          <div
-            style={S.drawerOverlay}
-            onClick={() => setDrawerOpen(false)}
-          />
+          <div style={S.drawerOverlay} onClick={() => setDrawerOpen(false)} />
           <aside style={S.drawer}>
             <div style={S.drawerHead}>
               <div style={{ fontWeight: 900 }}>MENU</div>
@@ -216,13 +311,25 @@ export default function MyPage() {
               <Link style={S.navItem} href="/" onClick={() => setDrawerOpen(false)}>
                 🏠 TOP（LP）
               </Link>
-              <Link style={S.navItem} href="/select-mode" onClick={() => setDrawerOpen(false)}>
+              <Link
+                style={S.navItem}
+                href="/select-mode"
+                onClick={() => setDrawerOpen(false)}
+              >
                 🎮 学習を始める
               </Link>
-              <Link style={S.navItem} href="/plans" onClick={() => setDrawerOpen(false)}>
+              <Link
+                style={S.navItem}
+                href="/plans"
+                onClick={() => setDrawerOpen(false)}
+              >
                 💳 プラン
               </Link>
-              <Link style={S.navItem} href="/contents" onClick={() => setDrawerOpen(false)}>
+              <Link
+                style={S.navItem}
+                href="/contents"
+                onClick={() => setDrawerOpen(false)}
+              >
                 📚 教材一覧
               </Link>
 
@@ -236,8 +343,8 @@ export default function MyPage() {
         </>
       )}
 
-      {/* Content */}
       <section style={{ marginTop: 14 }}>
+        {/* hero */}
         <div style={S.hero}>
           <div style={{ fontSize: 13, opacity: 0.8 }}>こんにちは</div>
           <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2 }}>
@@ -255,95 +362,106 @@ export default function MyPage() {
 
         {error && <p style={S.error}>{error}</p>}
 
-        {/* Quick stats */}
+        {/* quick stats */}
         <div style={S.grid2}>
           <div style={S.card}>
             <div style={S.cardTitle}>直近5回の平均正答率</div>
-            <div style={S.bigNumber}>
-              {avgAcc === null ? "—" : `${avgAcc}%`}
-            </div>
-            <div style={S.miniNote}>模擬/通常が混在してもOK</div>
+            <div style={S.bigNumber}>{avgAcc === null ? "—" : `${avgAcc}%`}</div>
+            <div style={S.miniNote}>直近の全教材まとめ</div>
           </div>
 
           <div style={S.card}>
             <div style={S.cardTitle}>連続学習（streak）</div>
             <div style={S.bigNumber}>
               {(() => {
-                // progressMap から最大値だけ拾う（教材別があるため）
                 const vals = Object.values(progressMap)
-                const best = vals.reduce((m, p) => Math.max(m, Number(p.streak ?? 0)), 0)
+                const best = vals.reduce(
+                  (m, p) => Math.max(m, Number(p.streak ?? 0)),
+                  0
+                )
                 return best ? `${best}日` : "—"
               })()}
             </div>
-            <div style={S.miniNote}>教材別の最大streakを表示</div>
+            <div style={S.miniNote}>教材別の最大streak</div>
           </div>
         </div>
 
-        {/* Mini chart */}
+        {/* ✅ 教材カード（コンパクト：記録だけ + 詳細ボタン） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
-            <div>
-              <div style={S.cardTitle}>直近の成績</div>
-              <div style={S.subtle}>（古い→新しい）</div>
-            </div>
+            <div style={S.cardTitle}>教材</div>
+            <button style={S.linkBtn} onClick={() => router.push("/contents")}>
+              教材一覧 →
+            </button>
           </div>
 
-          {latestAccList.length === 0 ? (
-            <div style={{ opacity: 0.7, fontSize: 13, paddingTop: 6 }}>
-              まだ記録がありません。まずは1回プレイしてみよう！
-            </div>
-          ) : (
-            <div style={S.barWrap}>
-              {latestAccList.map((r: any, i: number) => (
-                <div key={i} style={S.barCol}>
-                  <div
-                    style={{
-                      ...S.bar,
-                      height: `${Math.max(8, Math.min(100, r.acc))}%`,
-                    }}
-                    title={`${r.acc}%`}
-                  />
-                  <div style={S.barLabel}>{r.acc}%</div>
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {quizCatalog.map((q) => {
+              const p = progressMap[q.id] ?? {}
+              const last = latestByQuiz[q.id] ?? null
+
+              const totalSessions = Number(p.totalSessions ?? 0)
+              const streak = Number(p.streak ?? 0)
+              const lastAcc = last ? calcAcc(last as any) : null
+
+              return (
+                <div key={q.id} style={S.compactRow}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={S.rowTitle}>{q.title}</div>
+                    <div style={S.rowSub}>
+                      {lastAcc === null ? "最新：—" : `最新：${lastAcc}%`} ・ 総回数：{totalSessions} ・ streak：
+                      {streak || "—"}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <button
+                      style={S.smallGhostBtn}
+                      onClick={() => openDetail(q.id, q.title)}
+                      disabled={detailLoading}
+                    >
+                      {detailLoading && detail.quizType === q.id ? "読込中..." : "詳細"}
+                    </button>
+                    <button
+                      style={S.smallBtn}
+                      onClick={() => router.push(`/select-mode?type=${q.id}`)}
+                      title="select-modeがtype対応している場合に有効"
+                    >
+                      開始
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
         </section>
 
-        {/* Latest results list */}
+        {/* 最新5件（全体） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
-            <div style={S.cardTitle}>最新5件</div>
+            <div style={S.cardTitle}>最新5件（全体）</div>
             <button style={S.linkBtn} onClick={() => router.push("/select-mode")}>
               もう一回やる →
             </button>
           </div>
 
-          {results.length === 0 ? (
+          {latestResults.length === 0 ? (
             <div style={{ opacity: 0.7, fontSize: 13, paddingTop: 6 }}>
-              まだ結果がありません。学習を開始してください。
+              まだ結果がありません。まずは1回プレイしてみよう！
             </div>
           ) : (
             <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-              {results.map((r, idx) => {
+              {latestResults.map((r, idx) => {
                 const d = toDate(r.createdAt)
-                const acc =
-                  typeof r.accuracy === "number"
-                    ? r.accuracy
-                    : r.total > 0
-                    ? Math.round((r.score / r.total) * 100)
-                    : 0
+                const acc = calcAcc(r)
 
                 return (
                   <div key={idx} style={S.rowCard}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={S.rowTitle}>
-                          {titleByQuizType(String(r.quizType))}
-                        </div>
+                        <div style={S.rowTitle}>{titleByQuizType(String(r.quizType))}</div>
                         <div style={S.rowSub}>
-                          {r.mode ? `mode: ${r.mode}` : "mode: —"}{" "}
-                          {d ? `・${fmtDate(d)}` : ""}
+                          {r.mode ? `mode: ${r.mode}` : "mode: —"} {d ? `・${fmtDate(d)}` : ""}
                         </div>
                       </div>
 
@@ -361,63 +479,128 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* Per quiz progress (optional) */}
-        <section style={S.card}>
-          <div style={S.cardHeadRow}>
-            <div style={S.cardTitle}>教材ごとの進捗</div>
-            <button style={S.linkBtn} onClick={() => router.push("/contents")}>
-              教材を見る →
-            </button>
-          </div>
-
-          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            {quizCatalog.map((q) => {
-              const p = progressMap[q.id] ?? {}
-              const totalSessions = Number(p.totalSessions ?? 0)
-              const today = Number(p.todaySessions ?? 0)
-              const streak = Number(p.streak ?? 0)
-              const best = Number(p.bestStreak ?? 0)
-
-              return (
-                <div key={q.id} style={S.rowCard}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={S.rowTitle}>{q.title}</div>
-                      <div style={S.rowSub}>
-                        総回数: {totalSessions} ・ 今日: {today}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 900 }}>{streak ? `${streak}日` : "—"}</div>
-                      <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        best: {best || "—"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      style={S.smallBtn}
-                      onClick={() => router.push(`/select-mode?type=${q.id}`)}
-                      title="この教材で始める（select-modeがtype対応している場合に有効）"
-                    >
-                      この教材で始める
-                    </button>
-                    <button
-                      style={S.smallGhostBtn}
-                      onClick={() => router.push(`/contents/${q.id}`)}
-                    >
-                      内容を見る
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
         <div style={{ height: 32 }} />
       </section>
+
+      {/* ✅ 詳細モーダル（グラフ + 詳細記録） */}
+      {detail.open && (
+        <>
+          <div style={S.modalOverlay} onClick={closeDetail} />
+          <div style={S.modal}>
+            <div style={S.modalHead}>
+              <div style={{ minWidth: 0 }}>
+                <div style={S.modalTitle}>{detail.title}</div>
+                <div style={S.modalSub}>直近の記録（最新→過去）</div>
+              </div>
+              <button style={S.drawerClose} onClick={closeDetail} aria-label="close">
+                ✕
+              </button>
+            </div>
+
+            {/* progress */}
+            <div style={S.modalCard}>
+              <div style={S.cardTitle}>進捗</div>
+              <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 10 }}>
+                <div style={S.kpiBox}>
+                  <div style={S.kpiLabel}>総回数</div>
+                  <div style={S.kpiValue}>{Number(detail.progress?.totalSessions ?? 0)}</div>
+                </div>
+                <div style={S.kpiBox}>
+                  <div style={S.kpiLabel}>今日</div>
+                  <div style={S.kpiValue}>{Number(detail.progress?.todaySessions ?? 0)}</div>
+                </div>
+                <div style={S.kpiBox}>
+                  <div style={S.kpiLabel}>streak</div>
+                  <div style={S.kpiValue}>{Number(detail.progress?.streak ?? 0) || "—"}</div>
+                </div>
+                <div style={S.kpiBox}>
+                  <div style={S.kpiLabel}>best</div>
+                  <div style={S.kpiValue}>{Number(detail.progress?.bestStreak ?? 0) || "—"}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* mini chart */}
+            <div style={S.modalCard}>
+              <div style={S.cardTitle}>直近5回の正答率</div>
+
+              {detail.results.length === 0 ? (
+                <div style={{ opacity: 0.7, fontSize: 13, paddingTop: 6 }}>
+                  まだ記録がありません。
+                </div>
+              ) : (
+                <div style={S.barWrap}>
+                  {detail.results
+                    .slice()
+                    .reverse() // 古い→新しい
+                    .map((r, i) => {
+                      const acc = calcAcc(r)
+                      return (
+                        <div key={i} style={S.barCol}>
+                          <div
+                            style={{
+                              ...S.bar,
+                              height: `${clamp(acc, 0, 100)}%`,
+                            }}
+                            title={`${acc}%`}
+                          />
+                          <div style={S.barLabel}>{acc}%</div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* list */}
+            <div style={S.modalCard}>
+              <div style={S.cardTitle}>記録</div>
+              <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                {detail.results.length === 0 ? (
+                  <div style={{ opacity: 0.7, fontSize: 13 }}>
+                    まだ記録がありません。
+                  </div>
+                ) : (
+                  detail.results.map((r, idx) => {
+                    const d = toDate(r.createdAt)
+                    const acc = calcAcc(r)
+                    return (
+                      <div key={idx} style={S.rowCard}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={S.rowTitle}>
+                              {r.mode ? `mode: ${r.mode}` : "mode: —"}
+                            </div>
+                            <div style={S.rowSub}>{d ? fmtDate(d) : ""}</div>
+                          </div>
+                          <div style={S.rowScoreBox}>
+                            <div style={{ fontWeight: 900, fontSize: 16 }}>{acc}%</div>
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>
+                              {r.score}/{r.total}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  style={S.smallBtn}
+                  onClick={() => router.push(`/select-mode?type=${detail.quizType ?? ""}`)}
+                >
+                  この教材で開始
+                </button>
+                <button style={S.smallGhostBtn} onClick={closeDetail}>
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   )
 }
@@ -435,15 +618,16 @@ const S: Record<string, React.CSSProperties> = {
     top: 0,
     zIndex: 20,
     height: 52,
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "40px 1fr 40px",
     alignItems: "center",
-    justifyContent: "space-between",
     padding: "0 10px",
     background: "rgba(255,255,255,.92)",
     backdropFilter: "blur(10px)",
     borderBottom: "1px solid rgba(17,24,39,.08)",
   },
-  topbarTitle: { fontWeight: 900, fontSize: 14 },
+  leftSlot: { width: 40, height: 40 },
+  topbarTitle: { fontWeight: 900, fontSize: 14, textAlign: "center" },
   iconBtn: {
     width: 40,
     height: 40,
@@ -452,6 +636,7 @@ const S: Record<string, React.CSSProperties> = {
     background: "#fff",
     fontWeight: 900,
     cursor: "pointer",
+    justifySelf: "end",
   },
 
   drawerOverlay: {
@@ -537,8 +722,6 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   cardTitle: { fontWeight: 900, fontSize: 14 },
-  subtle: { fontSize: 12, opacity: 0.7, marginTop: 2 },
-
   cardHeadRow: {
     display: "flex",
     alignItems: "center",
@@ -549,27 +732,21 @@ const S: Record<string, React.CSSProperties> = {
   bigNumber: { fontSize: 28, fontWeight: 900, marginTop: 8 },
   miniNote: { fontSize: 12, opacity: 0.7, marginTop: 2 },
 
-  barWrap: {
-    marginTop: 12,
-    height: 120,
-    display: "flex",
-    alignItems: "flex-end",
-    gap: 10,
-  },
-  barCol: { width: "100%", display: "grid", gap: 6, alignItems: "end" },
-  bar: {
-    width: "100%",
-    borderRadius: 12,
-    background: "rgba(37,99,235,.18)",
-    border: "1px solid rgba(37,99,235,.25)",
-  },
-  barLabel: { fontSize: 12, opacity: 0.75, textAlign: "center" },
-
   rowCard: {
     padding: 12,
     borderRadius: 16,
     border: "1px solid rgba(17,24,39,.10)",
     background: "rgba(249,250,251,1)",
+  },
+  compactRow: {
+    padding: 12,
+    borderRadius: 16,
+    border: "1px solid rgba(17,24,39,.10)",
+    background: "rgba(249,250,251,1)",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    alignItems: "center",
   },
   rowTitle: {
     fontWeight: 900,
@@ -636,4 +813,76 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   error: { color: "#dc2626", fontWeight: 900, marginTop: 10 },
+
+  // modal
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,.35)",
+    zIndex: 70,
+  },
+  modal: {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "min(720px, 92vw)",
+    maxHeight: "86vh",
+    overflow: "auto",
+    background: "#fff",
+    border: "1px solid rgba(17,24,39,.10)",
+    borderRadius: 18,
+    boxShadow: "0 18px 50px rgba(0,0,0,.18)",
+    zIndex: 80,
+    padding: 14,
+  },
+  modalHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingBottom: 10,
+    borderBottom: "1px solid rgba(17,24,39,.08)",
+  },
+  modalTitle: {
+    fontWeight: 900,
+    fontSize: 16,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  modalSub: { marginTop: 2, fontSize: 12, opacity: 0.75 },
+
+  modalCard: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 16,
+    border: "1px solid rgba(17,24,39,.10)",
+    background: "rgba(249,250,251,1)",
+  },
+
+  kpiBox: {
+    padding: 10,
+    borderRadius: 14,
+    border: "1px solid rgba(17,24,39,.10)",
+    background: "#fff",
+  },
+  kpiLabel: { fontSize: 12, opacity: 0.75, fontWeight: 800 },
+  kpiValue: { fontSize: 18, fontWeight: 900, marginTop: 2 },
+
+  barWrap: {
+    marginTop: 12,
+    height: 120,
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 10,
+  },
+  barCol: { width: "100%", display: "grid", gap: 6, alignItems: "end" },
+  bar: {
+    width: "100%",
+    borderRadius: 12,
+    background: "rgba(37,99,235,.18)",
+    border: "1px solid rgba(37,99,235,.25)",
+  },
+  barLabel: { fontSize: 12, opacity: 0.75, textAlign: "center" },
 }
