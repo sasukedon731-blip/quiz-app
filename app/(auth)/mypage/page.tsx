@@ -8,7 +8,6 @@ import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/
 
 import QuizLayout from "@/app/components/QuizLayout"
 import Button from "@/app/components/Button"
-import AppHeader from "@/app/components/AppHeader"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import type { QuizType } from "@/app/data/types"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
@@ -99,7 +98,6 @@ export default function MyPage() {
   // 詳細表示する教材
   const [focusType, setFocusType] = useState<QuizType | null>(null)
 
-  // ハンバーガーメニュー
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -353,8 +351,21 @@ export default function MyPage() {
         <p style={{ textAlign: "center" }}>確認中...</p>
       ) : (
         <>
-
-          <AppHeader title="マイページ" />
+          {/* Header actions */}
+          <div className="actionsGrid">
+            <Button variant="main" onClick={() => router.push("/select-mode")}>
+              学習を始める
+            </Button>
+            <Button variant="accent" onClick={() => router.push("/select-quizzes")}>
+              教材選択
+            </Button>
+            <Button variant="sub" onClick={() => router.push("/plans")}>
+              プラン
+            </Button>
+            <Button variant="danger" onClick={handleLogout}>
+              ログアウト
+            </Button>
+          </div>
 
           {/* Overall summary */}
           <div className="panelSoft" style={{ marginTop: 12 }}>
@@ -426,7 +437,8 @@ export default function MyPage() {
             {loading ? (
               <p>読み込み中…</p>
             ) : showEmptyState ? (
-              <div style={{ padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
+              <div style={{ padding: 12, borderRadius: 12, background: "white",
+                      cursor: "pointer", border: "1px solid var(--border)" }}>
                 {view === "current" ? (
                   <>
                     <div style={{ fontWeight: 900 }}>今月の教材が未選択です</div>
@@ -453,6 +465,27 @@ export default function MyPage() {
                 {cards.map((c) => (
                   <div
                     key={c.quizType}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setFocusType(c.quizType)
+                      setTimeout(() => {
+                        if (typeof window !== "undefined") {
+                          document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                      }, 50)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setFocusType(c.quizType)
+                        setTimeout(() => {
+                          if (typeof window !== "undefined") {
+                            document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                          }
+                        }, 50)
+                      }
+                    }}
                     style={{
                       border: "1px solid var(--border)",
                       borderRadius: 16,
@@ -502,20 +535,9 @@ export default function MyPage() {
                       ) : null}
                     </div>
 
-                    <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setFocusType(c.quizType)
-                          setTimeout(() => {
-                            if (typeof window !== "undefined") {
-                              document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                            }
-                          }, 50)
-                        }}
-                      >
-                        詳細
-                      </Button>
+                    <div className="cardHint">
+                      <span style={{ fontWeight: 900 }}>タップで詳細</span>
+                      <span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>›</span>
                     </div>
                   </div>
                 ))}
@@ -532,6 +554,13 @@ export default function MyPage() {
             <div id="detail" className="panelSoft" style={{ marginTop: 12 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>
                 🔎 詳細：{badgeByType(focusType).text} / {focusMeta?.title ?? focusType}
+              </div>
+
+              <div className="detailActions">
+                <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>通常</Button>
+                <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(focusType)}`)}>模擬</Button>
+                <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(focusType)}`)}>復習</Button>
+                <Button variant="ghost" onClick={() => router.push("/game")}>ゲーム</Button>
               </div>
 
               <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: "white", border: "1px solid var(--border)" }}>
@@ -630,41 +659,13 @@ export default function MyPage() {
                 )}
               </div>
 
-              <div style={{ marginTop: 12 }}>
-                {focusType === "japanese-n4" ? (
-                  <div className="gameHero">
-                    <div className="gameHeroTag">🔥 今月のおすすめ</div>
-                    <button
-                      className="gameHeroBtn"
-                      onClick={() => router.push("/game?mode=normal")}
-                    >
-                      🎮 N4バトルで鍛える（ゲーム）
-                    </button>
-                    <div className="gameHeroNote">
-                      ※ ランキングに挑戦したい場合は「attack」を選んでください。
-                    </div>
-                    <div className="gameHeroMiniRow">
-                      <Button variant="sub" onClick={() => router.push("/game?mode=attack")}>
-                        ランキングに挑戦（attack）
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="detailActionGrid">
-                  <Button variant="ghost" onClick={() => setFocusType(null)}>
-                    詳細を閉じる
-                  </Button>
-                  <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>
-                    通常
-                  </Button>
-                  <Button variant="sub" onClick={() => router.push(`/exam?type=${encodeURIComponent(focusType)}`)}>
-                    模擬
-                  </Button>
-                  <Button variant="accent" onClick={() => router.push(`/review?type=${encodeURIComponent(focusType)}`)}>
-                    復習
-                  </Button>
-                </div>
+              <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Button variant="sub" onClick={() => setFocusType(null)}>
+                  詳細を閉じる
+                </Button>
+                <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(focusType)}`)}>
+                  この教材で学習する
+                </Button>
               </div>
             </div>
           ) : null}

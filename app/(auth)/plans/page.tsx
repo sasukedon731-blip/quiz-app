@@ -29,6 +29,47 @@ const PLAN_DESC: Record<PlanId, string> = {
   all: "全教材受講（教材追加も自動で利用可能）",
 }
 
+/**
+ * ✅ 価格（30日）
+ * - ブラザー要望：30日=500円 → 3教材プランを500円に設定
+ * - ここだけ変えれば全表示が変わる
+ */
+const PRICE_YEN_30D: Record<PlanId, number> = {
+  trial: 0,
+  free: 0,
+  "3": 500,   // ✅ 30日500円
+  "5": 800,   // ←必要なら調整
+  all: 1200,  // ←必要なら調整
+}
+
+function formatYen(n: number) {
+  return n.toLocaleString("ja-JP")
+}
+
+function monthsFromDays(days: 30 | 180 | 365) {
+  return days === 30 ? 1 : days === 180 ? 6 : 12
+}
+
+function periodLabel(days: 30 | 180 | 365) {
+  return days === 30 ? "30日" : days === 180 ? "半年" : "1年"
+}
+
+/**
+ * ✅ 期間合計金額（割引ルール）
+ * - 半年：10%OFF
+ * - 年：20%OFF
+ */
+function calcTotal(base30: number, days: 30 | 180 | 365) {
+  if (days === 30) return base30
+  if (days === 180) return Math.round(base30 * 6 * 0.9)
+  return Math.round(base30 * 12 * 0.8)
+}
+
+function calcPerMonth(total: number, days: 30 | 180 | 365) {
+  const m = monthsFromDays(days)
+  return Math.round(total / m)
+}
+
 export default function PlansPage() {
   const router = useRouter()
 
@@ -132,6 +173,8 @@ export default function PlansPage() {
 
   if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
 
+  const months = monthsFromDays(durationDays)
+
   return (
     <main style={styles.main}>
       <AppHeader title="プラン" />
@@ -212,7 +255,7 @@ export default function PlansPage() {
           </label>
         </div>
 
-        {/* 期間 */}
+        {/* 期間（ここを変えるとカードの価格も即変わる：A方式） */}
         <div style={styles.durationWrap}>
           <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
           <div style={styles.durationRow}>
@@ -225,21 +268,49 @@ export default function PlansPage() {
               <option value={180}>半年（10%OFF）</option>
               <option value={365}>年（20%OFF）</option>
             </select>
+
             <span style={styles.hint}>
-              コンビニ払いでも「まとめ払い」で更新回数を減らせます
+              選んだ期間に応じて、下のプラン価格も自動で切り替わります（{months}ヶ月換算）
             </span>
           </div>
         </div>
       </section>
 
-      {/* プラン一覧（カード統一） */}
+      {/* プラン一覧（価格表示つき） */}
       <div style={styles.planGrid}>
         {(["3", "5", "all"] as PlanId[]).map((p) => {
           const isCurrent = p === currentPlan
+
+          const base30 = PRICE_YEN_30D[p]
+          const total = calcTotal(base30, durationDays)
+          const perMonth = calcPerMonth(total, durationDays)
+          const compareTotal = base30 * months
+          const saved = Math.max(0, compareTotal - total)
+
           return (
             <div key={p} style={styles.planCard}>
               <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
               <div style={styles.planDesc}>{PLAN_DESC[p]}</div>
+
+              {/* ✅ 価格ブロック */}
+              <div style={{ marginTop: 12 }}>
+                <div style={styles.priceRow}>
+                  <div style={styles.priceMain}>
+                    ¥{formatYen(total)}
+                    <span style={styles.priceUnit}> / {periodLabel(durationDays)}</span>
+                  </div>
+                </div>
+
+                <div style={styles.priceSub}>
+                  実質 ¥{formatYen(perMonth)} / 月（{months}ヶ月換算）
+                </div>
+
+                {durationDays !== 30 && (
+                  <div style={styles.priceSave}>
+                    30日×{months}回より <b>¥{formatYen(saved)}</b> お得
+                  </div>
+                )}
+              </div>
 
               <div style={styles.planMeta}>
                 {p === "3" && "利用可能：3教材（選択式）"}
@@ -263,6 +334,15 @@ export default function PlansPage() {
           )
         })}
       </div>
+
+      {/* 補足（信頼） */}
+      <section style={{ ...styles.card, marginTop: 16 }}>
+        <div style={{ fontWeight: 900, fontSize: 14 }}>補足</div>
+        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.6 }}>
+          ・プラン購入後、受講する教材を選択します（3/5プランは選択式、ALLは全部利用可）。<br />
+          ・期間を「半年 / 年」にすると割引され、更新回数も減ります。
+        </div>
+      </section>
     </main>
   )
 }
@@ -435,6 +515,38 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.8,
     lineHeight: 1.5,
     fontSize: 13,
+  },
+
+  priceRow: {
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  priceMain: {
+    fontWeight: 900,
+    fontSize: 24,
+    lineHeight: 1.1,
+  },
+
+  priceUnit: {
+    fontSize: 12,
+    opacity: 0.75,
+    marginLeft: 6,
+    fontWeight: 800,
+  },
+
+  priceSub: {
+    marginTop: 4,
+    fontSize: 13,
+    opacity: 0.8,
+  },
+
+  priceSave: {
+    marginTop: 4,
+    fontSize: 12,
+    opacity: 0.75,
   },
 
   planMeta: {

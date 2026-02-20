@@ -12,13 +12,30 @@ function addDays(date: Date, days: number) {
   return d
 }
 
+function parseDurationDays(v: any): 30 | 180 | 365 {
+  const n = Number(v)
+  return n === 180 ? 180 : n === 365 ? 365 : 30
+}
+
+function parsePlan(v: any): "3" | "5" | "all" | null {
+  return v === "3" || v === "5" || v === "all" ? v : null
+}
+
+function parseMethod(v: any): "convenience" | "card" {
+  return v === "convenience" ? "convenience" : "card"
+}
+
 export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2026-01-28.clover",
   })
 
   const sig = (await headers()).get("stripe-signature")
-  if (!sig) return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 })
+  if (!sig)
+    return NextResponse.json(
+      { error: "Missing stripe-signature" },
+      { status: 400 }
+    )
 
   const rawBody = await req.text()
 
@@ -36,28 +53,34 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
-      // Checkout is completed (the customer finished the hosted flow).
+      // Checkout completed (customer finished hosted flow).
       // For async methods (konbini), payment might still be unpaid here.
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
-        const uid = (session.metadata?.uid || session.client_reference_id) as string | undefined
-        const plan = session.metadata?.plan as any
-        const method = session.metadata?.method as any
-        const durationDays = Number(session.metadata?.durationDays ?? 30)
 
-        if (uid) {
-          const paid = session.payment_status === "paid"
-          await setUserBillingMerge(uid, {
-            accountType: "personal",
-            method: method === "convenience" ? "convenience" : "card",
-            currentPlan: plan === "3" || plan === "5" || plan === "all" ? plan : "3",
-            status: paid ? "active" : "pending",
-            stripeCheckoutSessionId: session.id,
-            stripePaymentIntentId:
-              typeof session.payment_intent === "string" ? session.payment_intent : null,
-            currentPeriodEnd: paid ? addDays(new Date(), durationDays) : null,
-          })
-        }
+        const uid = (session.metadata?.uid || session.client_reference_id) as
+          | string
+          | undefined
+        if (!uid) break
+
+        const plan = parsePlan(session.metadata?.plan)
+        const method = parseMethod(session.metadata?.method)
+        const durationDays = parseDurationDays(session.metadata?.durationDays)
+
+        const paid = session.payment_status === "paid"
+
+        // ✅ planが取れない場合は、ここで currentPlan を勝手に上書きしない（安全）
+        await setUserBillingMerge(uid, {
+          accountType: "personal",
+          method,
+          status: paid ? "active" : "pending",
+          stripeCheckoutSessionId: session.id,
+          stripePaymentIntentId:
+            typeof session.payment_intent === "string" ? session.payment_intent : null,
+          ...(plan ? { currentPlan: plan } : {}),
+          currentPeriodEnd: paid ? addDays(new Date(), durationDays) : null,
+        })
+
         break
       }
 
@@ -65,20 +88,21 @@ export async function POST(req: Request) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent
         const uid = pi.metadata?.uid as string | undefined
-        const plan = pi.metadata?.plan as any
-        const method = pi.metadata?.method as any
-          const durationDays = Number(pi.metadata?.durationDays ?? 30)
+        if (!uid) break
 
-        if (uid) {
-          await setUserBillingMerge(uid, {
-            accountType: "personal",
-            method: method === "convenience" ? "convenience" : "card",
-            currentPlan: plan === "3" || plan === "5" || plan === "all" ? plan : "3",
-            status: "active",
-            stripePaymentIntentId: pi.id,
-            currentPeriodEnd: addDays(new Date(), durationDays),
-          })
-        }
+        const plan = parsePlan(pi.metadata?.plan)
+        const method = parseMethod(pi.metadata?.method)
+        const durationDays = parseDurationDays(pi.metadata?.durationDays)
+
+        await setUserBillingMerge(uid, {
+          accountType: "personal",
+          method,
+          status: "active",
+          stripePaymentIntentId: pi.id,
+          ...(plan ? { currentPlan: plan } : {}),
+          currentPeriodEnd: addDays(new Date(), durationDays),
+        })
+
         break
       }
 
@@ -101,6 +125,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true }, { status: 200 })
   } catch (e: any) {
     console.error("Webhook handler error:", e)
-    return NextResponse.json({ error: e?.message ?? "Webhook error" }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message ?? "Webhook error" },
+      { status: 500 }
+    )
   }
 }
