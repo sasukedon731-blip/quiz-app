@@ -35,10 +35,15 @@ export default function HomePage() {
   }
 
   const cta = () => {
-    if (loading) return
-    if (user) router.push("/select-mode")
-    else router.push("/login")
+  if (loading) return
+  if (!user) {
+    router.push("/login")
+    return
   }
+
+  const industry = resolveIndustry()
+  router.push(withIndustry("/select-mode", industry))
+}
 
   // ✅ ゲームへ（ゲストOK）
   const goJapaneseBattle = () => {
@@ -135,7 +140,7 @@ export default function HomePage() {
     }
   }
   const resolveIndustry = (): IndustryId => {
-    return loadIndustry() || openIndustryId || "construction"
+    return loadIndustry() || openIndustryId || "undecided"
   }
 
   const enabledCatalog = useMemo(() => {
