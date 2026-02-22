@@ -79,6 +79,59 @@ type DetailState = {
   progress: Progress | null
 }
 
+// =======================
+// ✅ 業種（マイページ最適化）
+// =======================
+type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
+
+const INDUSTRY_LABEL: Record<IndustryId, string> = {
+  construction: "建設",
+  manufacturing: "製造",
+  care: "介護",
+  driver: "運転・免許",
+  undecided: "未定（海外から）",
+}
+
+function isIndustryId(v: any): v is IndustryId {
+  return (
+    v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+  )
+}
+
+const LS_INDUSTRY_KEY = "selected-industry"
+
+const JAPANESE_BASE: QuizType[] = [
+  "japanese-n4",
+  "japanese-n3",
+  "japanese-n2",
+  "speaking-practice",
+]
+
+const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
+  construction: [
+    "genba-listening",
+    "genba-phrasebook",
+    "kenchiku-sekou-2kyu-1ji",
+    "doboku-sekou-2kyu-1ji",
+    "denki-sekou-2kyu-1ji",
+    "kanko-sekou-2kyu-1ji",
+  ],
+  manufacturing: ["genba-listening", "genba-phrasebook"],
+  care: [],
+  driver: ["gaikoku-license"],
+  undecided: [],
+}
+
+function buildAllowed(industry: IndustryId | null): Set<string> {
+  if (!industry) return new Set()
+  const extra = INDUSTRY_EXTRA[industry] ?? []
+  return new Set<string>([...JAPANESE_BASE, ...extra])
+}
+
 export default function MyPage() {
   const router = useRouter()
 
@@ -87,6 +140,16 @@ export default function MyPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+
+  // ✅ ここが追加：ユーザーの業種（Firestore優先、無ければ localStorage）
+  const [industry, setIndustry] = useState<IndustryId | null>(null)
+  const [showAllCards, setShowAllCards] = useState(false)
+
+  const withIndustry = (path: string) => {
+    if (!industry) return path
+    const join = path.includes("?") ? "&" : "?"
+    return `${path}${join}industry=${encodeURIComponent(industry)}`
+  }
 
   // ✅ インデックス不要にするため、結果をまとめて持つ（直近N件）
   const [allResults, setAllResults] = useState<QuizResult[]>([])
@@ -119,6 +182,35 @@ export default function MyPage() {
     return () => unsub()
   }, [router])
 
+  // ✅ 業種ロード（Firestore → localStorage fallback）
+  useEffect(() => {
+    ;(async () => {
+      if (!user?.uid) return
+      try {
+        const userRef = doc(db, "users", user.uid)
+        const snap = await getDoc(userRef)
+        const v = snap.exists() ? (snap.data() as any)?.industry : null
+        if (isIndustryId(v)) {
+          setIndustry(v)
+          try {
+            localStorage.setItem(LS_INDUSTRY_KEY, v)
+          } catch {}
+          return
+        }
+      } catch {
+        // ignore
+      }
+
+      // fallback
+      try {
+        const saved = localStorage.getItem(LS_INDUSTRY_KEY)
+        if (isIndustryId(saved)) {
+          setIndustry(saved)
+        }
+      } catch {}
+    })()
+  }, [user?.uid])
+
   // Load summary
   useEffect(() => {
     ;(async () => {
@@ -138,38 +230,44 @@ export default function MyPage() {
             score: Number(data.score ?? 0),
             total: Number(data.total ?? 0),
             accuracy: typeof data.accuracy === "number" ? data.accuracy : undefined,
-            quizType: data.quizType,
-            mode: data.mode,
+            quizType: data.quizType ?? undefined,
+            mode: data.mode ?? undefined,
             createdAt: data.createdAt ?? null,
           }
         })
 
         setAllResults(all)
+
+        // global latest 5
         setLatestResults(all.slice(0, 5))
 
-        // progress per quiz (optional)
-        const pMap: Record<string, Progress> = {}
+        // latest by quizType
+        const byQuiz: Record<string, QuizResult | null> = {}
+        for (const r of all) {
+          const qt = String(r.quizType ?? "")
+          if (!qt) continue
+          if (byQuiz[qt] == null) byQuiz[qt] = r
+        }
+        setLatestByQuiz(byQuiz)
+
+        // progress map
+        const prog: Record<string, Progress> = {}
         await Promise.all(
           quizCatalog.map(async (q) => {
             try {
               const pRef = doc(db, "users", user.uid, "progress", q.id)
               const pSnap = await getDoc(pRef)
-              if (pSnap.exists()) pMap[q.id] = pSnap.data() as any
+              if (pSnap.exists()) {
+                prog[q.id] = (pSnap.data() as any) ?? {}
+              } else {
+                prog[q.id] = {}
+              }
             } catch {
-              // ignore
+              prog[q.id] = {}
             }
           })
         )
-        setProgressMap(pMap)
-
-        // ✅ 教材ごとの最新1件（all を先頭から埋める＝最新が先に出てくる）
-        const lbq: Record<string, QuizResult | null> = {}
-        for (const q of quizCatalog) lbq[q.id] = null
-        for (const r of all) {
-          const qt = String(r.quizType ?? "")
-          if (lbq[qt] == null) lbq[qt] = r
-        }
-        setLatestByQuiz(lbq)
+        setProgressMap(prog)
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -179,49 +277,45 @@ export default function MyPage() {
     })()
   }, [user?.uid])
 
-  const displayName = useMemo(() => {
-    return user?.displayName || user?.email?.split("@")[0] || "ユーザー"
-  }, [user])
-
-  const avgAcc = useMemo(() => {
-    if (!latestResults.length) return null
-    const accs = latestResults.map(calcAcc)
-    const sum = accs.reduce((a, b) => a + b, 0)
-    return Math.round(sum / accs.length)
-  }, [latestResults])
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth)
-      router.push("/login")
-    } catch (e) {
-      console.error(e)
-      setError("ログアウトに失敗しました")
-    }
-  }
-
-  // ✅ 詳細：Firestoreへ問い合わせず、allResultsからフィルタして即表示
-  const openDetail = async (quizId: string, title: string) => {
-    setError("")
+  const openDetail = async (quizType: string, title: string) => {
+    if (!user?.uid) return
     setDetailLoading(true)
-    setDetailTargetId(quizId)
+    setDetailTargetId(quizType)
     try {
-      const list = allResults
-        .filter((r) => String(r.quizType ?? "") === quizId)
+      const resultsRef = collection(db, "users", user.uid, "results")
+      const qOne = query(
+        resultsRef,
+        orderBy("createdAt", "desc"),
+        limit(50)
+      )
+      const snap = await getDocs(qOne)
+      const list = snap.docs
+        .map((d) => d.data() as any)
+        .filter((x) => String(x.quizType ?? "") === quizType)
         .slice(0, 5)
+        .map((x) => ({
+          score: Number(x.score ?? 0),
+          total: Number(x.total ?? 0),
+          accuracy: typeof x.accuracy === "number" ? x.accuracy : undefined,
+          quizType: x.quizType ?? undefined,
+          mode: x.mode ?? undefined,
+          createdAt: x.createdAt ?? null,
+        }))
 
-      const prog = progressMap[quizId] ?? null
+      const pRef = doc(db, "users", user.uid, "progress", quizType)
+      const pSnap = await getDoc(pRef)
+      const prog = pSnap.exists() ? ((pSnap.data() as any) ?? {}) : null
 
       setDetail({
         open: true,
-        quizType: quizId,
+        quizType,
         title,
         results: list,
         progress: prog,
       })
     } catch (e) {
       console.error(e)
-      setError("詳細の表示に失敗しました")
+      setError("詳細の取得に失敗しました")
     } finally {
       setDetailLoading(false)
       setDetailTargetId(null)
@@ -232,112 +326,167 @@ export default function MyPage() {
     setDetail((d) => ({ ...d, open: false }))
   }
 
-  if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+    } finally {
+      router.push("/")
+    }
+  }
+
+  // ✅ マイページ教材カード：業種で絞り込み（日本語基礎は必ず含む）
+  const allowedSet = useMemo(() => buildAllowed(industry), [industry])
+
+  const visibleCatalog = useMemo(() => {
+    const enabled = quizCatalog.filter((q) => q.enabled).sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+    if (!industry || showAllCards) return enabled
+    return enabled.filter((q) => allowedSet.has(q.id))
+  }, [industry, showAllCards, allowedSet])
+
+  const totalSessionsAll = useMemo(() => {
+    return Object.values(progressMap).reduce((sum, p) => sum + Number(p.totalSessions ?? 0), 0)
+  }, [progressMap])
+
+  const streakMax = useMemo(() => {
+    const all = Object.values(progressMap).map((p) => Number(p.bestStreak ?? 0))
+    return all.length ? Math.max(...all) : 0
+  }, [progressMap])
+
+  const latestAcc = useMemo(() => {
+    const r = latestResults[0]
+    return r ? calcAcc(r) : null
+  }, [latestResults])
+
+  if (loading) {
+    return (
+      <main style={S.page}>
+        <div style={S.wrap}>
+          <div style={S.card}>読み込み中...</div>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <main style={S.main}>
-      {/* Topbar (52px) - ☰を右上に */}
-      <header style={S.topbar}>
-        <div style={S.leftSlot} />
-        <div style={S.topbarTitle}>マイページ</div>
-        <button aria-label="menu" onClick={() => setDrawerOpen(true)} style={S.iconBtn}>
-          ☰
-        </button>
-      </header>
+    <main style={S.page}>
+      {/* Drawer overlay */}
+      {drawerOpen ? <div style={S.drawerOverlay} onClick={() => setDrawerOpen(false)} /> : null}
 
       {/* Drawer */}
-      {drawerOpen && (
-        <>
-          <div style={S.drawerOverlay} onClick={() => setDrawerOpen(false)} />
-          <aside style={S.drawer}>
-            <div style={S.drawerHead}>
-              <div style={{ fontWeight: 900 }}>MENU</div>
+      {drawerOpen ? (
+        <aside style={S.drawer} aria-label="menu" onClick={(e) => e.stopPropagation()}>
+          <div style={S.drawerHead}>
+            <div style={{ fontWeight: 900 }}>メニュー</div>
+            <button style={S.drawerClose} onClick={() => setDrawerOpen(false)} type="button">
+              ✕
+            </button>
+          </div>
+
+          <nav style={S.nav}>
+            <Link style={S.navItem} href="/" onClick={() => setDrawerOpen(false)}>
+              🏠 TOPへ
+            </Link>
+
+            <Link style={S.navItem} href="/mypage" onClick={() => setDrawerOpen(false)}>
+              👤 マイページ
+            </Link>
+
+            {/* ✅ ここは業種を維持して select-mode へ */}
+            <Link style={S.navItem} href={withIndustry("/select-mode")} onClick={() => setDrawerOpen(false)}>
+              🎮 学習を始める
+            </Link>
+
+            <Link style={S.navItem} href={withIndustry("/plans")} onClick={() => setDrawerOpen(false)}>
+              💳 プラン
+            </Link>
+
+            <Link style={S.navItem} href="/contents" onClick={() => setDrawerOpen(false)}>
+              📚 教材一覧
+            </Link>
+
+            <div style={S.divider} />
+
+            <button style={S.dangerBtn} onClick={handleLogout}>
+              ログアウト
+            </button>
+          </nav>
+        </aside>
+      ) : null}
+
+      <div style={S.wrap}>
+        {/* Header */}
+        <header style={S.header}>
+          <div style={S.brand}>
+            <div style={S.logo}>📚</div>
+            <div>
+              <div style={S.brandName}>マイページ</div>
+              <div style={S.brandSub}>進捗・履歴・教材一覧</div>
+            </div>
+          </div>
+
+          <button style={S.burgerBtn} onClick={() => setDrawerOpen(true)} type="button" aria-label="menu">
+            ☰
+          </button>
+        </header>
+
+        {error ? <div style={S.alert}>{error}</div> : null}
+
+        {/* ✅ 業種表示カード */}
+        <section style={S.card}>
+          <div style={S.cardHeadRow}>
+            <div style={S.cardTitle}>あなたの設定</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
-                onClick={() => setDrawerOpen(false)}
-                style={S.drawerClose}
-                aria-label="close"
+                style={S.linkBtn}
+                onClick={() => router.push(withIndustry("/select-quizzes"))}
+                title="教材選択へ"
               >
-                ✕
+                教材を変更 →
+              </button>
+
+              {/* ✅ 業種で絞る/全部表示 */}
+              <button
+                style={S.linkBtn}
+                onClick={() => setShowAllCards((v) => !v)}
+                title="教材カードの表示切替"
+              >
+                {showAllCards ? "業種で絞る" : "すべて表示"}
               </button>
             </div>
-
-            <nav style={S.nav}>
-              <Link style={S.navItem} href="/" onClick={() => setDrawerOpen(false)}>
-                🏠 TOP（LP）
-              </Link>
-              <Link
-                style={S.navItem}
-                href="/select-mode"
-                onClick={() => setDrawerOpen(false)}
-              >
-                🎮 学習を始める
-              </Link>
-              <Link
-                style={S.navItem}
-                href="/plans"
-                onClick={() => setDrawerOpen(false)}
-              >
-                💳 プラン
-              </Link>
-              <Link
-                style={S.navItem}
-                href="/contents"
-                onClick={() => setDrawerOpen(false)}
-              >
-                📚 教材一覧
-              </Link>
-
-              <div style={S.navSep} />
-
-              <button style={S.navDanger} onClick={handleLogout}>
-                🚪 ログアウト
-              </button>
-            </nav>
-          </aside>
-        </>
-      )}
-
-      <section style={{ marginTop: 14 }}>
-        {/* hero */}
-        <div style={S.hero}>
-          <div style={{ fontSize: 13, opacity: 0.8 }}>こんにちは</div>
-          <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2 }}>
-            {displayName} さん
-          </div>
-          <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button style={S.primaryBtn} onClick={() => router.push("/select-mode")}>
-              学習を始める
-            </button>
-            <button style={S.ghostBtn} onClick={() => router.push("/plans")}>
-              プランを見る
-            </button>
-          </div>
-        </div>
-
-        {error && <p style={S.error}>{error}</p>}
-
-        {/* quick stats */}
-        <div style={S.grid2}>
-          <div style={S.card}>
-            <div style={S.cardTitle}>直近5回の平均正答率</div>
-            <div style={S.bigNumber}>{avgAcc === null ? "—" : `${avgAcc}%`}</div>
-            <div style={S.miniNote}>直近の全教材まとめ</div>
           </div>
 
-          <div style={S.card}>
-            <div style={S.cardTitle}>連続学習（streak）</div>
-            <div style={S.bigNumber}>
-              {(() => {
-                const vals = Object.values(progressMap)
-                const best = vals.reduce((m, p) => Math.max(m, Number(p.streak ?? 0)), 0)
-                return best ? `${best}日` : "—"
-              })()}
+          <div style={S.kvRow}>
+            <div style={S.kv}>
+              <div style={S.kvLabel}>選択中の業種</div>
+              <div style={S.kvValue}>{industry ? INDUSTRY_LABEL[industry] : "未設定"}</div>
+              <div style={S.kvHint}>
+                {industry
+                  ? "マイページの教材カードは業種で最適化されています（日本語基礎は常に表示）"
+                  : "業種を選ぶと、教材カードが最適化されます"}
+              </div>
             </div>
-            <div style={S.miniNote}>教材別の最大streak</div>
-          </div>
-        </div>
 
-        {/* 教材カード：記録だけ + 詳細ボタン */}
+            <div style={S.kv}>
+              <div style={S.kvLabel}>総学習回数</div>
+              <div style={S.kvValue}>{totalSessionsAll}</div>
+              <div style={S.kvHint}>全教材合計</div>
+            </div>
+
+            <div style={S.kv}>
+              <div style={S.kvLabel}>最新の合格率</div>
+              <div style={S.kvValue}>{latestAcc === null ? "—" : `${latestAcc}%`}</div>
+              <div style={S.kvHint}>直近の結果</div>
+            </div>
+
+            <div style={S.kv}>
+              <div style={S.kvLabel}>最大streak</div>
+              <div style={S.kvValue}>{streakMax || "—"}</div>
+              <div style={S.kvHint}>教材別の最大streak</div>
+            </div>
+          </div>
+        </section>
+
+        {/* 教材カード：業種で最適化 */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
             <div style={S.cardTitle}>教材</div>
@@ -347,7 +496,7 @@ export default function MyPage() {
           </div>
 
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            {quizCatalog.map((q) => {
+            {visibleCatalog.map((q) => {
               const p = progressMap[q.id] ?? {}
               const last = latestByQuiz[q.id] ?? null
 
@@ -382,9 +531,17 @@ export default function MyPage() {
                     >
                       {isThisLoading ? "読込中..." : "詳細"}
                     </button>
+
+                    {/* ✅ 開始：select-modeへ。industryを維持 + typeも残す */}
                     <button
                       style={S.smallBtn}
-                      onClick={() => router.push(`/select-mode?type=${q.id}`)}
+                      onClick={() =>
+                        router.push(
+                          industry
+                            ? `/select-mode?industry=${encodeURIComponent(industry)}&type=${encodeURIComponent(q.id)}`
+                            : `/select-mode?type=${encodeURIComponent(q.id)}`
+                        )
+                      }
                       title="select-modeがtype対応している場合に有効"
                     >
                       開始
@@ -399,451 +556,306 @@ export default function MyPage() {
         {/* 最新5件（全体） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
-            <div style={S.cardTitle}>最新5件（全体）</div>
-            <button style={S.linkBtn} onClick={() => router.push("/select-mode")}>
-              もう一回やる →
-            </button>
+            <div style={S.cardTitle}>最新の結果（直近5件）</div>
           </div>
 
-          {latestResults.length === 0 ? (
-            <div style={{ opacity: 0.7, fontSize: 13, paddingTop: 6 }}>
-              まだ結果がありません。まずは1回プレイしてみよう！
-            </div>
-          ) : (
-            <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-              {latestResults.map((r, idx) => {
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {latestResults.length === 0 ? (
+              <div style={S.miniNote}>まだ結果がありません。</div>
+            ) : (
+              latestResults.map((r, i) => {
+                const qt = String(r.quizType ?? "")
+                const title = titleByQuizType(qt)
                 const d = toDate(r.createdAt)
                 const acc = calcAcc(r)
-
                 return (
-                  <div key={idx} style={S.rowCard}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={S.rowTitle}>{titleByQuizType(String(r.quizType))}</div>
-                        <div style={S.rowSub}>
-                          {r.mode ? `mode: ${r.mode}` : "mode: —"} {d ? `・${fmtDate(d)}` : ""}
-                        </div>
-                      </div>
-
-                      <div style={S.rowScoreBox}>
-                        <div style={{ fontWeight: 900, fontSize: 16 }}>{acc}%</div>
-                        <div style={{ fontSize: 12, opacity: 0.75 }}>
-                          {r.score}/{r.total}
-                        </div>
+                  <div key={i} style={S.resultRow}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={S.resultTitle}>{title}</div>
+                      <div style={S.resultSub}>
+                        {d ? fmtDate(d) : "—"} ・ {r.score}/{r.total} ・ {acc}%
                       </div>
                     </div>
+                    <div style={S.resultPill}>{r.mode ?? "—"}</div>
                   </div>
                 )
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </section>
 
-        <div style={{ height: 32 }} />
-      </section>
-
-      {/* 詳細モーダル（グラフ + 詳細記録） */}
-      {detail.open && (
-        <>
-          <div style={S.modalOverlay} onClick={closeDetail} />
-          <div style={S.modal}>
-            <div style={S.modalHead}>
-              <div style={{ minWidth: 0 }}>
-                <div style={S.modalTitle}>{detail.title}</div>
-                <div style={S.modalSub}>直近の記録（最新→過去）</div>
+        {/* Detail modal */}
+        {detail.open ? (
+          <div style={S.modalOverlay} onClick={closeDetail}>
+            <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={S.modalHead}>
+                <div style={{ fontWeight: 900 }}>{detail.title}</div>
+                <button style={S.modalClose} onClick={closeDetail} type="button">
+                  ✕
+                </button>
               </div>
-              <button style={S.drawerClose} onClick={closeDetail} aria-label="close">
-                ✕
-              </button>
-            </div>
 
-            {/* progress */}
-            <div style={S.modalCard}>
-              <div style={S.cardTitle}>進捗</div>
-              <div
-                style={{
-                  marginTop: 8,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0,1fr))",
-                  gap: 10,
-                }}
-              >
-                <div style={S.kpiBox}>
-                  <div style={S.kpiLabel}>総回数</div>
-                  <div style={S.kpiValue}>{Number(detail.progress?.totalSessions ?? 0)}</div>
+              <div style={S.modalBody}>
+                <div style={S.modalGrid}>
+                  <div style={S.modalCard}>
+                    <div style={S.modalLabel}>総回数</div>
+                    <div style={S.modalValue}>
+                      {Number(detail.progress?.totalSessions ?? 0)}
+                    </div>
+                  </div>
+                  <div style={S.modalCard}>
+                    <div style={S.modalLabel}>今日</div>
+                    <div style={S.modalValue}>
+                      {Number(detail.progress?.todaySessions ?? 0)}
+                    </div>
+                  </div>
+                  <div style={S.modalCard}>
+                    <div style={S.modalLabel}>streak</div>
+                    <div style={S.modalValue}>
+                      {Number(detail.progress?.streak ?? 0)}
+                    </div>
+                  </div>
+                  <div style={S.modalCard}>
+                    <div style={S.modalLabel}>best</div>
+                    <div style={S.modalValue}>
+                      {Number(detail.progress?.bestStreak ?? 0)}
+                    </div>
+                  </div>
                 </div>
-                <div style={S.kpiBox}>
-                  <div style={S.kpiLabel}>今日</div>
-                  <div style={S.kpiValue}>{Number(detail.progress?.todaySessions ?? 0)}</div>
-                </div>
-                <div style={S.kpiBox}>
-                  <div style={S.kpiLabel}>streak</div>
-                  <div style={S.kpiValue}>{Number(detail.progress?.streak ?? 0) || "—"}</div>
-                </div>
-                <div style={S.kpiBox}>
-                  <div style={S.kpiLabel}>best</div>
-                  <div style={S.kpiValue}>{Number(detail.progress?.bestStreak ?? 0) || "—"}</div>
-                </div>
-              </div>
-            </div>
 
-            {/* mini chart */}
-            <div style={S.modalCard}>
-              <div style={S.cardTitle}>直近5回の正答率</div>
-
-              {detail.results.length === 0 ? (
-                <div style={{ opacity: 0.7, fontSize: 13, paddingTop: 6 }}>
-                  まだ記録がありません。
-                </div>
-              ) : (
-                <div style={S.barWrap}>
-                  {detail.results
-                    .slice()
-                    .reverse() // 古い→新しい
-                    .map((r, i) => {
-                      const acc = calcAcc(r)
-                      return (
-                        <div key={i} style={S.barCol}>
-                          <div
-                            style={{
-                              ...S.bar,
-                              height: `${clamp(acc, 0, 100)}%`,
-                            }}
-                            title={`${acc}%`}
-                          />
-                          <div style={S.barLabel}>{acc}%</div>
-                        </div>
-                      )
-                    })}
-                </div>
-              )}
-            </div>
-
-            {/* list */}
-            <div style={S.modalCard}>
-              <div style={S.cardTitle}>記録</div>
-              <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-                {detail.results.length === 0 ? (
-                  <div style={{ opacity: 0.7, fontSize: 13 }}>まだ記録がありません。</div>
-                ) : (
-                  detail.results.map((r, idx) => {
-                    const d = toDate(r.createdAt)
-                    const acc = calcAcc(r)
-                    return (
-                      <div key={idx} style={S.rowCard}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={S.rowTitle}>{r.mode ? `mode: ${r.mode}` : "mode: —"}</div>
-                            <div style={S.rowSub}>{d ? fmtDate(d) : ""}</div>
-                          </div>
-                          <div style={S.rowScoreBox}>
-                            <div style={{ fontWeight: 900, fontSize: 16 }}>{acc}%</div>
-                            <div style={{ fontSize: 12, opacity: 0.75 }}>
-                              {r.score}/{r.total}
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>直近5件</div>
+                  {detail.results.length === 0 ? (
+                    <div style={S.miniNote}>まだ結果がありません。</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {detail.results.map((r, idx) => {
+                        const d = toDate(r.createdAt)
+                        const acc = calcAcc(r)
+                        return (
+                          <div key={idx} style={S.resultRow}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={S.resultTitle}>
+                                {d ? fmtDate(d) : "—"}
+                              </div>
+                              <div style={S.resultSub}>
+                                {r.score}/{r.total} ・ {acc}%
+                              </div>
                             </div>
+                            <div style={S.resultPill}>{r.mode ?? "—"}</div>
                           </div>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-
-              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  style={S.smallBtn}
-                  onClick={() => router.push(`/select-mode?type=${detail.quizType ?? ""}`)}
-                >
-                  この教材で開始
-                </button>
-                <button style={S.smallGhostBtn} onClick={closeDetail}>
-                  閉じる
-                </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </>
-      )}
+        ) : null}
+      </div>
     </main>
   )
 }
 
 const S: Record<string, React.CSSProperties> = {
-  main: {
-    maxWidth: 820,
-    margin: "0 auto",
-    padding: "0 14px 18px",
-  },
+  page: { minHeight: "100vh", background: "#f6f7fb", padding: 18 },
+  wrap: { maxWidth: 980, margin: "0 auto" },
 
-  topbar: {
-    position: "sticky",
-    top: 0,
-    zIndex: 20,
-    height: 52,
-    display: "grid",
-    gridTemplateColumns: "40px 1fr 40px",
-    alignItems: "center",
-    padding: "0 10px",
-    background: "rgba(255,255,255,.92)",
-    backdropFilter: "blur(10px)",
-    borderBottom: "1px solid rgba(17,24,39,.08)",
-  },
-  leftSlot: { width: 40, height: 40 },
-  topbarTitle: { fontWeight: 900, fontSize: 14, textAlign: "center" },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    border: "1px solid rgba(17,24,39,.12)",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-    justifySelf: "end",
-  },
-
-  drawerOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,.35)",
-    zIndex: 50,
-  },
-  drawer: {
-    position: "fixed",
-    top: 0,
-    right: 0,
-    height: "100%",
-    width: "min(340px, 92vw)",
-    background: "#fff",
-    zIndex: 60,
-    borderLeft: "1px solid rgba(17,24,39,.10)",
-    boxShadow: "-12px 0 30px rgba(0,0,0,.12)",
-    display: "flex",
-    flexDirection: "column",
-  },
-  drawerHead: {
-    height: 56,
-    padding: "0 14px",
+  header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottom: "1px solid rgba(17,24,39,.08)",
-  },
-  drawerClose: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    border: "1px solid rgba(17,24,39,.12)",
-    background: "#fff",
-    cursor: "pointer",
-    fontWeight: 900,
-  },
-  nav: { padding: 14, display: "grid", gap: 10 },
-  navItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "12px 12px",
-    borderRadius: 14,
-    border: "1px solid rgba(17,24,39,.10)",
-    color: "#111827",
-    textDecoration: "none",
-    fontWeight: 900,
-  },
-  navSep: { height: 1, background: "rgba(17,24,39,.08)", margin: "4px 0" },
-  navDanger: {
-    padding: "12px 12px",
-    borderRadius: 14,
-    border: "1px solid rgba(220,38,38,.25)",
-    background: "rgba(220,38,38,.08)",
-    color: "#b91c1c",
-    fontWeight: 900,
-    cursor: "pointer",
-    textAlign: "left",
-  },
-
-  hero: {
-    padding: 14,
-    borderRadius: 18,
-    background: "#fff",
-    border: "1px solid rgba(17,24,39,.10)",
-  },
-
-  grid2: {
-    marginTop: 12,
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
     gap: 12,
+    marginBottom: 12,
+  },
+
+  brand: { display: "flex", alignItems: "center", gap: 10 },
+  logo: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    background: "#111827",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+  },
+  brandName: { fontWeight: 900, fontSize: 16 },
+  brandSub: { opacity: 0.7, fontSize: 12 },
+
+  burgerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
+    fontSize: 22,
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+
+  alert: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 14,
+    border: "1px solid #fecaca",
+    background: "#fff1f2",
+    color: "#991b1b",
+    fontWeight: 800,
   },
 
   card: {
     marginTop: 12,
-    padding: 14,
-    borderRadius: 18,
     background: "#fff",
-    border: "1px solid rgba(17,24,39,.10)",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
   },
-
-  cardTitle: { fontWeight: 900, fontSize: 14 },
   cardHeadRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
+    flexWrap: "wrap",
   },
-
-  bigNumber: { fontSize: 28, fontWeight: 900, marginTop: 8 },
-  miniNote: { fontSize: 12, opacity: 0.7, marginTop: 2 },
-
-  rowCard: {
-    padding: 12,
-    borderRadius: 16,
-    border: "1px solid rgba(17,24,39,.10)",
-    background: "rgba(249,250,251,1)",
-  },
-  compactRow: {
-    padding: 12,
-    borderRadius: 16,
-    border: "1px solid rgba(17,24,39,.10)",
-    background: "rgba(249,250,251,1)",
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    alignItems: "center",
-  },
-  rowTitle: {
-    fontWeight: 900,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  rowSub: { fontSize: 12, opacity: 0.75, marginTop: 2 },
-
-  rowScoreBox: {
-    flex: "0 0 auto",
-    textAlign: "right",
-    padding: "8px 10px",
-    borderRadius: 14,
-    border: "1px solid rgba(17,24,39,.10)",
-    background: "#fff",
-  },
+  cardTitle: { fontWeight: 900, fontSize: 16 },
 
   linkBtn: {
-    border: "none",
-    background: "transparent",
-    color: "#2563eb",
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb",
+    borderRadius: 14,
+    padding: "10px 12px",
     fontWeight: 900,
     cursor: "pointer",
-    padding: 0,
   },
 
-  primaryBtn: {
-    padding: "12px 14px",
-    borderRadius: 14,
-    border: "none",
-    background: "#2563eb",
-    color: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
+  kvRow: {
+    marginTop: 12,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 10,
   },
-  ghostBtn: {
-    padding: "12px 14px",
-    borderRadius: 14,
-    border: "1px solid rgba(17,24,39,.12)",
+  kv: {
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb",
+    borderRadius: 16,
+    padding: 12,
+  },
+  kvLabel: { fontSize: 12, opacity: 0.7, fontWeight: 900 },
+  kvValue: { marginTop: 6, fontSize: 22, fontWeight: 900 },
+  kvHint: { marginTop: 6, fontSize: 12, opacity: 0.75, lineHeight: 1.5 },
+
+  compactRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    padding: 12,
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
     background: "#fff",
-    color: "#111827",
-    fontWeight: 900,
-    cursor: "pointer",
   },
+  rowTitle: { fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  rowSub: { marginTop: 4, fontSize: 12, opacity: 0.75 },
 
   smallBtn: {
-    padding: "10px 12px",
-    borderRadius: 12,
     border: "none",
-    background: "#111827",
-    color: "#fff",
+    borderRadius: 14,
+    padding: "10px 12px",
     fontWeight: 900,
+    background: "#2563eb",
+    color: "white",
     cursor: "pointer",
   },
   smallGhostBtn: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
     padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(17,24,39,.12)",
-    background: "#fff",
-    color: "#111827",
     fontWeight: 900,
+    background: "#fff",
     cursor: "pointer",
   },
 
-  error: { color: "#dc2626", fontWeight: 900, marginTop: 10 },
+  miniNote: { fontSize: 12, opacity: 0.7 },
 
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,.35)",
-    zIndex: 70,
-  },
-  modal: {
-    position: "fixed",
-    left: "50%",
-    top: "50%",
-    transform: "translate(-50%, -50%)",
-    width: "min(720px, 92vw)",
-    maxHeight: "86vh",
-    overflow: "auto",
-    background: "#fff",
-    border: "1px solid rgba(17,24,39,.10)",
-    borderRadius: 18,
-    boxShadow: "0 18px 50px rgba(0,0,0,.18)",
-    zIndex: 80,
-    padding: 14,
-  },
-  modalHead: {
+  resultRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    paddingBottom: 10,
-    borderBottom: "1px solid rgba(17,24,39,.08)",
+    padding: 12,
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    background: "#f9fafb",
   },
-  modalTitle: {
+  resultTitle: { fontWeight: 900, fontSize: 13 },
+  resultSub: { marginTop: 4, fontSize: 12, opacity: 0.75 },
+  resultPill: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#111827",
+    color: "white",
     fontWeight: 900,
-    fontSize: 16,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+    fontSize: 12,
     whiteSpace: "nowrap",
   },
-  modalSub: { marginTop: 2, fontSize: 12, opacity: 0.75 },
 
-  modalCard: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 16,
-    border: "1px solid rgba(17,24,39,.10)",
-    background: "rgba(249,250,251,1)",
-  },
-
-  kpiBox: {
-    padding: 10,
-    borderRadius: 14,
-    border: "1px solid rgba(17,24,39,.10)",
+  // Drawer
+  drawerOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 1000 },
+  drawer: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    width: "min(320px, 86vw)",
+    height: "100vh",
     background: "#fff",
+    zIndex: 1001,
+    padding: 16,
+    boxShadow: "-6px 0 22px rgba(0,0,0,0.18)",
   },
-  kpiLabel: { fontSize: 12, opacity: 0.75, fontWeight: 800 },
-  kpiValue: { fontSize: 18, fontWeight: 900, marginTop: 2 },
+  drawerHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  drawerClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: 18,
+    fontWeight: 900,
+  },
+  nav: { display: "flex", flexDirection: "column", gap: 10 },
+  navItem: {
+    textDecoration: "none",
+    color: "#111",
+    fontWeight: 900,
+    padding: "10px 10px",
+    borderRadius: 14,
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+  },
+  divider: { height: 1, background: "#e5e7eb", margin: "6px 0" },
+  dangerBtn: {
+    border: "none",
+    borderRadius: 14,
+    padding: "12px 12px",
+    fontWeight: 900,
+    background: "#ef4444",
+    color: "white",
+    cursor: "pointer",
+  },
 
-  barWrap: {
-    marginTop: 12,
-    height: 120,
-    display: "flex",
-    alignItems: "flex-end",
-    gap: 10,
-  },
-  barCol: { width: "100%", display: "grid", gap: 6, alignItems: "end" },
-  bar: {
-    width: "100%",
-    borderRadius: 12,
-    background: "rgba(37,99,235,.18)",
-    border: "1px solid rgba(37,99,235,.25)",
-  },
-  barLabel: { fontSize: 12, opacity: 0.75, textAlign: "center" },
+  // Modal
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 2000, display: "grid", placeItems: "center", padding: 14 },
+  modal: { width: "min(720px, 92vw)", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 48px rgba(0,0,0,0.20)" },
+  modalHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14, borderBottom: "1px solid #e5e7eb" },
+  modalClose: { width: 40, height: 40, borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 900 },
+  modalBody: { padding: 14 },
+  modalGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 },
+  modalCard: { border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#f9fafb" },
+  modalLabel: { fontSize: 12, opacity: 0.7, fontWeight: 900 },
+  modalValue: { marginTop: 6, fontSize: 22, fontWeight: 900 },
 }

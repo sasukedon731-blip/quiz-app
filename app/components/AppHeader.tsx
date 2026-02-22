@@ -23,13 +23,14 @@ export default function AppHeader({ title }: Props) {
 
   const isTop = pathname === "/"
 
+  // ✅ 「学習を始める（/select-mode）」は industry を失って事故るので、メニューから削除
   const items = useMemo(() => {
     return [
       { label: "TOPへ", href: "/" },
       { label: "マイページ", href: "/mypage" },
-      { label: "学習を始める", href: "/select-mode" },
       { label: "教材選択", href: "/select-quizzes" },
       { label: "プラン", href: "/plans" },
+      { label: "教材一覧", href: "/contents" },
     ]
   }, [])
 
@@ -67,11 +68,21 @@ export default function AppHeader({ title }: Props) {
       </header>
 
       {open ? (
-        <div className="drawerOverlay" onClick={close} role="dialog" aria-label="menu">
+        <div
+          className="drawerOverlay"
+          onClick={close}
+          role="dialog"
+          aria-label="menu"
+        >
           <div className="drawerPanel" onClick={(e) => e.stopPropagation()}>
             <div className="drawerHead">
               <div style={{ fontWeight: 900 }}>メニュー</div>
-              <button className="drawerClose" aria-label="閉じる" onClick={close} type="button">
+              <button
+                className="drawerClose"
+                aria-label="閉じる"
+                onClick={close}
+                type="button"
+              >
                 ✕
               </button>
             </div>
