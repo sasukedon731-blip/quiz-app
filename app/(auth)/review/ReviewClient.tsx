@@ -200,6 +200,24 @@ export default function ReviewClient({ quiz }: Props) {
 
       <h2 className="question">{current.question}</h2>
 
+      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
+      {(current as any).imageUrl ? (
+        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={(current as any).imageUrl as string}
+            alt={((current as any).imageAlt as string) || '問題の画像'}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 12,
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      ) : null}
+
       {/* ✅ Listening UI（MP3なくてもOK） */}
       {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>

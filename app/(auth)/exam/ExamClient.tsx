@@ -552,6 +552,24 @@ export default function ExamClient({ quiz }: Props) {
 
       <h2 className="question">{current.question}</h2>
 
+      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
+      {current.imageUrl ? (
+        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={current.imageUrl}
+            alt={current.imageAlt || '問題の画像'}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 12,
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      ) : null}
+
       {current.audioUrl && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>
           <audio controls src={current.audioUrl} preload="none" />

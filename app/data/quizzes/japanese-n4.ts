@@ -3,11 +3,13 @@ import type { Quiz } from "@/app/data/types"
 export const japaneseN4Quiz: Quiz = {
   id: "japanese-n4",
   title: "日本語検定 N4",
-  description: "日本語能力試験 N4 レベル（全130問）",
+  description: "日本語能力試験 N4 レベル（全135問：聴解5問追加）",
   sections: [
     { id: "moji-goi", label: "文字・語彙" },
     { id: "bunpo", label: "文法" },
     { id: "reading", label: "読解" },
+  
+    { id: "listening", label: "聴解" },
   ],
   questions: [
     {
@@ -1238,5 +1240,56 @@ export const japaneseN4Quiz: Quiz = {
       correctIndex: 0,
       explanation: "「来なくてもいいです」＝不要。",
     }
-  ]
+    ,
+  {
+    id: 10001,
+    sectionId: "listening",
+    question: `【聴解】会話を聞いて、正しいものを選びましょう。`,
+    listeningText:
+      "A：すみません、駅はどこですか。B：この道をまっすぐ行って、二つ目の角を右です。",
+    choices: ["左です", "右です", "まっすぐです", "わかりません"],
+    correctIndex: 1,
+    explanation: "『二つ目の角を右』と言っています。",
+  },
+  {
+    id: 10002,
+    sectionId: "listening",
+    question: `【聴解】会話を聞いて、何時に会いますか。`,
+    listeningText:
+      "A：明日、何時に会いますか。B：三時はどうですか。A：すみません、三時はだめです。じゃ、四時でお願いします。",
+    choices: ["3時", "4時", "5時", "6時"],
+    correctIndex: 1,
+    explanation: "三時はだめで、『四時で』と言っています。",
+  },
+  {
+    id: 10003,
+    sectionId: "listening",
+    question: `【聴解】会話を聞いて、男の人は何を買いますか。`,
+    listeningText:
+      "店員：いらっしゃいませ。男：すみません、りんごはありますか。店員：はい。今日はみかんも安いですよ。男：じゃ、りんごを三つください。",
+    choices: ["みかん", "りんご", "バナナ", "ぶどう"],
+    correctIndex: 1,
+    explanation: "男の人は『りんごを三つください』と言っています。",
+  },
+  {
+    id: 10004,
+    sectionId: "listening",
+    question: `【聴解】会話を聞いて、女の人はどうしますか。`,
+    listeningText:
+      "A：雨ですね。傘を持ってきましたか。B：いいえ、持ってきませんでした。A：じゃ、駅までいっしょに行きましょう。",
+    choices: ["一人で行きます", "タクシーで行きます", "駅までいっしょに行きます", "家に帰ります"],
+    correctIndex: 2,
+    explanation: "『駅までいっしょに行きましょう』→ いっしょに行きます。",
+  },
+  {
+    id: 10005,
+    sectionId: "listening",
+    question: `【聴解】会話を聞いて、男の人はなぜ来週行けませんか。`,
+    listeningText:
+      "A：来週、旅行に行きませんか。B：すみません、来週は仕事が忙しいです。再来週なら行けます。",
+    choices: ["お金がありません", "仕事が忙しいです", "病気です", "家族と行きます"],
+    correctIndex: 1,
+    explanation: "『来週は仕事が忙しいです』と言っています。",
+  }
+]
 }

@@ -32,6 +32,12 @@ export type Question = {
   audioUrl?: string
   listeningText?: string
 
+  // ✅ 画像対応（イラスト問題・聴解の状況図など）
+  // - まずは「問題に1枚」から始めて拡張しやすくする
+  // - 画像は /public 配下 or 外部URL（CDN/Storage）を想定
+  imageUrl?: string
+  imageAlt?: string
+
   // ✅ 追加：分野ID（未設定なら「全体」扱い）
   sectionId?: string
 }

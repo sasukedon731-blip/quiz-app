@@ -593,6 +593,32 @@ export default function NormalClient({ quiz }: Props) {
 
       <h2>{current.question}</h2>
 
+      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
+      {current.imageUrl ? (
+        <div
+          style={{
+            margin: '12px 0',
+            padding: 10,
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            background: '#fff',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={current.imageUrl}
+            alt={current.imageAlt || '問題の画像'}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 10,
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      ) : null}
+
       {/* ✅ MP3がある場合 */}
       {current.audioUrl && (
         <div
