@@ -21,10 +21,8 @@ const PLAN_LABEL: Record<PlanId, string> = {
   all: "ALLプラン",
 }
 
-// ✅ ゲームは「1つ」に固定（日本語N4）
 const GAME_FIXED_TYPE: QuizType = "japanese-n4"
 
-// ✅ 業種ラベル（表示用）
 type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
 
 const INDUSTRY_LABEL: Record<IndustryId, string> = {
@@ -35,12 +33,49 @@ const INDUSTRY_LABEL: Record<IndustryId, string> = {
   undecided: "未定（海外から）",
 }
 
+function isIndustryId(v: any): v is IndustryId {
+  return (
+    v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+  )
+}
+
 export default function SelectModePage() {
   const router = useRouter()
   const params = useSearchParams()
-  const industry = (params.get("industry") as IndustryId | null) ?? null
 
-  // ✅ industry を維持したいリンクを作る
+  let industry = (params.get("industry") as IndustryId | null) ?? null
+  const [industryReady, setIndustryReady] = useState(false)
+
+  // ✅ localStorage key
+  const LS_INDUSTRY_KEY = "selected-industry"
+
+  // ✅ URLに無ければ localStorage から復元してURLを正にする（導線途切れ防止）
+  useEffect(() => {
+    if (industry && isIndustryId(industry)) {
+      try {
+        localStorage.setItem(LS_INDUSTRY_KEY, industry)
+      } catch {}
+      setIndustryReady(true)
+      return
+    }
+
+    try {
+      const saved = localStorage.getItem(LS_INDUSTRY_KEY)
+      if (saved && isIndustryId(saved)) {
+        router.replace(`/select-mode?industry=${encodeURIComponent(saved)}`)
+        return
+      }
+    } catch {}
+
+    // 保存が無い場合でも画面は出す
+    setIndustryReady(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const withIndustry = (path: string) => {
     if (!industry) return path
     const join = path.includes("?") ? "&" : "?"
@@ -59,7 +94,6 @@ export default function SelectModePage() {
   const [selected, setSelected] = useState<QuizType[]>([])
   const [displayName, setDisplayName] = useState("")
 
-  // ✅ Mobile判定（SSR安全 / hook順序崩さない）
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)")
@@ -111,6 +145,16 @@ export default function SelectModePage() {
     return selected.filter((q) => quizzes[q])
   }, [selected])
 
+  if (!industryReady) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.shell}>
+          <div style={styles.card}>読み込み中...</div>
+        </div>
+      </main>
+    )
+  }
+
   if (loading) {
     return (
       <main style={styles.page}>
@@ -122,7 +166,6 @@ export default function SelectModePage() {
               </div>
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
                 状態：<b>{billingStatus}</b>
-                （コンビニ払いは入金確認後に利用可能になります）
               </div>
               <div style={{ marginTop: 10 }}>
                 <button
@@ -135,13 +178,12 @@ export default function SelectModePage() {
             </div>
           ) : null}
 
-          <div style={styles.skeletonCard}>読み込み中...</div>
+          <div style={styles.card}>読み込み中...</div>
         </div>
       </main>
     )
   }
 
-  // ✅ TSが "string" に widen するのを防ぐため、明示的に型を付ける
   const shellStyle: React.CSSProperties = isMobile
     ? { ...styles.shell, maxWidth: 560, padding: 12 }
     : styles.shell
@@ -168,7 +210,6 @@ export default function SelectModePage() {
             </div>
             <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
               状態：<b>{billingStatus}</b>
-              （コンビニ払いは入金確認後に利用可能になります）
             </div>
             <div style={{ marginTop: 10 }}>
               <button
@@ -209,7 +250,6 @@ export default function SelectModePage() {
 
         {error ? <div style={styles.alert}>{error}</div> : null}
 
-        {/* Empty */}
         {selectedCards.length === 0 ? (
           <section style={styles.card}>
             <div style={styles.cardTitle}>教材が選択されていません</div>
@@ -219,19 +259,11 @@ export default function SelectModePage() {
             </p>
 
             <div style={styles.row}>
-              {/* ✅ ここが本命：industry を引き継いで教材選択へ */}
-              <Link
-                href={withIndustry("/select-quizzes")}
-                style={{ ...btnStyle, ...styles.btnGreen }}
-              >
+              <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
                 教材を選ぶ
               </Link>
 
-              {/* ✅ plans も引き継ぐ（迷い軽減） */}
-              <Link
-                href={withIndustry("/plans")}
-                style={{ ...btnStyle, ...styles.btnBlue }}
-              >
+              <Link href={withIndustry("/plans")} style={{ ...btnStyle, ...styles.btnBlue }}>
                 プランを確認
               </Link>
             </div>
@@ -259,22 +291,13 @@ export default function SelectModePage() {
                     <div style={styles.quizMeta}>ID: {id}</div>
 
                     <div style={quizActionsStyle}>
-                      <Link
-                        href={`/normal?type=${id}`}
-                        style={{ ...btnStyle, ...styles.btnBlue }}
-                      >
+                      <Link href={`/normal?type=${id}`} style={{ ...btnStyle, ...styles.btnBlue }}>
                         通常
                       </Link>
-                      <Link
-                        href={`/exam?type=${id}`}
-                        style={{ ...btnStyle, ...styles.btnGray }}
-                      >
+                      <Link href={`/exam?type=${id}`} style={{ ...btnStyle, ...styles.btnGray }}>
                         模擬試験
                       </Link>
-                      <Link
-                        href={`/review?type=${id}`}
-                        style={{ ...btnStyle, ...styles.btnGreen }}
-                      >
+                      <Link href={`/review?type=${id}`} style={{ ...btnStyle, ...styles.btnGreen }}>
                         復習
                       </Link>
                     </div>
@@ -283,25 +306,17 @@ export default function SelectModePage() {
               })}
             </div>
 
-            {/* ✅ 選択済みでも「教材選択へ戻る」を出しておく（industry引き継ぎ） */}
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link
-                href={withIndustry("/select-quizzes")}
-                style={{ ...btnStyle, ...styles.btnGreen }}
-              >
+              <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
                 教材を変更する
               </Link>
-              <Link
-                href={withIndustry("/plans")}
-                style={{ ...btnStyle, ...styles.btnBlue }}
-              >
+              <Link href={withIndustry("/plans")} style={{ ...btnStyle, ...styles.btnBlue }}>
                 プランを確認
               </Link>
             </div>
           </section>
         )}
 
-        {/* ✅ Game entry（1つに固定） */}
         <section style={{ marginTop: 16 }}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>ゲームで学ぶ</h2>
@@ -336,16 +351,8 @@ export default function SelectModePage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    background: "#f6f7fb",
-    padding: 18,
-  },
-  shell: {
-    maxWidth: 920,
-    margin: "0 auto",
-    padding: 0,
-  },
+  page: { minHeight: "100vh", background: "#f6f7fb", padding: 18 },
+  shell: { maxWidth: 920, margin: "0 auto", padding: 0 },
 
   h2: { margin: 0, fontSize: 18 },
 
@@ -360,14 +367,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
-  skeletonCard: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 16,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-  },
-
   card: {
     marginTop: 12,
     background: "#fff",
@@ -380,12 +379,7 @@ const styles: Record<string, React.CSSProperties> = {
   cardText: { marginTop: 8, opacity: 0.85, lineHeight: 1.6 },
   row: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 },
 
-  sectionHead: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
+  sectionHead: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 },
   badge: {
     fontSize: 12,
     fontWeight: 900,
@@ -414,27 +408,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   quizTitle: { fontWeight: 900, fontSize: 16 },
 
-  quizDesc: {
-    marginTop: 6,
-    fontSize: 13,
-    opacity: 0.85,
-    lineHeight: 1.5,
-    minHeight: 48,
-  },
-  quizDescMuted: {
-    marginTop: 6,
-    fontSize: 13,
-    opacity: 0.55,
-    minHeight: 48,
-  },
-
+  quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5, minHeight: 48 },
+  quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55, minHeight: 48 },
   quizMeta: { marginTop: 8, fontSize: 12, opacity: 0.6 },
 
-  quizActions: {
-    marginTop: "auto",
-    display: "grid",
-    gap: 8,
-  },
+  quizActions: { marginTop: "auto", display: "grid", gap: 8 },
 
   btn: {
     display: "inline-block",

@@ -26,7 +26,6 @@ function formatDate(d: Date) {
   return `${y}/${m}/${day}`
 }
 
-// ✅ 業種ID
 type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
 
 const INDUSTRY_LABEL: Record<IndustryId, string> = {
@@ -37,7 +36,16 @@ const INDUSTRY_LABEL: Record<IndustryId, string> = {
   undecided: "未定（海外から）",
 }
 
-// ✅ 全業種共通（日本語基礎）
+function isIndustryId(v: any): v is IndustryId {
+  return (
+    v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+  )
+}
+
 const JAPANESE_BASE_IDS: QuizType[] = [
   "japanese-n4",
   "japanese-n3",
@@ -45,7 +53,6 @@ const JAPANESE_BASE_IDS: QuizType[] = [
   "speaking-practice",
 ]
 
-// ✅ 業種ごとの追加教材（必要に応じて増やすだけ）
 const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
   construction: [
     "genba-listening",
@@ -65,7 +72,6 @@ const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
 function buildIndustryAllowed(industry: IndustryId | null): QuizType[] {
   if (!industry) return []
   const extra = INDUSTRY_EXTRA[industry] ?? []
-  // 共通 + 業種追加（重複除去）
   return Array.from(new Set<QuizType>([...JAPANESE_BASE_IDS, ...extra]))
 }
 
@@ -73,7 +79,33 @@ export default function SelectQuizzesPage() {
   const router = useRouter()
   const params = useSearchParams()
 
+  const LS_INDUSTRY_KEY = "selected-industry"
+
   const industryParam = (params.get("industry") as IndustryId | null) ?? null
+  const [industryReady, setIndustryReady] = useState(false)
+
+  // ✅ URLに無ければ localStorage から復元してURLを正にする
+  useEffect(() => {
+    if (industryParam && isIndustryId(industryParam)) {
+      try {
+        localStorage.setItem(LS_INDUSTRY_KEY, industryParam)
+      } catch {}
+      setIndustryReady(true)
+      return
+    }
+
+    try {
+      const saved = localStorage.getItem(LS_INDUSTRY_KEY)
+      if (saved && isIndustryId(saved)) {
+        router.replace(`/select-quizzes?industry=${encodeURIComponent(saved)}`)
+        return
+      }
+    } catch {}
+
+    setIndustryReady(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [showAll, setShowAll] = useState(false)
 
   const [uid, setUid] = useState<string | null>(null)
@@ -130,7 +162,6 @@ export default function SelectQuizzesPage() {
     return 1
   }, [plan, entitled.length])
 
-  // ロック中でも「初回の必要数に達していない」場合だけ編集できる（救済）
   const editable = changeOk || selected.length < requiredCount
 
   const remaining = useMemo(() => {
@@ -138,15 +169,11 @@ export default function SelectQuizzesPage() {
     return Math.max(0, maxCount - selected.length)
   }, [limit, maxCount, selected.length])
 
-  // ✅ 業種で許可される教材ID（共通+業種）
   const industryAllowed = useMemo(
-    () => buildIndustryAllowed(industryParam),
+    () => buildIndustryAllowed(industryParam && isIndustryId(industryParam) ? industryParam : null),
     [industryParam]
   )
 
-  // ✅ 表示対象： entitled をベースに
-  // - showAll なら全部
-  // - 絞り込み時は「業種allowed」＋「すでに選択済み」を必ず表示（隠れて迷わない）
   const entitledList = useMemo(() => {
     const base = entitled.filter((id) => (quizzes as any)[id] != null)
 
@@ -171,8 +198,6 @@ export default function SelectQuizzesPage() {
     setSelected((prev) => {
       const has = prev.includes(q)
       if (has) return prev.filter((x) => x !== q)
-
-      // 上限チェック
       if (limit !== "ALL" && prev.length >= maxCount) return prev
       return [...prev, q]
     })
@@ -187,7 +212,6 @@ export default function SelectQuizzesPage() {
         uid,
         selectedQuizTypes: selected,
       })
-      // ✅ 業種文脈を維持してselect-modeへ戻す
       if (industryParam) router.replace(`/select-mode?industry=${industryParam}`)
       else router.replace("/select-mode")
     } catch (e) {
@@ -196,6 +220,16 @@ export default function SelectQuizzesPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (!industryReady) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.shell}>
+          <div style={styles.card}>読み込み中...</div>
+        </div>
+      </main>
+    )
   }
 
   if (loading) {
@@ -213,8 +247,7 @@ export default function SelectQuizzesPage() {
       <div style={styles.shell}>
         <AppHeader title="教材を選択" />
 
-        {/* ✅ 業種ステータス + 表示切替 */}
-        {industryParam ? (
+        {industryParam && isIndustryId(industryParam) ? (
           <section style={styles.industryBar}>
             <div>
               <div style={{ fontWeight: 900, fontSize: 13 }}>
@@ -238,15 +271,7 @@ export default function SelectQuizzesPage() {
           </section>
         ) : null}
 
-        <section
-          style={{
-            marginTop: 12,
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            background: "white",
-            padding: "12px 12px",
-          }}
-        >
+        <section style={styles.summaryCard}>
           <div style={{ fontWeight: 900 }}>
             プラン：{plan} ・ 選択上限：{limit === "ALL" ? "ALL" : `${limit}つ`} ・ 選択中：{selected.length} ・ 残り：{remaining}
           </div>
@@ -255,7 +280,6 @@ export default function SelectQuizzesPage() {
           </div>
         </section>
 
-        {/* Status */}
         <section style={styles.infoCard}>
           {!changeOk && nextAllowedAt && selected.length >= requiredCount ? (
             <div style={{ ...styles.notice, ...styles.noticeWarn }}>
@@ -269,12 +293,6 @@ export default function SelectQuizzesPage() {
             </div>
           ) : null}
 
-          {(plan === "trial" || plan === "free") ? (
-            <div style={{ ...styles.notice, ...styles.noticeInfo }}>
-              ※ お試し/無料は教材固定です（保存時に自動で整えられます）
-            </div>
-          ) : null}
-
           <div style={styles.mini}>
             推奨：{plan === "3" ? "3つ" : plan === "5" ? "5つ" : plan === "all" ? "全て" : "1つ"} 選ぶ
           </div>
@@ -282,7 +300,6 @@ export default function SelectQuizzesPage() {
 
         {error ? <div style={styles.alert}>{error}</div> : null}
 
-        {/* Grid */}
         <section style={{ marginTop: 12 }}>
           <div style={styles.grid}>
             {entitledList.map((q) => {
@@ -335,7 +352,6 @@ export default function SelectQuizzesPage() {
           </div>
         </section>
 
-        {/* Bottom Save */}
         <footer style={styles.footer}>
           <button
             onClick={handleSave}
@@ -354,7 +370,6 @@ export default function SelectQuizzesPage() {
   )
 }
 
-// 既存stylesを維持しつつ、業種バーだけ足してる（他は元ファイルそのまま想定）
 const styles: any = {
   page: { padding: 18 },
   shell: { maxWidth: 980, margin: "0 auto" },
@@ -387,6 +402,14 @@ const styles: any = {
   filterBtnOn: { background: "#111827", color: "white" },
   filterBtnOff: { background: "#f9fafb", color: "#111827" },
 
+  summaryCard: {
+    marginTop: 12,
+    border: "1px solid var(--border)",
+    borderRadius: 16,
+    background: "white",
+    padding: "12px 12px",
+  },
+
   infoCard: { marginTop: 12 },
   notice: {
     borderRadius: 14,
@@ -397,7 +420,6 @@ const styles: any = {
   },
   noticeWarn: { background: "#fff7ed", borderColor: "#fed7aa" },
   noticeOk: { background: "#ecfdf5", borderColor: "#a7f3d0" },
-  noticeInfo: { background: "#eff6ff", borderColor: "#bfdbfe" },
 
   mini: { fontSize: 12, opacity: 0.75, marginTop: 8 },
 

@@ -14,7 +14,7 @@ export default function HomePage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  // ✅ Mobile判定（LPをスマホで読みやすく）
+  // ✅ Mobile判定
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)")
@@ -37,10 +37,10 @@ export default function HomePage() {
   const cta = () => {
     if (loading) return
     if (user) router.push("/select-mode")
-    else router.push("/login") // ルート違うならここだけ修正
+    else router.push("/login")
   }
 
-  // ✅ TOPからゲームへ（ゲストでもOK）
+  // ✅ ゲームへ（ゲストOK）
   const goJapaneseBattle = () => {
     router.push("/game?mode=normal")
   }
@@ -48,10 +48,9 @@ export default function HomePage() {
   const closeMenu = () => setMenuOpen(false)
 
   // =========================
-  // ✅ ここから：業種別（教材セクション用）
+  // ✅ 業種別（教材セクション用）
   // =========================
 
-  // 日本語基礎（全業種共通）：業種カードを開いたら必ず含めて見せる
   const JAPANESE_BASE_IDS = useMemo(
     () => ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"] as const,
     []
@@ -62,7 +61,7 @@ export default function HomePage() {
     icon: string
     title: string
     subtitle: string
-    extraQuizIds: string[] // 日本語基礎に「追加」する教材
+    extraQuizIds: string[]
     note?: string
   }
 
@@ -121,6 +120,24 @@ export default function HomePage() {
 
   const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>("construction")
 
+  // ✅ localStorage “確実修正”
+  const LS_INDUSTRY_KEY = "selected-industry"
+  const saveIndustry = (id: IndustryId) => {
+    try {
+      localStorage.setItem(LS_INDUSTRY_KEY, id)
+    } catch {}
+  }
+  const loadIndustry = () => {
+    try {
+      return localStorage.getItem(LS_INDUSTRY_KEY) as IndustryId | null
+    } catch {
+      return null
+    }
+  }
+  const resolveIndustry = (): IndustryId => {
+    return loadIndustry() || openIndustryId || "construction"
+  }
+
   const enabledCatalog = useMemo(() => {
     return quizCatalog.filter((q) => q.enabled).sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
   }, [])
@@ -128,7 +145,6 @@ export default function HomePage() {
   const getItemsForIndustry = (ind: IndustryCard) => {
     const base = enabledCatalog.filter((q) => (JAPANESE_BASE_IDS as readonly string[]).includes(q.id))
     const extra = enabledCatalog.filter((q) => ind.extraQuizIds.includes(q.id))
-    // base + extra（重複ガード）
     const merged = [...base, ...extra].filter(
       (q, idx, arr) => arr.findIndex((x) => x.id === q.id) === idx
     )
@@ -137,10 +153,8 @@ export default function HomePage() {
 
   return (
     <main style={styles.page}>
-      {/* ✅ オーバーレイ（メニュー開いてる時） */}
       {menuOpen ? <div style={styles.overlay} onClick={closeMenu} /> : null}
 
-      {/* ✅ ドロワー */}
       {menuOpen ? (
         <aside style={styles.drawer} aria-label="menu">
           <div style={styles.drawerTop}>
@@ -171,11 +185,14 @@ export default function HomePage() {
                 <Link href="/mypage" style={styles.drawerLink} onClick={closeMenu}>
                   マイページ
                 </Link>
+
+                {/* ✅ 確実修正：保存業種を最優先で select-mode へ */}
                 <Button
                   variant="main"
                   onClick={() => {
                     closeMenu()
-                    router.push("/select-mode")
+                    const industry = resolveIndustry()
+                    router.push(withIndustry("/select-mode", industry))
                   }}
                 >
                   学習を始める
@@ -190,7 +207,7 @@ export default function HomePage() {
                   variant="main"
                   onClick={() => {
                     closeMenu()
-                    cta()
+                    router.push("/login")
                   }}
                 >
                   ログインして始める
@@ -202,8 +219,13 @@ export default function HomePage() {
       ) : null}
 
       <div style={isMobile ? { ...styles.shell, maxWidth: 560, padding: "0 6px" } : styles.shell}>
-        {/* Header */}
-        <header style={isMobile ? { ...styles.header, flexDirection: "row", alignItems: "center" } : styles.header}>
+        <header
+          style={
+            isMobile
+              ? { ...styles.header, flexDirection: "row", alignItems: "center" }
+              : styles.header
+          }
+        >
           <div style={styles.brand}>
             <div style={styles.logo}>📚</div>
             <div>
@@ -217,7 +239,6 @@ export default function HomePage() {
           </button>
         </header>
 
-        {/* Hero */}
         <section style={isMobile ? { ...styles.hero, gridTemplateColumns: "1fr" } : styles.hero}>
           <div>
             <h1 style={isMobile ? { ...styles.h1, fontSize: 26, lineHeight: 1.15 } : styles.h1}>
@@ -229,7 +250,6 @@ export default function HomePage() {
               プランに応じて教材を選び、通常・模擬・復習を回すだけ。
             </p>
 
-            {/* 🎮 Game Hero */}
             <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16 } : styles.gameHero}>
               <div style={styles.gameHeroTop}>
                 <div style={styles.gameHeroBadge}>🔥 今月のおすすめ</div>
@@ -246,7 +266,6 @@ export default function HomePage() {
               <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
             </div>
 
-            {/* ✅ LP CTA */}
             <div style={isMobile ? { ...styles.heroActions, flexDirection: "column" } : styles.heroActions}>
               <Button variant="main" onClick={cta}>
                 {user ? "学習を始める" : "ログインして始める"}
@@ -275,7 +294,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Features */}
         <section id="features" style={styles.section}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>特徴</h2>
@@ -286,27 +304,26 @@ export default function HomePage() {
             <div style={styles.featureCard}>
               <div style={styles.featureTitle}>教材選択がブレない</div>
               <div style={styles.featureText}>
-                プランに応じて候補を決め、今月の教材は <b>selectedQuizTypes</b> に集約。画面ごとの二重管理を排除します。
+                プランに応じて候補を決め、今月の教材は <b>selectedQuizTypes</b> に集約。
               </div>
             </div>
 
             <div style={styles.featureCard}>
               <div style={styles.featureTitle}>モードが整理される</div>
               <div style={styles.featureText}>
-                select-mode を「ハブ」にして、通常/模擬/復習の入口を統一。直リンク事故もガードできます。
+                select-mode を「ハブ」にして、通常/模擬/復習の入口を統一。
               </div>
             </div>
 
             <div style={styles.featureCard}>
               <div style={styles.featureTitle}>増えても見やすい</div>
               <div style={styles.featureText}>
-                教材が増えても、TOPは「紹介」だけ。学習開始の導線は <b>学習を始める</b> に一本化します。
+                教材が増えても、TOPは「紹介」だけ。学習開始の導線は一本化。
               </div>
             </div>
           </div>
         </section>
 
-        {/* ✅ Contents（業種別） */}
         <section id="contents" style={styles.contentsWrap}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>業種別で探す（おすすめ）</h2>
@@ -370,16 +387,16 @@ export default function HomePage() {
                         ))}
                       </div>
 
-                      {/* ✅ ここが重要：業種付きで select-mode に遷移 */}
                       <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                         <Button variant="sub" onClick={() => router.push("/contents")}>
                           すべての教材を見る
                         </Button>
 
+                        {/* ✅ 確実修正：業種を保存→industry付きでselect-modeへ */}
                         <Button
                           variant="main"
                           onClick={() => {
-                            // ログイン済みでも未ログインでも、まず select-mode に industry を渡す
+                            saveIndustry(ind.id)
                             router.push(withIndustry("/select-mode", ind.id))
                           }}
                         >
@@ -394,7 +411,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Plans */}
         <section id="plans" style={styles.section}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>プラン</h2>
@@ -432,8 +448,8 @@ export default function HomePage() {
               <Button
                 variant="main"
                 onClick={() => {
-                  // もし「最後に開いてた業種」を引き継ぎたいなら、ここで openIndustryId を使う
-                  router.push(withIndustry("/plans", openIndustryId))
+                  const industry = resolveIndustry()
+                  router.push(withIndustry("/plans", industry))
                 }}
               >
                 プラン管理へ
@@ -446,7 +462,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Flow */}
         <section id="flow" style={styles.section}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>学習の流れ</h2>
@@ -475,7 +490,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer style={styles.footer}>
           <div style={styles.footerInner}>
             <div style={{ fontWeight: 900 }}>学習クイズプラットフォーム</div>
