@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 
 import { auth } from "@/app/lib/firebase"
@@ -37,9 +37,9 @@ const PLAN_DESC: Record<PlanId, string> = {
 const PRICE_YEN_30D: Record<PlanId, number> = {
   trial: 0,
   free: 0,
-  "3": 500,   // ✅ 30日500円
-  "5": 800,   // ←必要なら調整
-  all: 1200,  // ←必要なら調整
+  "3": 500, // ✅ 30日500円
+  "5": 800, // ←必要なら調整
+  all: 1200, // ←必要なら調整
 }
 
 function formatYen(n: number) {
@@ -70,8 +70,41 @@ function calcPerMonth(total: number, days: 30 | 180 | 365) {
   return Math.round(total / m)
 }
 
+// ✅ 業種（表示＆導線）
+type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
+
+const INDUSTRY_LABEL: Record<IndustryId, string> = {
+  construction: "建設",
+  manufacturing: "製造",
+  care: "介護",
+  driver: "運転・免許",
+  undecided: "未定（海外から）",
+}
+
+function isIndustryId(v: string | null): v is IndustryId {
+  return (
+    v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+  )
+}
+
 export default function PlansPage() {
   const router = useRouter()
+  const params = useSearchParams()
+
+  const industryParamRaw = params.get("industry")
+  const industry: IndustryId | null = isIndustryId(industryParamRaw)
+    ? industryParamRaw
+    : null
+
+  const withIndustry = (path: string) => {
+    if (!industry) return path
+    const join = path.includes("?") ? "&" : "?"
+    return `${path}${join}industry=${encodeURIComponent(industry)}`
+  }
 
   const [uid, setUid] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -133,6 +166,8 @@ export default function PlansPage() {
           plan,
           method: billingMethod,
           durationDays,
+          // ✅ 追加：業種（API側は受け取って保存しても、無視してもOK）
+          industry,
         }),
       })
 
@@ -162,7 +197,7 @@ export default function PlansPage() {
 
       // trial/free（開発用）
       await savePlanAndNormalizeSelected({ uid, plan })
-      router.push("/select-mode")
+      router.push(withIndustry("/select-mode"))
     } catch (e) {
       console.error(e)
       setError("プラン更新に失敗しました")
@@ -179,12 +214,23 @@ export default function PlansPage() {
     <main style={styles.main}>
       <AppHeader title="プラン" />
 
+      {/* ✅ 業種表示（導線の一貫性） */}
+      {industry ? (
+        <section style={{ ...styles.card, borderColor: "rgba(37,99,235,.35)", background: "#eff6ff" }}>
+          <div style={{ fontWeight: 900, fontSize: 14 }}>
+            選択中の業種：<b>{INDUSTRY_LABEL[industry]}</b>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
+            このまま進むと、教材選択画面も「{INDUSTRY_LABEL[industry]}向け」で絞り込み表示されます。
+          </div>
+        </section>
+      ) : null}
+
       {/* 現在のプラン */}
       <section style={styles.card}>
         <div style={styles.cardTitle}>現在のプラン</div>
         <div style={styles.cardText}>
-          {displayName ? `${displayName} さん：` : ""}{" "}
-          <b>{PLAN_LABEL[currentPlan]}</b>
+          {displayName ? `${displayName} さん：` : ""} <b>{PLAN_LABEL[currentPlan]}</b>
         </div>
       </section>
 
@@ -255,7 +301,7 @@ export default function PlansPage() {
           </label>
         </div>
 
-        {/* 期間（ここを変えるとカードの価格も即変わる：A方式） */}
+        {/* 期間 */}
         <div style={styles.durationWrap}>
           <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
           <div style={styles.durationRow}>
@@ -335,12 +381,63 @@ export default function PlansPage() {
         })}
       </div>
 
+      {/* trial/free の導線（必要なら見せる：開発用） */}
+      <section style={{ ...styles.card, marginTop: 16 }}>
+        <div style={{ fontWeight: 900, fontSize: 14 }}>お試し（開発/検証用）</div>
+        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.6 }}>
+          ※ trial/free を使う場合も、保存後は業種を保持して select-mode に戻ります。
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+          <button
+            onClick={() => handleChoose("trial")}
+            disabled={saving || currentPlan === "trial"}
+            style={{
+              ...styles.planBtn,
+              width: "auto",
+              padding: "10px 14px",
+              background: currentPlan === "trial" ? "#9ca3af" : "#111827",
+              cursor: saving || currentPlan === "trial" ? "not-allowed" : "pointer",
+            }}
+          >
+            trial にする
+          </button>
+          <button
+            onClick={() => handleChoose("free")}
+            disabled={saving || currentPlan === "free"}
+            style={{
+              ...styles.planBtn,
+              width: "auto",
+              padding: "10px 14px",
+              background: currentPlan === "free" ? "#9ca3af" : "#111827",
+              cursor: saving || currentPlan === "free" ? "not-allowed" : "pointer",
+            }}
+          >
+            free にする
+          </button>
+
+          <button
+            onClick={() => router.push(withIndustry("/select-mode"))}
+            disabled={saving}
+            style={{
+              ...styles.planBtn,
+              width: "auto",
+              padding: "10px 14px",
+              background: "#16a34a",
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            select-modeへ戻る
+          </button>
+        </div>
+      </section>
+
       {/* 補足（信頼） */}
       <section style={{ ...styles.card, marginTop: 16 }}>
         <div style={{ fontWeight: 900, fontSize: 14 }}>補足</div>
         <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.6 }}>
           ・プラン購入後、受講する教材を選択します（3/5プランは選択式、ALLは全部利用可）。<br />
-          ・期間を「半年 / 年」にすると割引され、更新回数も減ります。
+          ・期間を「半年 / 年」にすると割引され、更新回数も減ります。<br />
+          ・業種を選んでいる場合、教材選択画面はその業種向けに絞り込み表示されます。
         </div>
       </section>
     </main>

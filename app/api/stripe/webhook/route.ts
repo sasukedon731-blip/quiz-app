@@ -2,7 +2,7 @@
 import Stripe from "stripe"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
-import { setUserBillingMerge } from "@/app/lib/billingServer"
+import { setUserBillingMerge, setUserIndustryMerge } from "@/app/lib/billingServer"
 
 export const runtime = "nodejs"
 
@@ -23,6 +23,23 @@ function parsePlan(v: any): "3" | "5" | "all" | null {
 
 function parseMethod(v: any): "convenience" | "card" {
   return v === "convenience" ? "convenience" : "card"
+}
+
+type IndustryId =
+  | "construction"
+  | "manufacturing"
+  | "care"
+  | "driver"
+  | "undecided"
+
+function parseIndustry(v: any): IndustryId | null {
+  return v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+    ? v
+    : null
 }
 
 export async function POST(req: Request) {
@@ -66,20 +83,27 @@ export async function POST(req: Request) {
         const plan = parsePlan(session.metadata?.plan)
         const method = parseMethod(session.metadata?.method)
         const durationDays = parseDurationDays(session.metadata?.durationDays)
+        const industry = parseIndustry(session.metadata?.industry)
 
         const paid = session.payment_status === "paid"
 
-        // ✅ planが取れない場合は、ここで currentPlan を勝手に上書きしない（安全）
         await setUserBillingMerge(uid, {
           accountType: "personal",
           method,
           status: paid ? "active" : "pending",
           stripeCheckoutSessionId: session.id,
           stripePaymentIntentId:
-            typeof session.payment_intent === "string" ? session.payment_intent : null,
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : null,
           ...(plan ? { currentPlan: plan } : {}),
           currentPeriodEnd: paid ? addDays(new Date(), durationDays) : null,
         })
+
+        // ✅ ここが追加：paid のときだけ industry を確定保存
+        if (paid && industry) {
+          await setUserIndustryMerge(uid, industry)
+        }
 
         break
       }
@@ -93,6 +117,7 @@ export async function POST(req: Request) {
         const plan = parsePlan(pi.metadata?.plan)
         const method = parseMethod(pi.metadata?.method)
         const durationDays = parseDurationDays(pi.metadata?.durationDays)
+        const industry = parseIndustry(pi.metadata?.industry)
 
         await setUserBillingMerge(uid, {
           accountType: "personal",
@@ -102,6 +127,11 @@ export async function POST(req: Request) {
           ...(plan ? { currentPlan: plan } : {}),
           currentPeriodEnd: addDays(new Date(), durationDays),
         })
+
+        // ✅ ここが本命：最終確定タイミングで industry 保存
+        if (industry) {
+          await setUserIndustryMerge(uid, industry)
+        }
 
         break
       }

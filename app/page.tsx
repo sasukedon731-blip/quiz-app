@@ -3,9 +3,12 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+
 import Button from "@/app/components/Button"
 import { useAuth } from "@/app/lib/useAuth"
 import { quizCatalog } from "@/app/data/quizCatalog"
+
+type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
 
 export default function HomePage() {
   const router = useRouter()
@@ -24,6 +27,13 @@ export default function HomePage() {
   // ✅ ハンバーガー
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // ✅ industry をURLに付ける helper
+  const withIndustry = (path: string, industry?: string | null) => {
+    if (!industry) return path
+    const join = path.includes("?") ? "&" : "?"
+    return `${path}${join}industry=${encodeURIComponent(industry)}`
+  }
+
   const cta = () => {
     if (loading) return
     if (user) router.push("/select-mode")
@@ -32,7 +42,6 @@ export default function HomePage() {
 
   // ✅ TOPからゲームへ（ゲストでもOK）
   const goJapaneseBattle = () => {
-    // normal = カジュアル（ゲスト1日1回） / attack = ランキング（ログイン推奨）
     router.push("/game?mode=normal")
   }
 
@@ -49,7 +58,7 @@ export default function HomePage() {
   )
 
   type IndustryCard = {
-    id: string
+    id: IndustryId
     icon: string
     title: string
     subtitle: string
@@ -110,7 +119,7 @@ export default function HomePage() {
     []
   )
 
-  const [openIndustryId, setOpenIndustryId] = useState<string | null>("construction")
+  const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>("construction")
 
   const enabledCatalog = useMemo(() => {
     return quizCatalog.filter((q) => q.enabled).sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
@@ -131,7 +140,7 @@ export default function HomePage() {
       {/* ✅ オーバーレイ（メニュー開いてる時） */}
       {menuOpen ? <div style={styles.overlay} onClick={closeMenu} /> : null}
 
-      {/* ✅ ドロワー（幅は広すぎないように固定） */}
+      {/* ✅ ドロワー */}
       {menuOpen ? (
         <aside style={styles.drawer} aria-label="menu">
           <div style={styles.drawerTop}>
@@ -193,7 +202,7 @@ export default function HomePage() {
       ) : null}
 
       <div style={isMobile ? { ...styles.shell, maxWidth: 560, padding: "0 6px" } : styles.shell}>
-        {/* Header（LPはヘッダーに学習導線を置かない：ハンバーガーに集約） */}
+        {/* Header */}
         <header style={isMobile ? { ...styles.header, flexDirection: "row", alignItems: "center" } : styles.header}>
           <div style={styles.brand}>
             <div style={styles.logo}>📚</div>
@@ -203,12 +212,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            style={styles.burgerBtn}
-            aria-label="open menu"
-          >
+          <button type="button" onClick={() => setMenuOpen(true)} style={styles.burgerBtn} aria-label="open menu">
             ☰
           </button>
         </header>
@@ -225,7 +229,7 @@ export default function HomePage() {
               プランに応じて教材を選び、通常・模擬・復習を回すだけ。
             </p>
 
-            {/* 🎮 Game Hero（TOPでもゲームを主役に） */}
+            {/* 🎮 Game Hero */}
             <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16 } : styles.gameHero}>
               <div style={styles.gameHeroTop}>
                 <div style={styles.gameHeroBadge}>🔥 今月のおすすめ</div>
@@ -242,7 +246,7 @@ export default function HomePage() {
               <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
             </div>
 
-            {/* ✅ LPとしてのCTAは残す（学習導線はメニューにもある） */}
+            {/* ✅ LP CTA */}
             <div style={isMobile ? { ...styles.heroActions, flexDirection: "column" } : styles.heroActions}>
               <Button variant="main" onClick={cta}>
                 {user ? "学習を始める" : "ログインして始める"}
@@ -302,7 +306,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ✅ Contents（ここだけ業種別に変更） */}
+        {/* ✅ Contents（業種別） */}
         <section id="contents" style={styles.contentsWrap}>
           <div style={styles.sectionHead}>
             <h2 style={styles.h2}>業種別で探す（おすすめ）</h2>
@@ -366,12 +370,20 @@ export default function HomePage() {
                         ))}
                       </div>
 
+                      {/* ✅ ここが重要：業種付きで select-mode に遷移 */}
                       <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                         <Button variant="sub" onClick={() => router.push("/contents")}>
                           すべての教材を見る
                         </Button>
-                        <Button variant="main" onClick={cta}>
-                          {user ? "学習を始める" : "ログインして始める"}
+
+                        <Button
+                          variant="main"
+                          onClick={() => {
+                            // ログイン済みでも未ログインでも、まず select-mode に industry を渡す
+                            router.push(withIndustry("/select-mode", ind.id))
+                          }}
+                        >
+                          {user ? "この業種で学習を始める" : "この業種で始める（ログインへ）"}
                         </Button>
                       </div>
                     </div>
@@ -417,7 +429,13 @@ export default function HomePage() {
 
           <div style={styles.centerRow}>
             {user ? (
-              <Button variant="main" onClick={() => router.push("/plans")}>
+              <Button
+                variant="main"
+                onClick={() => {
+                  // もし「最後に開いてた業種」を引き継ぎたいなら、ここで openIndustryId を使う
+                  router.push(withIndustry("/plans", openIndustryId))
+                }}
+              >
                 プラン管理へ
               </Button>
             ) : (
@@ -512,7 +530,6 @@ const styles: Record<string, React.CSSProperties> = {
   brandName: { fontWeight: 900, fontSize: 16 },
   brandSub: { opacity: 0.7, fontSize: 12 },
 
-  // ✅ ハンバーガー（ヘッダー右上）
   burgerBtn: {
     width: 44,
     height: 44,
@@ -525,7 +542,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
 
-  // ✅ オーバーレイ & ドロワー（広すぎない）
   overlay: {
     position: "fixed",
     inset: 0,
@@ -589,7 +605,6 @@ const styles: Record<string, React.CSSProperties> = {
   lead: { marginTop: 10, opacity: 0.85, lineHeight: 1.7, fontSize: 14 },
   heroActions: { marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" },
 
-  // ✅ Game Hero（TOPでゲームを目立たせる）
   gameHero: {
     marginTop: 12,
     padding: 16,
@@ -658,7 +673,6 @@ const styles: Record<string, React.CSSProperties> = {
   featureTitle: { fontWeight: 900, marginBottom: 6 },
   featureText: { opacity: 0.85, lineHeight: 1.7, fontSize: 13 },
 
-  // ✅ 教材紹介の見た目を少し変える（セクション感）
   contentsWrap: {
     marginTop: 18,
     padding: 14,
@@ -667,7 +681,6 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #c7d2fe",
   },
 
-  // ✅ 追加：業種別
   industryList: { display: "flex", flexDirection: "column", gap: 10 },
 
   industryCard: {

@@ -6,11 +6,19 @@ import { setUserBillingMerge } from "@/app/lib/billingServer"
 
 export const runtime = "nodejs"
 
+type IndustryId =
+  | "construction"
+  | "manufacturing"
+  | "care"
+  | "driver"
+  | "undecided"
+
 type Body = {
   idToken: string
   plan: "3" | "5" | "all"
   method: "convenience" | "card"
   durationDays: 30 | 180 | 365
+  industry?: IndustryId | null
 }
 
 // ✅ 30日=500円（3教材プラン）に合わせた価格テーブル
@@ -38,6 +46,16 @@ function isValidDuration(v: any): v is 30 | 180 | 365 {
   return v === 30 || v === 180 || v === 365
 }
 
+function isIndustryId(v: any): v is IndustryId {
+  return (
+    v === "construction" ||
+    v === "manufacturing" ||
+    v === "care" ||
+    v === "driver" ||
+    v === "undecided"
+  )
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body
@@ -54,6 +72,9 @@ export async function POST(req: Request) {
     if (!isValidDuration(body.durationDays)) {
       return NextResponse.json({ error: "Bad durationDays" }, { status: 400 })
     }
+
+    // industry は任意（未選択OK）
+    const industry = isIndustryId(body.industry) ? body.industry : undefined
 
     // ✅ Verify Firebase user
     const decoded = await adminAuth().verifyIdToken(body.idToken)
@@ -89,22 +110,28 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      payment_method_types: body.method === "convenience" ? ["konbini"] : ["card"],
+      payment_method_types:
+        body.method === "convenience" ? ["konbini"] : ["card"],
       success_url: `${appUrl}/plans?checkout=success`,
       cancel_url: `${appUrl}/plans?checkout=cancel`,
       client_reference_id: uid,
+
+      // ✅ ここに industry を入れて webhook で確実に拾う
       metadata: {
         uid,
         plan: body.plan,
         method: body.method,
         durationDays: String(body.durationDays),
+        ...(industry ? { industry } : {}),
       },
+
       payment_intent_data: {
         metadata: {
           uid,
           plan: body.plan,
           method: body.method,
           durationDays: String(body.durationDays),
+          ...(industry ? { industry } : {}),
         },
       },
     })

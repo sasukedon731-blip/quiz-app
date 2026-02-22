@@ -25,6 +25,7 @@ type UserDoc = {
   selectedQuizTypes?: QuizType[]
   nextChangeAllowedAt?: any
   billing?: any
+  industry?: string
 }
 
 function isPlanId(v: any): v is PlanId {
@@ -38,8 +39,21 @@ function nextMonthDate(from = new Date()) {
 }
 
 /**
+ * ✅ industry を merge 保存（決済成功後に webhook から呼ぶ）
+ */
+export async function setUserIndustryMerge(uid: string, industry: string) {
+  const ref = adminDb().collection("users").doc(uid)
+  await ref.set(
+    {
+      industry,
+      updatedAt: new Date(),
+    },
+    { merge: true }
+  )
+}
+
+/**
  * ✅ billing を merge 更新（既存の動作を維持）
- * - billing の中身は「部分更新」したい時に使う
  */
 export async function patchUserBilling(uid: string, patch: BillingPatch) {
   const ref = adminDb().collection("users").doc(uid)
@@ -57,7 +71,7 @@ export async function patchUserBilling(uid: string, patch: BillingPatch) {
 /**
  * ✅ webhook から呼ばれるメイン
  * - billing を merge
- * - さらに status=active & currentPlan が来た場合は
+ * - status=active & currentPlan が来た場合は
  *   entitled/selected/nextChangeAllowedAt を確定
  */
 export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
@@ -75,7 +89,7 @@ export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
   const becomingActive = patch.status === "active"
   const nextPlan = patch.currentPlan
 
-  // ✅ 有料プラン確定時に entitlements を確定させる
+  // ✅ 有料プラン確定時に entitlements を確定
   if (
     becomingActive &&
     isPlanId(nextPlan) &&
@@ -94,7 +108,7 @@ export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
     next.selectedQuizTypes = selected
     next.nextChangeAllowedAt = nextMonthDate()
 
-    // 任意：旧互換で plan も揃える（あなたの設計では billing.currentPlan が優先なので必須ではない）
+    // 任意：旧互換で plan も揃える
     next.plan = nextPlan
   }
 

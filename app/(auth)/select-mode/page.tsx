@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 
 import { auth } from "@/app/lib/firebase"
@@ -24,14 +24,36 @@ const PLAN_LABEL: Record<PlanId, string> = {
 // ✅ ゲームは「1つ」に固定（日本語N4）
 const GAME_FIXED_TYPE: QuizType = "japanese-n4"
 
+// ✅ 業種ラベル（表示用）
+type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
+
+const INDUSTRY_LABEL: Record<IndustryId, string> = {
+  construction: "建設",
+  manufacturing: "製造",
+  care: "介護",
+  driver: "運転・免許",
+  undecided: "未定（海外から）",
+}
+
 export default function SelectModePage() {
   const router = useRouter()
+  const params = useSearchParams()
+  const industry = (params.get("industry") as IndustryId | null) ?? null
+
+  // ✅ industry を維持したいリンクを作る
+  const withIndustry = (path: string) => {
+    if (!industry) return path
+    const join = path.includes("?") ? "&" : "?"
+    return `${path}${join}industry=${encodeURIComponent(industry)}`
+  }
 
   const [uid, setUid] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [accessBlocked, setAccessBlocked] = useState(false)
-  const [billingStatus, setBillingStatus] = useState<"pending" | "active" | "past_due" | "canceled">("active")
+  const [billingStatus, setBillingStatus] = useState<
+    "pending" | "active" | "past_due" | "canceled"
+  >("active")
 
   const [plan, setPlan] = useState<PlanId>("trial")
   const [selected, setSelected] = useState<QuizType[]>([])
@@ -95,12 +117,18 @@ export default function SelectModePage() {
         <div style={styles.shell}>
           {accessBlocked ? (
             <div style={styles.payWarn}>
-              <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
+              <div style={{ fontWeight: 900 }}>
+                利用開始にはお支払い手続きが必要です
+              </div>
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
-                状態：<b>{billingStatus}</b>（コンビニ払いは入金確認後に利用可能になります）
+                状態：<b>{billingStatus}</b>
+                （コンビニ払いは入金確認後に利用可能になります）
               </div>
               <div style={{ marginTop: 10 }}>
-                <button onClick={() => router.push("/plans")} style={{ ...styles.btn, ...styles.btnMain }}>
+                <button
+                  onClick={() => router.push(withIndustry("/plans"))}
+                  style={{ ...styles.btn, ...styles.btnMain }}
+                >
                   プラン / 支払いへ
                 </button>
               </div>
@@ -114,43 +142,39 @@ export default function SelectModePage() {
   }
 
   // ✅ TSが "string" に widen するのを防ぐため、明示的に型を付ける
-  const shellStyle: React.CSSProperties = isMobile ? { ...styles.shell, maxWidth: 560, padding: 12 } : styles.shell
-
-  const headerStyle: React.CSSProperties = isMobile
-    ? { ...styles.header, flexDirection: "column" as const, alignItems: "stretch" as const }
-    : styles.header
-
-  const headerActionsStyle: React.CSSProperties = isMobile
-    ? {
-        ...styles.headerActions,
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 8,
-        justifyContent: "stretch",
-      }
-    : styles.headerActions
-
-  const gridStyle: React.CSSProperties = isMobile
-    ? { ...styles.grid, gridTemplateColumns: "1fr", gap: 12 }
-    : styles.grid
+  const shellStyle: React.CSSProperties = isMobile
+    ? { ...styles.shell, maxWidth: 560, padding: 12 }
+    : styles.shell
 
   const btnStyle: React.CSSProperties = isMobile
     ? { ...styles.btn, padding: "14px 14px", borderRadius: 16, fontSize: 16 }
     : styles.btn
 
-  const quizActionsStyle: React.CSSProperties = isMobile ? { ...styles.quizActions, gap: 10 } : styles.quizActions
+  const gridStyle: React.CSSProperties = isMobile
+    ? { ...styles.grid, gridTemplateColumns: "1fr", gap: 12 }
+    : styles.grid
+
+  const quizActionsStyle: React.CSSProperties = isMobile
+    ? { ...styles.quizActions, gap: 10 }
+    : styles.quizActions
 
   return (
     <main style={styles.page}>
       <div style={shellStyle}>
         {accessBlocked ? (
           <div style={styles.payWarn}>
-            <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
+            <div style={{ fontWeight: 900 }}>
+              利用開始にはお支払い手続きが必要です
+            </div>
             <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
-              状態：<b>{billingStatus}</b>（コンビニ払いは入金確認後に利用可能になります）
+              状態：<b>{billingStatus}</b>
+              （コンビニ払いは入金確認後に利用可能になります）
             </div>
             <div style={{ marginTop: 10 }}>
-              <button onClick={() => router.push("/plans")} style={{ ...btnStyle, ...styles.btnMain }}>
+              <button
+                onClick={() => router.push(withIndustry("/plans"))}
+                style={{ ...btnStyle, ...styles.btnMain }}
+              >
                 プラン / 支払いへ
               </button>
             </div>
@@ -171,6 +195,12 @@ export default function SelectModePage() {
           <div style={{ fontWeight: 900, fontSize: 14 }}>
             {displayName ? `${displayName} さん ・ ` : ""}
             プラン：{PLAN_LABEL[plan] ?? plan}
+            {industry ? (
+              <>
+                {" "}
+                ・ 業種：<span style={{ fontWeight: 900 }}>{INDUSTRY_LABEL[industry]}</span>
+              </>
+            ) : null}
           </div>
           <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
             教材を選んで「通常 / 模擬 / 復習 / 日本語バトル」を開始できます。
@@ -184,14 +214,24 @@ export default function SelectModePage() {
           <section style={styles.card}>
             <div style={styles.cardTitle}>教材が選択されていません</div>
             <p style={styles.cardText}>
-              まずは今月受講する教材を選びましょう。選択後、この画面から「通常 / 模擬 / 復習」を開始できます。
+              まずは今月受講する教材を選びましょう。選択後、この画面から
+              「通常 / 模擬 / 復習」を開始できます。
             </p>
 
             <div style={styles.row}>
-              <Link href="/select-quizzes" style={{ ...btnStyle, ...styles.btnGreen }}>
+              {/* ✅ ここが本命：industry を引き継いで教材選択へ */}
+              <Link
+                href={withIndustry("/select-quizzes")}
+                style={{ ...btnStyle, ...styles.btnGreen }}
+              >
                 教材を選ぶ
               </Link>
-              <Link href="/plans" style={{ ...btnStyle, ...styles.btnBlue }}>
+
+              {/* ✅ plans も引き継ぐ（迷い軽減） */}
+              <Link
+                href={withIndustry("/plans")}
+                style={{ ...btnStyle, ...styles.btnBlue }}
+              >
                 プランを確認
               </Link>
             </div>
@@ -219,19 +259,44 @@ export default function SelectModePage() {
                     <div style={styles.quizMeta}>ID: {id}</div>
 
                     <div style={quizActionsStyle}>
-                      <Link href={`/normal?type=${id}`} style={{ ...btnStyle, ...styles.btnBlue }}>
+                      <Link
+                        href={`/normal?type=${id}`}
+                        style={{ ...btnStyle, ...styles.btnBlue }}
+                      >
                         通常
                       </Link>
-                      <Link href={`/exam?type=${id}`} style={{ ...btnStyle, ...styles.btnGray }}>
+                      <Link
+                        href={`/exam?type=${id}`}
+                        style={{ ...btnStyle, ...styles.btnGray }}
+                      >
                         模擬試験
                       </Link>
-                      <Link href={`/review?type=${id}`} style={{ ...btnStyle, ...styles.btnGreen }}>
+                      <Link
+                        href={`/review?type=${id}`}
+                        style={{ ...btnStyle, ...styles.btnGreen }}
+                      >
                         復習
                       </Link>
                     </div>
                   </div>
                 )
               })}
+            </div>
+
+            {/* ✅ 選択済みでも「教材選択へ戻る」を出しておく（industry引き継ぎ） */}
+            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link
+                href={withIndustry("/select-quizzes")}
+                style={{ ...btnStyle, ...styles.btnGreen }}
+              >
+                教材を変更する
+              </Link>
+              <Link
+                href={withIndustry("/plans")}
+                style={{ ...btnStyle, ...styles.btnBlue }}
+              >
+                プランを確認
+              </Link>
             </div>
           </section>
         )}
@@ -282,24 +347,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
   },
 
-  header: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-    marginBottom: 12,
-  },
-  headerActions: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
-  },
-
-  h1: { margin: 0, fontSize: 26, letterSpacing: 0.2 },
   h2: { margin: 0, fontSize: 18 },
-  sub: { margin: "6px 0 0", opacity: 0.78 },
 
   alert: {
     marginTop: 10,
