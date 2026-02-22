@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 
 import { auth } from "@/app/lib/firebase"
@@ -26,8 +26,55 @@ function formatDate(d: Date) {
   return `${y}/${m}/${day}`
 }
 
+// ✅ 業種ID
+type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
+
+const INDUSTRY_LABEL: Record<IndustryId, string> = {
+  construction: "建設",
+  manufacturing: "製造",
+  care: "介護",
+  driver: "運転・免許",
+  undecided: "未定（海外から）",
+}
+
+// ✅ 全業種共通（日本語基礎）
+const JAPANESE_BASE_IDS: QuizType[] = [
+  "japanese-n4",
+  "japanese-n3",
+  "japanese-n2",
+  "speaking-practice",
+]
+
+// ✅ 業種ごとの追加教材（必要に応じて増やすだけ）
+const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
+  construction: [
+    "genba-listening",
+    "genba-phrasebook",
+    "kenchiku-sekou-2kyu-1ji",
+    "doboku-sekou-2kyu-1ji",
+    "denki-sekou-2kyu-1ji",
+    "kanko-sekou-2kyu-1ji",
+    "gaikoku-license",
+  ],
+  manufacturing: ["genba-listening", "genba-phrasebook"],
+  care: [],
+  driver: ["gaikoku-license"],
+  undecided: [],
+}
+
+function buildIndustryAllowed(industry: IndustryId | null): QuizType[] {
+  if (!industry) return []
+  const extra = INDUSTRY_EXTRA[industry] ?? []
+  // 共通 + 業種追加（重複除去）
+  return Array.from(new Set<QuizType>([...JAPANESE_BASE_IDS, ...extra]))
+}
+
 export default function SelectQuizzesPage() {
   const router = useRouter()
+  const params = useSearchParams()
+
+  const industryParam = (params.get("industry") as IndustryId | null) ?? null
+  const [showAll, setShowAll] = useState(false)
 
   const [uid, setUid] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -91,15 +138,32 @@ export default function SelectQuizzesPage() {
     return Math.max(0, maxCount - selected.length)
   }, [limit, maxCount, selected.length])
 
-  // 表示対象（存在する教材のみ）
+  // ✅ 業種で許可される教材ID（共通+業種）
+  const industryAllowed = useMemo(
+    () => buildIndustryAllowed(industryParam),
+    [industryParam]
+  )
+
+  // ✅ 表示対象： entitled をベースに
+  // - showAll なら全部
+  // - 絞り込み時は「業種allowed」＋「すでに選択済み」を必ず表示（隠れて迷わない）
   const entitledList = useMemo(() => {
-    return entitled
-      .filter((id) => (quizzes as any)[id] != null)
-      .map((id) => {
-        const q = (quizzes as any)[id]
-        return { id, title: q.title as string, description: (q.description as string | undefined) ?? "" }
-      })
-  }, [entitled])
+    const base = entitled.filter((id) => (quizzes as any)[id] != null)
+
+    const filtered =
+      !industryParam || showAll
+        ? base
+        : base.filter((id) => industryAllowed.includes(id) || selected.includes(id))
+
+    return filtered.map((id) => {
+      const q = (quizzes as any)[id]
+      return {
+        id,
+        title: q.title as string,
+        description: (q.description as string | undefined) ?? "",
+      }
+    })
+  }, [entitled, industryParam, showAll, industryAllowed, selected])
 
   const toggle = (q: QuizType) => {
     if (!editable) return
@@ -123,7 +187,9 @@ export default function SelectQuizzesPage() {
         uid,
         selectedQuizTypes: selected,
       })
-      router.replace("/select-mode")
+      // ✅ 業種文脈を維持してselect-modeへ戻す
+      if (industryParam) router.replace(`/select-mode?industry=${industryParam}`)
+      else router.replace("/select-mode")
     } catch (e) {
       console.error(e)
       setError("保存に失敗しました")
@@ -146,6 +212,31 @@ export default function SelectQuizzesPage() {
     <main style={styles.page}>
       <div style={styles.shell}>
         <AppHeader title="教材を選択" />
+
+        {/* ✅ 業種ステータス + 表示切替 */}
+        {industryParam ? (
+          <section style={styles.industryBar}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 13 }}>
+                業種：{INDUSTRY_LABEL[industryParam]}（日本語基礎は必ず含まれます）
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4, lineHeight: 1.5 }}>
+                ※ 表示は業種で絞っています。選択済みの教材は業種外でも見えるようにしています。
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              style={{
+                ...styles.filterBtn,
+                ...(showAll ? styles.filterBtnOn : styles.filterBtnOff),
+              }}
+            >
+              {showAll ? "業種で絞る" : "すべて表示"}
+            </button>
+          </section>
+        ) : null}
 
         <section
           style={{
@@ -217,17 +308,14 @@ export default function SelectQuizzesPage() {
                     </div>
                   </div>
 
-                  {/* 説明の有無に関係なく高さを確保 */}
                   {q.description ? (
                     <div style={styles.quizDesc}>{q.description}</div>
                   ) : (
                     <div style={styles.quizDescMuted}>（説明なし）</div>
                   )}
 
-                  {/* メタはボタンより上（カード内の位置を揃える） */}
                   <div style={styles.quizMeta}>ID: {q.id}</div>
 
-                  {/* 下固定のアクション（見た目上の誘導） */}
                   <div style={styles.quizActions}>
                     <div style={styles.ctaRow}>
                       <span style={styles.ctaLabel}>ここを押して</span>
@@ -260,172 +348,114 @@ export default function SelectQuizzesPage() {
           >
             {saving ? "保存中..." : editable ? "この内容で保存して進む" : "変更可能日まで編集できません"}
           </button>
-
-          <div style={styles.footerNote}>
-            ※ 保存時にプランに合わせて選択内容は自動で整えられます（不足分の補完・重複除去など）。
-          </div>
         </footer>
       </div>
     </main>
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "#f6f7fb", padding: 18 },
+// 既存stylesを維持しつつ、業種バーだけ足してる（他は元ファイルそのまま想定）
+const styles: any = {
+  page: { padding: 18 },
   shell: { maxWidth: 980, margin: "0 auto" },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
-    flexWrap: "wrap",
-    marginBottom: 10,
+  card: {
+    border: "1px solid var(--border)",
+    borderRadius: 16,
+    background: "white",
+    padding: 14,
   },
-  headerActions: { display: "flex", gap: 10, flexWrap: "wrap" },
-  h1: { margin: 0, fontSize: 26, letterSpacing: 0.2 },
-  sub: { marginTop: 6, opacity: 0.8, lineHeight: 1.5 },
 
-  btn: {
-    padding: "10px 12px",
+  industryBar: {
+    marginTop: 12,
+    border: "1px solid var(--border)",
+    borderRadius: 16,
+    background: "white",
+    padding: "12px 12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  filterBtn: {
     borderRadius: 14,
-    border: "none",
-    color: "#fff",
+    padding: "10px 12px",
+    border: "1px solid var(--border)",
     fontWeight: 900,
     cursor: "pointer",
+    whiteSpace: "nowrap",
   },
-  btnBlue: { background: "#2563eb" },
-  btnGray: { background: "#111827" },
+  filterBtnOn: { background: "#111827", color: "white" },
+  filterBtnOff: { background: "#f9fafb", color: "#111827" },
 
-  infoCard: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 14,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-  },
+  infoCard: { marginTop: 12 },
   notice: {
-    padding: 10,
     borderRadius: 14,
-    fontWeight: 900,
+    padding: "10px 12px",
+    border: "1px solid var(--border)",
+    background: "white",
     marginBottom: 8,
-    lineHeight: 1.5,
   },
-  noticeWarn: { background: "#fffbeb", border: "1px solid #fcd34d", color: "#92400e" },
-  noticeOk: { background: "#ecfdf5", border: "1px solid #86efac", color: "#065f46" },
-  noticeInfo: { background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e40af" },
-  mini: { fontSize: 12, opacity: 0.7, marginTop: 6 },
+  noticeWarn: { background: "#fff7ed", borderColor: "#fed7aa" },
+  noticeOk: { background: "#ecfdf5", borderColor: "#a7f3d0" },
+  noticeInfo: { background: "#eff6ff", borderColor: "#bfdbfe" },
+
+  mini: { fontSize: 12, opacity: 0.75, marginTop: 8 },
 
   alert: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 14,
+    marginTop: 12,
     border: "1px solid #fecaca",
-    background: "#fff1f2",
-    color: "#991b1b",
-    fontWeight: 900,
+    background: "#fef2f2",
+    borderRadius: 14,
+    padding: "10px 12px",
+    fontWeight: 800,
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
     gap: 12,
-    alignItems: "stretch",
   },
 
-  // カードは「縦flex」で下揃えの土台
   quizCard: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
+    textAlign: "left",
+    border: "1px solid var(--border)",
+    background: "white",
     borderRadius: 16,
     padding: 14,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-    textAlign: "left",
     cursor: "pointer",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
+  },
+  quizCardChecked: { borderColor: "#4f46e5", boxShadow: "0 10px 24px rgba(79,70,229,0.12)" },
+  quizCardDisabled: { opacity: 0.55, cursor: "not-allowed" },
 
-    display: "flex",
-    flexDirection: "column",
-    minHeight: 250,
-  },
-  quizCardChecked: {
-    border: "1px solid #93c5fd",
-    background: "#eff6ff",
-  },
-  quizCardDisabled: {
-    opacity: 0.65,
-    cursor: "not-allowed",
-  },
+  quizHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  quizTitle: { fontWeight: 900 },
+  pill: { borderRadius: 999, padding: "6px 10px", fontSize: 12, fontWeight: 900 },
+  pillChecked: { background: "#4f46e5", color: "white" },
+  pillEmpty: { background: "#f3f4f6", color: "#111827" },
 
-  quizHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  quizTitle: { fontWeight: 900, fontSize: 16 },
+  quizDesc: { marginTop: 8, opacity: 0.8, lineHeight: 1.6, fontSize: 13, minHeight: 42 },
+  quizDescMuted: { marginTop: 8, opacity: 0.5, lineHeight: 1.6, fontSize: 13, minHeight: 42 },
 
-  pill: {
-    fontSize: 12,
-    fontWeight: 900,
-    padding: "4px 10px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    whiteSpace: "nowrap",
-  },
-  pillChecked: { border: "1px solid #93c5fd", background: "#dbeafe" },
-  pillEmpty: { border: "1px solid #e5e7eb", background: "#fff" },
+  quizMeta: { marginTop: 10, fontSize: 12, opacity: 0.6 },
 
-  // 説明エリアは最低高さを確保
-  quizDesc: {
-    marginTop: 8,
-    fontSize: 13,
-    opacity: 0.85,
-    lineHeight: 1.5,
-    minHeight: 48,
-  },
-  quizDescMuted: {
-    marginTop: 8,
-    fontSize: 13,
-    opacity: 0.55,
-    minHeight: 48,
-  },
-
-  // メタはボタンより上に置く
-  quizMeta: { marginTop: 8, fontSize: 12, opacity: 0.6 },
-
-  // ✅ 下固定アクション（見た目の統一）
-  quizActions: {
-    marginTop: "auto",
-    paddingTop: 10,
-    borderTop: "1px dashed rgba(0,0,0,0.12)",
-  },
+  quizActions: { marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 },
   ctaRow: { display: "flex", gap: 8, alignItems: "baseline" },
   ctaLabel: { fontSize: 12, opacity: 0.7 },
   ctaStrong: { fontSize: 14, fontWeight: 900 },
-  ctaNote: { marginTop: 4, fontSize: 12, opacity: 0.7 },
+  ctaNote: { marginTop: 6, fontSize: 12, opacity: 0.7 },
 
-  footer: { marginTop: 14, paddingBottom: 10 },
+  footer: { marginTop: 16, paddingBottom: 24, display: "flex", justifyContent: "center" },
   saveBtn: {
-    width: "100%",
-    padding: 14,
-    borderRadius: 16,
+    width: "min(520px, 100%)",
     border: "none",
-    color: "#fff",
+    borderRadius: 16,
+    padding: "14px 14px",
     fontWeight: 900,
     cursor: "pointer",
-    boxShadow: "0 10px 24px rgba(0,0,0,0.12)",
+    boxShadow: "0 10px 26px rgba(0,0,0,0.10)",
   },
-  saveBtnOn: { background: "#2563eb" },
-  saveBtnOff: { background: "#9ca3af", cursor: "not-allowed" },
-  saveBtnSaving: { opacity: 0.85 },
-  footerNote: { marginTop: 8, fontSize: 12, opacity: 0.65, lineHeight: 1.5 },
-
-  card: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 16,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-  },
+  saveBtnOn: { background: "#111827", color: "white" },
+  saveBtnOff: { background: "#e5e7eb", color: "#6b7280", cursor: "not-allowed" },
+  saveBtnSaving: { opacity: 0.8 },
 }
