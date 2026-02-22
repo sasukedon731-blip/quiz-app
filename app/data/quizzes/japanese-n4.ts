@@ -3,23 +3,16 @@ import type { Quiz } from "@/app/data/types"
 export const japaneseN4Quiz: Quiz = {
   id: "japanese-n4",
   title: "日本語検定 N4",
-  description: "日本語能力試験 N4 レベル（全100問）",
+  description: "日本語能力試験 N4 レベル（全130問）",
   sections: [
-    { id: "漢字", label: "漢字" },
-    { id: "読み", label: "読み" },
-    { id: "語彙", label: "語彙" },
-    { id: "類義語", label: "類義語" },
-    { id: "文法", label: "文法" },
-    { id: "敬語", label: "敬語" },
-    { id: "助詞", label: "助詞" },
-    { id: "並替", label: "並替" },
-    { id: "空欄", label: "空欄" },
-    { id: "読解", label: "読解" },
+    { id: "moji-goi", label: "文字・語彙" },
+    { id: "bunpo", label: "文法" },
+    { id: "reading", label: "読解" },
   ],
   questions: [
     {
       id: 1,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `毎朝、家の近くを（さんぽ）します。
 （さんぽ）の漢字は？`,
       choices: ["散歩", "山歩", "算歩", "散法"],
@@ -29,7 +22,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 2,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この料理は（あじ）がうすいです。
 （あじ）の漢字は？`,
       choices: ["足", "悪", "味", "暗"],
@@ -39,7 +32,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 3,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `（きゅうこう）列車に乗れば、早く着きます。
 （きゅうこう）の漢字は？`,
       choices: ["急行", "急通", "吸行", "休行"],
@@ -49,7 +42,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 4,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `（かいがん）で写真を撮りました。
 （かいがん）の漢字は？`,
       choices: ["会館", "海岸", "海外", "海関"],
@@ -59,7 +52,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 5,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `弟は（こうむいん）になりたいと言っています。
 （こうむいん）の漢字は？`,
       choices: ["公務員", "工務員", "講務員", "校務員"],
@@ -69,7 +62,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 6,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この工事は（きかん）を延ばしました。
 （きかん）の漢字は？`,
       choices: ["期間", "機関", "帰還", "規刊"],
@@ -79,7 +72,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 7,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `仕事を（さがして）います。
 （さがして）の漢字は？`,
       choices: ["探して", "捜して", "察して", "索して"],
@@ -89,7 +82,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 8,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この説明の（つかいかた）がわかりません。
 （つかいかた）の漢字は？`,
       choices: ["使い方", "使方", "使用方", "使い形"],
@@ -99,7 +92,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 9,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この場所は（きけん）です。
 （きけん）の漢字は？`,
       choices: ["危険", "危検", "鬼見", "危建"],
@@ -109,7 +102,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 10,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `（きゅうけい）してから、また仕事をします。
 （きゅうけい）の漢字は？`,
       choices: ["休憩", "急計", "久敬", "給形"],
@@ -119,7 +112,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 11,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `会議の（よてい）を確認します。
 （よてい）の漢字は？`,
       choices: ["予定", "予低", "余定", "与定"],
@@ -129,7 +122,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 12,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `朝は（しんぶん）を読みます。
 （しんぶん）の漢字は？`,
       choices: ["新聞", "新分", "深文", "信聞"],
@@ -139,7 +132,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 13,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `水を（のむ）と元気になります。
 （のむ）の漢字は？`,
       choices: ["飲む", "食む", "呑む", "飲も"],
@@ -149,7 +142,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 14,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `電車が（こんで）います。
 （こんで）の漢字は？`,
       choices: ["混んで", "込んで", "困んで", "昆んで"],
@@ -159,7 +152,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 15,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `今日は（きおん）が高いです。
 （きおん）の漢字は？`,
       choices: ["気温", "気音", "木温", "気恩"],
@@ -169,7 +162,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 16,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `家の近くを（さんぽ）します。
 （さんぽ）の漢字は？`,
       choices: ["散歩", "山歩", "算歩", "散法"],
@@ -179,7 +172,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 17,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `道が（せまい）ので気をつけてください。
 （せまい）の漢字は？`,
       choices: ["狭い", "窄い", "侠い", "挟い"],
@@ -189,7 +182,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 18,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この映画は（ゆうめい）です。
 （ゆうめい）の漢字は？`,
       choices: ["有名", "友明", "由命", "勇名"],
@@ -199,7 +192,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 19,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この仕事は（かんたん）です。
 （かんたん）の漢字は？`,
       choices: ["簡単", "間単", "簡丹", "管短"],
@@ -209,7 +202,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 20,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `この問題は（むずかしい）です。
 （むずかしい）の漢字は？`,
       choices: ["難しい", "難かしい", "無図かしい", "難し"],
@@ -219,7 +212,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 21,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `ここは（しずか）です。
 （しずか）の漢字は？`,
       choices: ["静か", "靖か", "青か", "清か"],
@@ -229,7 +222,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 22,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `友だちに（あう）約束があります。
 （あう）の漢字は？`,
       choices: ["会う", "合う", "逢う", "遭う"],
@@ -239,7 +232,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 23,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `雨が（ふる）ので、傘を持って行きます。
 （ふる）の漢字は？`,
       choices: ["降る", "振る", "布る", "古る"],
@@ -249,7 +242,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 24,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `会議の資料を（わすれました）。
 （わすれました）の漢字は？`,
       choices: ["忘れました", "忙れました", "亡れました", "妄れました"],
@@ -259,7 +252,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 25,
-      sectionId: "漢字",
+      sectionId: "moji-goi",
       question: `薬を（のこす）のはよくないです。
 （のこす）の漢字は？`,
       choices: ["残す", "存す", "在す", "浅す"],
@@ -269,7 +262,7 @@ export const japaneseN4Quiz: Quiz = {
     },
         {
       id: 26,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `試験の結果が（ ）で、夜も眠れません。
 空欄に入る言葉は？`,
       choices: ["安心", "心配", "丁寧", "複雑"],
@@ -279,7 +272,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 27,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `（ ）していたので、駅まで走りました。
 空欄に入る言葉は？`,
       choices: ["遅刻", "準備", "仕事", "注文"],
@@ -289,7 +282,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 28,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `この料理は（ ）が強いです。
 空欄に入る言葉は？`,
       choices: ["温度", "味", "色", "場所"],
@@ -299,7 +292,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 29,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `朝ごはんを（ ）と、午前中つらいです。
 空欄に入る言葉は？`,
       choices: ["抜く", "落とす", "忘れる", "止める"],
@@ -309,7 +302,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 30,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `この電車は（ ）で止まりました。
 空欄に入る言葉は？`,
       choices: ["事故", "記号", "自動", "自転車"],
@@ -319,7 +312,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 31,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `友だちに（ ）をしました。
 空欄に入る言葉は？`,
       choices: ["電話", "電気", "伝統", "天気"],
@@ -329,7 +322,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 32,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `この部屋はとても（ ）です。
 空欄に入る言葉は？`,
       choices: ["綺麗", "危険", "簡単", "有名"],
@@ -339,7 +332,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 33,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `日本の（ ）を学びたいです。
 空欄に入る言葉は？`,
       choices: ["文化", "分科", "文家", "文下"],
@@ -349,7 +342,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 34,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `この仕事は（ ）です。
 空欄に入る言葉は？`,
       choices: ["大変", "大辺", "体変", "代変"],
@@ -359,7 +352,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 35,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `日本（ ）アニメは世界で人気があります。
 （ ）に入る助詞は？`,
       choices: ["の", "に", "を", "が"],
@@ -369,7 +362,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 36,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `私は毎日7時（ ）起きます。
 （ ）に入る助詞は？`,
       choices: ["に", "で", "を", "が"],
@@ -379,7 +372,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 37,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `友だち（ ）電話をしました。
 （ ）に入る助詞は？`,
       choices: ["に", "を", "で", "が"],
@@ -389,7 +382,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 38,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `この本は日本語の勉強（ ）役に立ちます。
 （ ）に入る助詞は？`,
       choices: ["に", "を", "で", "が"],
@@ -399,7 +392,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 39,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `雨が降った（ ）、試合は中止になりました。
 （ ）に入るのは？`,
       choices: ["ので", "のに", "から", "まで"],
@@ -408,7 +401,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 40,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `この店は安い（ ）、おいしいです。
 （ ）に入るのは？`,
       choices: ["し", "ので", "のに", "まで"],
@@ -417,7 +410,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 41,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `勉強し（ ）から、寝ます。
 （ ）に入るのは？`,
       choices: ["て", "た", "で", "に"],
@@ -426,7 +419,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 42,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `明日、雨が（ ）でしょう。
 （ ）に入るのは？`,
       choices: ["降る", "降り", "降って", "降った"],
@@ -435,7 +428,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 43,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `もう一度説明して（ ）ませんか。
 （ ）に入るのは？`,
       choices: ["くれ", "くれる", "ください", "もらい"],
@@ -444,7 +437,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 44,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `この問題は難しく（ ）ません。
 （ ）に入るのは？`,
       choices: ["あり", "い", "なり", "する"],
@@ -453,7 +446,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 45,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `「いらっしゃいませ」はどんな場面で言いますか。
 正しいものを選んでください。`,
       choices: ["店で客を迎えるとき", "友だちに会ったとき", "先生に注意するとき", "電話を切るとき"],
@@ -462,7 +455,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 46,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `先生に資料を渡すとき、何と言いますか。
 正しいものを選んでください。`,
       choices: ["どうぞ", "ちょうだい", "やれ", "くれ"],
@@ -471,7 +464,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 47,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `上司に「見ます」の丁寧な言い方は？`,
       choices: ["拝見します", "見える", "見せる", "見るです"],
       correctIndex: 0,
@@ -479,7 +472,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 48,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `会社で「言います」の丁寧な言い方は？`,
       choices: ["申します", "言うです", "話す", "伝える"],
       correctIndex: 0,
@@ -487,7 +480,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 49,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `「社長は来ます」の丁寧な言い方は？`,
       choices: ["社長は来られます", "社長は来るです", "社長は来ますです", "社長は来ているです"],
       correctIndex: 0,
@@ -495,7 +488,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 50,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `田中さん（ ）会いました。
 （ ）に入る助詞は？`,
       choices: ["に", "を", "で", "が"],
@@ -505,7 +498,7 @@ export const japaneseN4Quiz: Quiz = {
     },
         {
       id: 51,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `家（ ）帰ります。
 （ ）に入る助詞は？`,
       choices: ["に", "へ", "を", "で"],
@@ -515,7 +508,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 52,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `学校（ ）勉強します。
 （ ）に入る助詞は？`,
       choices: ["で", "に", "を", "へ"],
@@ -525,7 +518,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 53,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `日本（ ）来ました。
 （ ）に入る助詞は？`,
       choices: ["へ", "に", "で", "を"],
@@ -535,7 +528,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 54,
-      sectionId: "助詞",
+      sectionId: "bunpo",
       question: `机の上（ ）本があります。
 （ ）に入る助詞は？`,
       choices: ["に", "で", "を", "へ"],
@@ -545,7 +538,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 55,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `図書館 1.図書館 2.で 3.勉強 4.します。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["図書館", "で", "勉強", "します"],
@@ -555,7 +548,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 56,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `友だち 1.友だち 2.に 3.会い 4.ます。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["友だち", "に", "会い", "ます"],
@@ -565,7 +558,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 57,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `映画 1.映画 2.を 3.見 4.ます。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["映画", "を", "見", "ます"],
@@ -575,7 +568,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 58,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `雨 1.雨 2.が 3.降り 4.ます。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["雨", "が", "降り", "ます"],
@@ -585,7 +578,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 59,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `明日、（　）ので早く寝ます。
 （　）に入る言葉を選んでください。`,
       choices: ["仕事がある", "仕事をある", "仕事がいる", "仕事にある"],
@@ -594,7 +587,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 60,
-      sectionId: "文法",
+      sectionId: "bunpo",
       question: `今日は雨（　）、出かけません。
 （　）に入る言葉を選んでください。`,
       choices: ["なので", "のに", "まで", "でも"],
@@ -603,7 +596,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 61,
-      sectionId: "敬語",
+      sectionId: "bunpo",
       question: `すみません、もう一度（　）ください。
 （　）に入る言葉を選んでください。`,
       choices: ["言って", "言い", "言う", "言った"],
@@ -612,7 +605,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 62,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `駅で（　）を買いました。
 （　）に入る言葉を選んでください。`,
       choices: ["切符", "切手", "封筒", "新聞紙"],
@@ -622,7 +615,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 63,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `授業が終わったら（　）します。
 （　）に入る言葉を選んでください。`,
       choices: ["復習", "予習", "勉強中", "試験中"],
@@ -632,7 +625,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 64,
-      sectionId: "語彙",
+      sectionId: "moji-goi",
       question: `病院で（　）を受けました。
 （　）に入る言葉を選んでください。`,
       choices: ["診察", "検査", "面接", "面談"],
@@ -642,7 +635,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 65,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【お知らせ】明日は台風のため学校は休みです。
 明日、学校はどうなりますか。`,
       choices: ["あります", "休みです", "早く終わります", "午後だけあります"],
@@ -652,7 +645,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 66,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【注意】この建物は工事中なので入れません。
 この建物は今どうですか。`,
       choices: ["入れます", "工事中です", "開いています", "閉館です"],
@@ -664,7 +657,7 @@ export const japaneseN4Quiz: Quiz = {
     // ✅ ここから “成立しない” を修正済み（67/68/69/73）
     {
       id: 67,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `図書館では 1.静かに 2.しなければ 3.いけません 4.。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["静かに", "しなければ", "いけません", "。"],
@@ -674,7 +667,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 68,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `田中さんは 1.ギターも 2.歌も 3.上手です 4.。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["ギターも", "歌も", "上手です", "。"],
@@ -684,7 +677,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 69,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `昨日は 1.ずっと 2.仕事が 3.あったので 4.忙しかったです。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["ずっと", "仕事が", "あったので", "忙しかったです"],
@@ -694,7 +687,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 70,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `この 1.意味 2.どういう 3.言葉は 4.なん ですか。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["意味", "どういう", "言葉は", "なん"],
@@ -704,7 +697,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 71,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `私は 1.新しい 2.買う 3.車 4.を つもりです。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["新しい", "買う", "車", "を"],
@@ -714,7 +707,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 72,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `ここで 1.たばこを 2.吸っては 3.いけません 4.。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["たばこを", "吸っては", "いけません", "。"],
@@ -724,7 +717,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 73,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `掃除を 1.したので 2.部屋が 3.とても 4.きれいに なりました。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["したので", "部屋が", "とても", "きれいに"],
@@ -734,7 +727,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 74,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `昨日 1.見た 2.映画は 3.とても 4.おもしろかったです。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["見た", "映画は", "とても", "おもしろかったです"],
@@ -744,7 +737,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 75,
-      sectionId: "並替",
+      sectionId: "bunpo",
       question: `私は 1.毎日 2.日本語を 3.勉強 4.しています。
 ★に入る番号は？ [ __ __ ★ __ ]`,
       choices: ["毎日", "日本語を", "勉強", "しています"],
@@ -754,7 +747,7 @@ export const japaneseN4Quiz: Quiz = {
     },
         {
       id: 76,
-      sectionId: "空欄",
+      sectionId: "bunpo",
       question: `田中先生。先日は（☆）ありがとうございました。
 ☆に入る言葉は？`,
       choices: ["おかげさまで", "こちらこそ", "どうも", "大変"],
@@ -764,7 +757,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 77,
-      sectionId: "空欄",
+      sectionId: "bunpo",
       question: `電車が（☆）ので、遅れました。
 ☆に入る言葉は？`,
       choices: ["混んだ", "混む", "混んでいた", "混みます"],
@@ -774,7 +767,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 78,
-      sectionId: "空欄",
+      sectionId: "bunpo",
       question: `今日は（☆）寒いですね。
 ☆に入る言葉は？`,
       choices: ["とても", "たくさん", "すぐ", "だんだん"],
@@ -784,7 +777,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 79,
-      sectionId: "空欄",
+      sectionId: "bunpo",
       question: `毎日少しずつ練習すると（☆）なります。
 ☆に入る言葉は？`,
       choices: ["上手", "上手に", "上手だ", "上手です"],
@@ -794,7 +787,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 80,
-      sectionId: "空欄",
+      sectionId: "bunpo",
       question: `明日は雨が（☆）かもしれません。
 ☆に入る言葉は？`,
       choices: ["降る", "降り", "降って", "降った"],
@@ -804,7 +797,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 81,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【案内】次の電車は10分遅れています。
 次の電車はどうですか。`,
       choices: ["早いです", "遅れています", "来ません", "止まりました"],
@@ -814,7 +807,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 82,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【掲示】図書館は毎週月曜日が休みです。
 図書館はいつ休みですか。`,
       choices: ["毎日", "月曜日", "火曜日", "土曜日"],
@@ -824,7 +817,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 83,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【メール】明日の会議は3時からです。
 会議は何時からですか。`,
       choices: ["1時", "2時", "3時", "4時"],
@@ -834,7 +827,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 84,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【案内】この店は10時に開きます。
 店は何時に開きますか。`,
       choices: ["8時", "9時", "10時", "11時"],
@@ -844,7 +837,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 85,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【掲示】ゴミは火曜日と金曜日に出してください。
 ゴミはいつ出しますか。`,
       choices: ["月曜日と木曜日", "火曜日と金曜日", "水曜日と土曜日", "日曜日だけ"],
@@ -854,7 +847,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 86,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【注意】ここではたばこを吸わないでください。
 ここでたばこは？`,
       choices: ["吸ってもいい", "吸ってはいけない", "吸う人が多い", "わかりません"],
@@ -864,7 +857,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 87,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【お知らせ】本日の受付は午後5時までです。
 受付は何時までですか。`,
       choices: ["3時", "4時", "5時", "6時"],
@@ -874,7 +867,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 88,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【掲示】このバスは駅前に止まります。
 バスはどこに止まりますか。`,
       choices: ["学校前", "駅前", "病院前", "公園前"],
@@ -884,7 +877,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 89,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `木村さんへ。田中さんから電話で「明日の会議は10時ではなく11時から、場所は同じ会議室」と連絡がありました。佐藤より。
 会議は何時に始まりますか。`,
       choices: ["10時", "11時", "12時", "未定"],
@@ -894,7 +887,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 90,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `（89と同じ本文）
 木村さんは明日どこへ行けばいい？`,
       choices: ["田中さんの家", "同じ会議室", "駅前", "未定"],
@@ -904,7 +897,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 91,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【マナー】おじぎは、相手に感謝やあやまる気持ちを伝えるときにします。軽いおじぎは少し頭を下げ、深いおじぎは腰まで下げます。
 おじぎは何のためにしますか。`,
       choices: ["眠いから", "感謝や謝罪を伝えるため", "運動のため", "外国人のため"],
@@ -914,7 +907,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 92,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `（91と同じ本文）
 軽いおじぎはどうしますか。`,
       choices: ["腰まで下げる", "少し頭を下げる", "手を振る", "目を閉じる"],
@@ -924,7 +917,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 93,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `（91と同じ本文）
 おじぎはどんなとき？`,
       choices: ["挨拶のみ", "お礼や謝罪時も", "外国人のみ", "勉強中"],
@@ -934,7 +927,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 94,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `（91と同じ本文）
 「深く下げる」のはどんな時？`,
       choices: ["眠い", "少し感謝", "強い感謝・謝罪", "怒っている"],
@@ -944,7 +937,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 95,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【休館】図書館は工事のため5月1日〜7日休みます。返却は入り口横のポストに入れてください。
 本を返したい人はどうしますか。`,
       choices: ["開館まで待つ", "郵便で送る", "ポストに入れる", "工事の人に渡す"],
@@ -957,7 +950,7 @@ export const japaneseN4Quiz: Quiz = {
     // ※ ここで止まると100問にならないので、必ずPART4の最後まで貼ること！
    {
       id: 96,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【ゴミ】燃える：月木。燃えない：第2第4水曜。ペット：金。※朝8時までに出してください。
 燃えないゴミはいつ出せますか。`,
       choices: ["毎週水曜", "月2回", "金曜", "朝8時以降"],
@@ -967,7 +960,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 97,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【ゴミ】燃える：月木。燃えない：第2第4水曜。ペット：金。※朝8時までに出してください。
 ゴミ出し時間の決まりは？`,
       choices: ["いつでもよい", "夜に出す", "朝8時前に出す", "午後に出す"],
@@ -977,7 +970,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 98,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `日本のお辞儀は挨拶、お礼、謝罪でします。深く下げるときは強い感謝や申し訳ない気持ちがあるときです。慣れれば自然にできます。
 お辞儀をするのはどんなとき？`,
       choices: ["挨拶のみ", "お礼や謝罪時も", "外国人のみ", "勉強中"],
@@ -987,7 +980,7 @@ export const japaneseN4Quiz: Quiz = {
     },
     {
       id: 99,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `日本のお辞儀は挨拶、お礼、謝罪でします。深く下げるときは強い感謝や申し訳ない気持ちがあるときです。慣れれば自然にできます。
 「深く下げる」のはどんな時？`,
       choices: ["眠い", "少し感謝", "強い感謝・謝罪", "怒っている"],
@@ -997,13 +990,253 @@ export const japaneseN4Quiz: Quiz = {
     },
         {
       id: 100,
-      sectionId: "読解",
+      sectionId: "reading",
       question: `【休館】図書館は工事のため5月1日〜7日休みます。返却は入り口横のポストに入れてください。
 本を返したい人はどうしますか。`,
       choices: ["開館まで待つ", "郵便で送る", "ポストに入れる", "工事の人に渡す"],
       correctIndex: 2,
       explanation:
         "正解は「ポストに入れる」です。本文に具体的な指示があります。",
-   }
+   },
+    {
+      id: 101,
+      sectionId: "bunpo",
+      question: `明日は休みだから、学校に行か（　）いいです。`,
+      choices: ["なくては", "なくても", "ないで", "なければ"],
+      correctIndex: 1,
+      explanation: "「〜なくてもいい」は『〜する必要がない／しなくてよい』という許可・不要を表します。",
+    },
+    {
+      id: 102,
+      sectionId: "bunpo",
+      question: `ここで写真を撮っては（　）。`,
+      choices: ["いいです", "いけません", "ください", "しまいました"],
+      correctIndex: 1,
+      explanation: "「〜てはいけません」は禁止です。",
+    },
+    {
+      id: 103,
+      sectionId: "bunpo",
+      question: `薬は毎日飲まなければ（　）。`,
+      choices: ["なりません", "いけませんでした", "いけません", "ありません"],
+      correctIndex: 0,
+      explanation: "「〜なければなりません」は義務です。一般的なルールの文なので過去形は不自然です。",
+    },
+    {
+      id: 104,
+      sectionId: "bunpo",
+      question: `私は富士山に登ったことが（　）。`,
+      choices: ["います", "あります", "できます", "なります"],
+      correctIndex: 1,
+      explanation: "「〜たことがあります」は経験です。",
+    },
+    {
+      id: 105,
+      sectionId: "bunpo",
+      question: `財布を電車に忘れてしまい（　）。`,
+      choices: ["ました", "ます", "たいです", "ません"],
+      correctIndex: 0,
+      explanation: "「〜てしまいました」は『残念な完了』を表します。文末は「ました」が自然です。",
+    },
+    {
+      id: 106,
+      sectionId: "bunpo",
+      question: `私は日本語を話すことが（　）。`,
+      choices: ["なります", "あります", "できます", "しました"],
+      correctIndex: 2,
+      explanation: "「〜ことができます」は能力・可能です。",
+    },
+    {
+      id: 107,
+      sectionId: "bunpo",
+      question: `この漢字は（　）。`,
+      choices: ["読みます", "読めます", "読まれます", "読みたいです"],
+      correctIndex: 1,
+      explanation: "可能形「読めます」が適切です。",
+    },
+    {
+      id: 108,
+      sectionId: "bunpo",
+      question: `雨が降ったら、家に（　）ます。`,
+      choices: ["い", "いる", "いき", "いた"],
+      correctIndex: 0,
+      explanation: "「家にいます」＝家にいる。文末の「ます」に合わせて「い」を入れて「います」。",
+    },
+    {
+      id: 109,
+      sectionId: "bunpo",
+      question: `日本に行くなら、京都へ（　）ほうがいいです。`,
+      choices: ["行った", "行き", "行って", "行くと"],
+      correctIndex: 0,
+      explanation: "「〜たほうがいい」は助言で、過去形が定型です。",
+    },
+    {
+      id: 110,
+      sectionId: "bunpo",
+      question: `東京は大阪（　）人口が多いです。`,
+      choices: ["から", "より", "なら", "まで"],
+      correctIndex: 1,
+      explanation: "比較は「〜より」を使います。",
+    },
+    {
+      id: 111,
+      sectionId: "bunpo",
+      question: `犬より猫の（　）が好きです。`,
+      choices: ["ほう", "から", "ので", "まで"],
+      correctIndex: 0,
+      explanation: "比較で好みを言うときは「〜のほうが」。",
+    },
+    {
+      id: 112,
+      sectionId: "bunpo",
+      question: `先生が私に宿題を教えて（　）。とてもうれしかったです。`,
+      choices: ["くれました", "もらいました", "あげました", "くれます"],
+      correctIndex: 0,
+      explanation: "主語が先生なので「（先生が私に）〜てくれました」。",
+    },
+    {
+      id: 113,
+      sectionId: "bunpo",
+      question: `私は友だちに本を貸して（　）。`,
+      choices: ["くれました", "もらいました", "くださいました", "いただきました"],
+      correctIndex: 1,
+      explanation: "「（友だちに）貸してもらいました」＝相手がしてくれる。",
+    },
+    {
+      id: 114,
+      sectionId: "bunpo",
+      question: `来年日本へ留学する（　）で、今からお金をためています。`,
+      choices: ["つもり", "よう", "そう", "らしい"],
+      correctIndex: 0,
+      explanation: "意志・計画は「つもり」です。",
+    },
+    {
+      id: 115,
+      sectionId: "bunpo",
+      question: `今日は早く帰ろうと（　）。`,
+      choices: ["思います", "なります", "あります", "います"],
+      correctIndex: 0,
+      explanation: "「〜ようと思います」で意志。",
+    },
+    {
+      id: 116,
+      sectionId: "bunpo",
+      question: `コーヒーに（　）ます。`,
+      choices: ["し", "なり", "する", "した"],
+      correctIndex: 0,
+      explanation: "注文・選択は「〜にします」。文末が「ます」なので「し」を入れます。",
+    },
+    {
+      id: 117,
+      sectionId: "bunpo",
+      question: `春になると、だんだん暖かく（　）。`,
+      choices: ["なります", "します", "あります", "できます"],
+      correctIndex: 0,
+      explanation: "変化は「〜になります」。",
+    },
+    {
+      id: 118,
+      sectionId: "bunpo",
+      question: `日本へ行く（　）は、パスポートが必要です。`,
+      choices: ["とき", "から", "まで", "ので"],
+      correctIndex: 0,
+      explanation: "「〜ときは」で条件・場面を表します。",
+    },
+    {
+      id: 119,
+      sectionId: "bunpo",
+      question: `日本へ行く前（　）、日本語を勉強しました。`,
+      choices: ["に", "で", "が", "を"],
+      correctIndex: 0,
+      explanation: "「前に」は「〜前に」。助詞は「に」。",
+    },
+    {
+      id: 120,
+      sectionId: "bunpo",
+      question: `食事のあとで、薬を（　）ます。`,
+      choices: ["飲み", "飲む", "飲ん", "飲んで"],
+      correctIndex: 0,
+      explanation: "「〜ます」に続くのは連用形「飲み」。",
+    },
+    {
+      id: 121,
+      sectionId: "bunpo",
+      question: `雨が降り（　）です。`,
+      choices: ["そう", "よう", "らしい", "つもり"],
+      correctIndex: 0,
+      explanation: "様態「〜そうです」＝見た感じ。",
+    },
+    {
+      id: 122,
+      sectionId: "bunpo",
+      question: `このケーキは見た目がとてもおいし（　）です。`,
+      choices: ["い", "そう", "な", "だ"],
+      correctIndex: 1,
+      explanation: "見た目からの推量なので「おいしそう」。",
+    },
+    {
+      id: 123,
+      sectionId: "bunpo",
+      question: `忙しい（　）、手伝えません。`,
+      choices: ["ので", "より", "なら", "ほうが"],
+      correctIndex: 0,
+      explanation: "原因・理由は「〜ので」。",
+    },
+    {
+      id: 124,
+      sectionId: "bunpo",
+      question: `雨だから、試合は（　）。`,
+      choices: ["ありません", "あります", "します", "しました"],
+      correctIndex: 0,
+      explanation: "理由「〜だから」で結果。「試合はありません」＝中止。",
+    },
+    {
+      id: 125,
+      sectionId: "bunpo",
+      question: `時間があったら、映画を（　）ます。`,
+      choices: ["見", "見る", "見た", "見ない"],
+      correctIndex: 0,
+      explanation: "「〜ます」に続く連用形「見」。",
+    },
+    {
+      id: 126,
+      sectionId: "bunpo",
+      question: `雨（　）、試合は中止です。`,
+      choices: ["なら", "ので", "から", "でも"],
+      correctIndex: 0,
+      explanation: "条件の「〜なら」。",
+    },
+    {
+      id: 127,
+      sectionId: "bunpo",
+      question: `私は一度も海外へ行ったことが（　）。`,
+      choices: ["あります", "ありません", "できます", "しました"],
+      correctIndex: 1,
+      explanation: "「一度も〜ない」の形なので「ありません」。",
+    },
+    {
+      id: 128,
+      sectionId: "bunpo",
+      question: `この問題は簡単だから、すぐ（　）。`,
+      choices: ["できます", "なります", "あります", "します"],
+      correctIndex: 0,
+      explanation: "可能「できます」。",
+    },
+    {
+      id: 129,
+      sectionId: "bunpo",
+      question: `ここではタバコを吸っては（　）。`,
+      choices: ["いいです", "いけません", "ください", "しました"],
+      correctIndex: 1,
+      explanation: "禁止「〜てはいけません」。",
+    },
+    {
+      id: 130,
+      sectionId: "bunpo",
+      question: `今日は忙しくないから、来なくても（　）。`,
+      choices: ["いいです", "いけません", "ください", "なりません"],
+      correctIndex: 0,
+      explanation: "「来なくてもいいです」＝不要。",
+    }
   ]
 }
