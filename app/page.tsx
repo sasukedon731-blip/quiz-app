@@ -118,7 +118,7 @@ export default function HomePage() {
     []
   )
 
-  const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>("construction")
+  const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>(null)
 
   // ✅ localStorage “確実修正”
   const LS_INDUSTRY_KEY = "selected-industry"
