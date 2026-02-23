@@ -11,6 +11,7 @@ import { denkiSekou2kyu1ji } from "./denki-sekou-2kyu-1ji"
 import { kankoSekou2kyu1ji } from "./kanko-sekou-2kyu-1ji"
 import { speakingPractice } from "./speaking-practice"
 import { genbaPhrasebook } from "./genba-phrasebook"
+import { roadSignsQuiz } from "./road-signs"
 
 export const quizzes = {
   "gaikoku-license": gaikokuQuiz,
@@ -26,4 +27,5 @@ export const quizzes = {
   "kanko-sekou-2kyu-1ji": kankoSekou2kyu1ji,
   "speaking-practice": speakingPractice,
   "genba-phrasebook": genbaPhrasebook,
+    "road-signs": roadSignsQuiz,
 } as const

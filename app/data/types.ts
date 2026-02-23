@@ -12,6 +12,7 @@ export type QuizType =
   | "kanko-sekou-2kyu-1ji"
   | "speaking-practice"
   | "genba-phrasebook"
+  | "road-signs" 
 
 // ✅ 分野（セクション）定義
 export type QuizSection = {
@@ -27,6 +28,7 @@ export type Question = {
   choices: string[]
   correctIndex: number
   explanation: string
+  signId?: string
 
   // ✅ Listening対応（MP3がなくてもOK）
   audioUrl?: string

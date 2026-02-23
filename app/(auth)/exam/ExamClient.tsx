@@ -108,8 +108,11 @@ export default function ExamClient({ quiz }: Props) {
   const [timeLeft, setTimeLeft] = useState(EXAM_TIME_SEC)
   const [finished, setFinished] = useState(false)
 
+  // ✅ answers だけを真実データにする（scoreはここから必ず算出）
   const [answers, setAnswers] = useState<ExamAnswer[]>([])
-  const [score, setScore] = useState(0)
+
+  // ✅ score は answers から常に算出（中断→復帰でもズレない）
+  const score = useMemo(() => answers.filter(a => a?.isCorrect).length, [answers])
 
   // stale対策
   const indexRef = useRef(0)
@@ -210,9 +213,6 @@ export default function ExamClient({ quiz }: Props) {
     stopSpeak()
 
     // ✅ 出題セットの“新旧判定”
-    // 例：問題追加・差し替え後でも古いローカル保存が残っていると、
-    //     以前の出題セットが復元されて「古い問題が出る」ように見える。
-    //     ここで軽いシグネチャを比較して、不一致なら復元せず新規開始する。
     const contentSig = `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`
 
     const savedSessionRaw = localStorage.getItem(sessionKey)
@@ -223,7 +223,7 @@ export default function ExamClient({ quiz }: Props) {
         const s = JSON.parse(savedSessionRaw) as {
           questions: Question[]
           answers: ExamAnswer[]
-          score: number
+          score?: number
           meta?: { contentSig?: string }
         }
         const p = JSON.parse(savedProgressRaw) as { index: number; timeLeft: number; finished?: boolean }
@@ -235,9 +235,10 @@ export default function ExamClient({ quiz }: Props) {
         }
 
         if (Array.isArray(s.questions) && s.questions.length > 0) {
+          const restoredAnswers = Array.isArray(s.answers) ? s.answers : []
+
           setQuestions(s.questions)
-          setAnswers(Array.isArray(s.answers) ? s.answers : [])
-          setScore(typeof s.score === 'number' ? s.score : 0)
+          setAnswers(restoredAnswers)
 
           setIndex(typeof p.index === 'number' ? p.index : 0)
           setTimeLeft(typeof p.timeLeft === 'number' ? p.timeLeft : EXAM_TIME_SEC)
@@ -257,10 +258,15 @@ export default function ExamClient({ quiz }: Props) {
     setTimeLeft(EXAM_TIME_SEC)
     setFinished(false)
     setAnswers([])
-    setScore(0)
 
-    localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
-    localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
+    localStorage.setItem(
+      sessionKey,
+      JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } })
+    )
+    localStorage.setItem(
+      progressKey,
+      JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false })
+    )
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType])
@@ -294,7 +300,7 @@ export default function ExamClient({ quiz }: Props) {
           JSON.stringify({
             questions,
             answers: answersRef.current,
-            score: scoreRef.current,
+            score: answersRef.current.filter(a => a?.isCorrect).length,
             meta: {
               contentSig: `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`,
             },
@@ -313,7 +319,7 @@ export default function ExamClient({ quiz }: Props) {
 
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [questions, finished, progressKey, sessionKey])
+  }, [questions, finished, progressKey, sessionKey, quizType, quiz.questions])
 
   const current = useMemo(() => {
     if (!questions.length) return null
@@ -326,13 +332,11 @@ export default function ExamClient({ quiz }: Props) {
     if (selected !== null) return
     if (advancingRef.current) return
 
-    // ✅ 手応え：選択したボタンだけ薄グレー（variant/subで）
     setSelected(choiceIndex)
 
     const isCorrect = choiceIndex === current.correctIndex
-    if (isCorrect) {
-      setScore(prev => prev + 1)
-    } else {
+
+    if (!isCorrect) {
       // wrong に追加（重複防止）
       try {
         const raw = localStorage.getItem(wrongKey)
@@ -379,7 +383,8 @@ export default function ExamClient({ quiz }: Props) {
         JSON.stringify({
           questions,
           answers: answersRef.current,
-          score: scoreRef.current,
+          // ✅ scoreはanswersから算出して保存（ズレ防止）
+          score: answersRef.current.filter(a => a?.isCorrect).length,
           meta: {
             contentSig: `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`,
           },
@@ -407,12 +412,17 @@ export default function ExamClient({ quiz }: Props) {
     setTimeLeft(EXAM_TIME_SEC)
     setFinished(false)
     setAnswers([])
-    setScore(0)
 
     try {
       const contentSig = `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`
-      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
-      localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
+      localStorage.setItem(
+        sessionKey,
+        JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } })
+      )
+      localStorage.setItem(
+        progressKey,
+        JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false })
+      )
     } catch {}
   }
 
@@ -582,7 +592,7 @@ export default function ExamClient({ quiz }: Props) {
       )}
 
       <ListeningControls
-      key={`${quizType}-${current.id}`} 
+        key={`${quizType}-${current.id}`}
         text={current.listeningText}
         storageKeyPrefix={`${quizType}-exam-${current.id}`}
         allowAutoPlay={false}
@@ -592,7 +602,6 @@ export default function ExamClient({ quiz }: Props) {
 
       <div className="choiceList">
         {current.choices.map((c, i) => {
-          // ✅ 選んだ選択肢だけ薄グレー（手応え）
           const isChosen = selected !== null && i === selected
           return (
             <Button
@@ -600,7 +609,6 @@ export default function ExamClient({ quiz }: Props) {
               variant={isChosen ? 'sub' : 'choice'}
               onClick={() => answer(i)}
               disabled={selected !== null || isListeningSpeaking}
-              // ✅ 正誤表示しない
               isCorrect={false}
               isWrong={false}
             >
