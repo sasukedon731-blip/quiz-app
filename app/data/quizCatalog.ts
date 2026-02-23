@@ -103,6 +103,23 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
   {
+  id: "road-signs",
+  title: "道路標識マスター",
+  description: "道路標識だけを集中的に学ぶ（画像つき）",
+  enabled: true,
+  order: 999,
+
+  modes: ["normal"],
+
+  sections: [
+    { id: "all", title: "すべて", enabled: true, order: 1 },
+    // ここは後で増やせる（例）
+    // { id: "regulation", title: "規制標識", enabled: true, order: 2 },
+    // { id: "warning", title: "警戒標識", enabled: true, order: 3 },
+    // { id: "instruction", title: "指示標識", enabled: true, order: 4 },
+  ],
+},
+  {
     id: "japanese-n2",
     title: "日本語検定 N2",
     description: "文法・語彙・読解・聴解（N2）",

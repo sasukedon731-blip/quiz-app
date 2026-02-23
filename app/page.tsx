@@ -108,7 +108,7 @@ export default function HomePage() {
         icon: "🚗",
         title: "運転・免許が必要な方へ",
         subtitle: "外国免許切替・交通ルール",
-        extraQuizIds: ["gaikoku-license"],
+        extraQuizIds: ["gaikoku-license","road-signs"],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
