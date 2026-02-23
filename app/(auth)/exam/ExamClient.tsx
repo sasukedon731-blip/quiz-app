@@ -98,6 +98,8 @@ export default function ExamClient({ quiz }: Props) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+
+  // ✅ 聴解 再生中ロック（誤タップ防止）
   const [isListeningSpeaking, setIsListeningSpeaking] = useState(false)
 
   // ✅ 回答後 自動で次へ進むまでの「操作ロック」
@@ -207,6 +209,12 @@ export default function ExamClient({ quiz }: Props) {
   useEffect(() => {
     stopSpeak()
 
+    // ✅ 出題セットの“新旧判定”
+    // 例：問題追加・差し替え後でも古いローカル保存が残っていると、
+    //     以前の出題セットが復元されて「古い問題が出る」ように見える。
+    //     ここで軽いシグネチャを比較して、不一致なら復元せず新規開始する。
+    const contentSig = `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`
+
     const savedSessionRaw = localStorage.getItem(sessionKey)
     const savedProgressRaw = localStorage.getItem(progressKey)
 
@@ -216,8 +224,15 @@ export default function ExamClient({ quiz }: Props) {
           questions: Question[]
           answers: ExamAnswer[]
           score: number
+          meta?: { contentSig?: string }
         }
         const p = JSON.parse(savedProgressRaw) as { index: number; timeLeft: number; finished?: boolean }
+
+        const savedSig = s?.meta?.contentSig
+        // ✅ 旧形式（metaなし）も含め、現行と一致しないものは復元しない
+        if (!savedSig || savedSig !== contentSig) {
+          throw new Error('exam session mismatch')
+        }
 
         if (Array.isArray(s.questions) && s.questions.length > 0) {
           setQuestions(s.questions)
@@ -244,7 +259,7 @@ export default function ExamClient({ quiz }: Props) {
     setAnswers([])
     setScore(0)
 
-    localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0 }))
+    localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
     localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,6 +295,9 @@ export default function ExamClient({ quiz }: Props) {
             questions,
             answers: answersRef.current,
             score: scoreRef.current,
+            meta: {
+              contentSig: `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`,
+            },
           })
         )
         localStorage.setItem(
@@ -362,6 +380,9 @@ export default function ExamClient({ quiz }: Props) {
           questions,
           answers: answersRef.current,
           score: scoreRef.current,
+          meta: {
+            contentSig: `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`,
+          },
         })
       )
       localStorage.setItem(
@@ -389,7 +410,8 @@ export default function ExamClient({ quiz }: Props) {
     setScore(0)
 
     try {
-      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0 }))
+      const contentSig = `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
       localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
     } catch {}
   }
@@ -552,24 +574,6 @@ export default function ExamClient({ quiz }: Props) {
       </div>
 
       <h2 className="question">{current.question}</h2>
-
-      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
-      {current.imageUrl ? (
-        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={current.imageUrl}
-            alt={current.imageAlt || '問題の画像'}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              borderRadius: 12,
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      ) : null}
 
       {current.audioUrl && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>
