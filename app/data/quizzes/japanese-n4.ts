@@ -1239,58 +1239,7 @@ export const japaneseN4Quiz: Quiz = {
       choices: ["いいです", "いけません", "ください", "なりません"],
       correctIndex: 0,
       explanation: "「来なくてもいいです」＝不要。",
-    }
-    ,
-  {
-    id: 10001,
-    sectionId: "listening",
-    question: `【聴解】会話を聞いて、正しいものを選びましょう。`,
-    listeningText:
-      "A：すみません、駅はどこですか。B：この道をまっすぐ行って、二つ目の角を右です。",
-    choices: ["左です", "右です", "まっすぐです", "わかりません"],
-    correctIndex: 1,
-    explanation: "『二つ目の角を右』と言っています。",
-  },
-  {
-    id: 10002,
-    sectionId: "listening",
-    question: `【聴解】会話を聞いて、何時に会いますか。`,
-    listeningText:
-      "A：明日、何時に会いますか。B：三時はどうですか。A：すみません、三時はだめです。じゃ、四時でお願いします。",
-    choices: ["3時", "4時", "5時", "6時"],
-    correctIndex: 1,
-    explanation: "三時はだめで、『四時で』と言っています。",
-  },
-  {
-    id: 10003,
-    sectionId: "listening",
-    question: `【聴解】会話を聞いて、男の人は何を買いますか。`,
-    listeningText:
-      "店員：いらっしゃいませ。男：すみません、りんごはありますか。店員：はい。今日はみかんも安いですよ。男：じゃ、りんごを三つください。",
-    choices: ["みかん", "りんご", "バナナ", "ぶどう"],
-    correctIndex: 1,
-    explanation: "男の人は『りんごを三つください』と言っています。",
-  },
-  {
-    id: 10004,
-    sectionId: "listening",
-    question: `【聴解】会話を聞いて、女の人はどうしますか。`,
-    listeningText:
-      "A：雨ですね。傘を持ってきましたか。B：いいえ、持ってきませんでした。A：じゃ、駅までいっしょに行きましょう。",
-    choices: ["一人で行きます", "タクシーで行きます", "駅までいっしょに行きます", "家に帰ります"],
-    correctIndex: 2,
-    explanation: "『駅までいっしょに行きましょう』→ いっしょに行きます。",
-  },
-  {
-    id: 10005,
-    sectionId: "listening",
-    question: `【聴解】会話を聞いて、男の人はなぜ来週行けませんか。`,
-    listeningText:
-      "A：来週、旅行に行きませんか。B：すみません、来週は仕事が忙しいです。再来週なら行けます。",
-    choices: ["お金がありません", "仕事が忙しいです", "病気です", "家族と行きます"],
-    correctIndex: 1,
-    explanation: "『来週は仕事が忙しいです』と言っています。",
-  },
+    },
   {
   id: 11001,
   sectionId: "listening",
@@ -1344,6 +1293,176 @@ export const japaneseN4Quiz: Quiz = {
   choices: ["そうですね。", "暑いですか。", "いいえ、昨日です。", "学校です。"],
   correctIndex: 0,
   explanation: "共感表現が自然。",
+},
+{
+  id: 11007,
+  sectionId: "listening",
+  question: "【聴解】会話を聞いて、何時に会いますか。",
+  listeningText:
+    "A：明日、何時に会いますか。B：三時はどうですか。A：三時はだめです。じゃ、四時にしましょう。",
+  choices: ["三時", "四時", "五時", "六時"],
+  correctIndex: 1,
+  explanation: "三時はだめで、四時に決まりました。",
+},
+{
+  id: 11008,
+  sectionId: "listening",
+  question: "【聴解】会話を聞いて、二人はどこへ行きますか。",
+  listeningText:
+    "A：映画を見に行きませんか。B：いいですね。でも今日は混んでいそうです。A：じゃ、図書館に行きましょう。",
+  choices: ["映画館", "図書館", "公園", "デパート"],
+  correctIndex: 1,
+  explanation: "映画はやめて図書館に行きます。",
+},
+{
+  id: 11009,
+  sectionId: "listening",
+  question: "【聴解】男の人はなぜ遅れましたか。",
+  listeningText:
+    "女：どうして遅れたんですか。男：バスが来なかったんです。",
+  choices: ["寝坊した", "バスが来なかった", "雨だった", "電車が止まった"],
+  correctIndex: 1,
+  explanation: "バスが来なかったと言っています。",
+},
+{
+  id: 11010,
+  sectionId: "listening",
+  question: "【聴解】男の人は何を買いますか。",
+  listeningText:
+    "店員：いらっしゃいませ。男：りんごはいくらですか。店員：三つで五百円です。男：じゃ、三つください。",
+  choices: ["みかん", "りんご", "バナナ", "ぶどう"],
+  correctIndex: 1,
+  explanation: "りんごを三つ買います。",
+},
+{
+  id: 11011,
+  sectionId: "listening",
+  question: "【聴解】テストはいつですか。",
+  listeningText:
+    "先生：テストは金曜日です。木曜日ではありません。",
+  choices: ["木曜日", "金曜日", "土曜日", "日曜日"],
+  correctIndex: 1,
+  explanation: "金曜日と明確に言っています。",
+},
+{
+  id: 11012,
+  sectionId: "listening",
+  question: "【聴解】女の人はこのあと何をしますか。",
+  listeningText:
+    "男：今からコンビニに行きます。女：じゃ、私は家で待っています。",
+  choices: ["コンビニへ行く", "家で待つ", "学校へ行く", "買い物をする"],
+  correctIndex: 1,
+  explanation: "家で待つと言っています。",
+},
+{
+  id: 11013,
+  sectionId: "listening",
+  question: "【聴解】今日の天気はどうですか。",
+  listeningText:
+    "天気予報です。今日は一日中雨でしょう。",
+  choices: ["晴れ", "雨", "雪", "くもり"],
+  correctIndex: 1,
+  explanation: "一日中雨と言っています。",
+},
+{
+  id: 11014,
+  sectionId: "listening",
+  question: "【聴解】ケーキはいくつありますか。",
+  listeningText:
+    "店員：ケーキは五つあります。でも、二つは予約です。",
+  choices: ["二つ", "三つ", "五つ", "七つ"],
+  correctIndex: 2,
+  explanation: "五つあります、と言っています。",
+},
+{
+  id: 11015,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "明日は学校が休みです。私は友だちと公園へ行く予定です。でも、雨が降ったら家にいます。",
+  choices: [
+    "明日は学校があります。",
+    "友だちと映画に行きます。",
+    "雨が降ったら家にいます。",
+    "一人で出かけます。"
+  ],
+  correctIndex: 2,
+  explanation: "雨が降ったら家にいると言っています。",
+},
+{
+  id: 11016,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "私は毎日八時に会社へ行きます。会社は駅の近くにあります。仕事は六時に終わります。",
+  choices: [
+    "会社は駅から遠いです。",
+    "毎日六時に会社へ行きます。",
+    "仕事は六時に終わります。",
+    "会社は家の近くです。"
+  ],
+  correctIndex: 2,
+  explanation: "仕事は六時に終わると言っています。",
+},
+{
+  id: 11017,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "先週、京都へ旅行に行きました。お寺を見たり、写真を撮ったりしました。とても楽しかったです。",
+  choices: [
+    "先週、大阪へ行きました。",
+    "旅行はつまらなかったです。",
+    "京都でお寺を見ました。",
+    "写真を撮りませんでした。"
+  ],
+  correctIndex: 2,
+  explanation: "京都でお寺を見たと言っています。",
+},
+{
+  id: 11018,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "昨日、スーパーで牛乳とパンを買いました。卵は高かったので買いませんでした。",
+  choices: [
+    "卵を買いました。",
+    "牛乳とパンを買いました。",
+    "何も買いませんでした。",
+    "パンは高かったです。"
+  ],
+  correctIndex: 1,
+  explanation: "牛乳とパンを買ったと言っています。",
+},
+{
+  id: 11019,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "私は日本語学校で勉強しています。クラスには十人います。みんなとても親切です。",
+  choices: [
+    "クラスには二十人います。",
+    "日本語学校で働いています。",
+    "クラスには十人います。",
+    "みんなは冷たいです。"
+  ],
+  correctIndex: 2,
+  explanation: "クラスには十人いると言っています。",
+},
+{
+  id: 11020,
+  sectionId: "listening",
+  question: "【聴解】話の内容と合っているものを選びましょう。",
+  listeningText:
+    "天気予報です。今日は朝からくもりです。午後には晴れるでしょう。",
+  choices: [
+    "今日は一日中雨です。",
+    "午後は晴れるでしょう。",
+    "朝から晴れです。",
+    "雪が降ります。"
+  ],
+  correctIndex: 1,
+  explanation: "午後には晴れると言っています。",
 }
 ]
 }

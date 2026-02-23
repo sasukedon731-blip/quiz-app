@@ -56,11 +56,16 @@ export const quizCatalog: QuizDef[] = [
     order: 2,
     modes: ["normal", "exam", "review"],
     sections: [
-      { id: "all", title: "総合", enabled: true, order: 1 },
-      { id: "moji-goi", title: "文字・語彙", enabled: true, order: 2 },
-      { id: "bunpo", title: "文法", enabled: true, order: 3 },
-      { id: "reading", title: "読解", enabled: true, order: 4 },
-      { id: "listening", title: "聴解", enabled: true, order: 5 },
+      {
+        id: "all",
+        title: "総合",
+        enabled: true,
+        order: 1,
+      },
+      // 将来用
+      // { id: "grammar", title: "文法", enabled: false, order: 2 },
+      // { id: "vocab", title: "語彙", enabled: false, order: 3 },
+      // { id: "reading", title: "読解", enabled: false, order: 4 },
     ],
   },
 

@@ -6,60 +6,107 @@ import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
 
 type Props = {
   text?: string
+  /** localStorage/sessionStorage 用のキー。問題ごとに一意にするのがおすすめ */
   storageKeyPrefix?: string
+
+  /** 自動再生を許可するか（examはfalse推奨） */
+  allowAutoPlay?: boolean
+
+  /** 再生回数の上限（examは 2 など）。未指定なら無制限 */
+  maxPlays?: number
+
+  /** 再生状態の通知（examで回答ボタンをロックする用） */
+  onSpeakingChange?: (speaking: boolean) => void
 }
 
-export default function ListeningControls({ text, storageKeyPrefix = 'listening' }: Props) {
+export default function ListeningControls({
+  text,
+  storageKeyPrefix = 'listening',
+  allowAutoPlay = true,
+  maxPlays,
+  onSpeakingChange,
+}: Props) {
   const supported = useMemo(() => canSpeak(), [])
 
   const keyAuto = `${storageKeyPrefix}-tts-auto`
   const keyRate = `${storageKeyPrefix}-tts-rate`
+  const keyPlays = `${storageKeyPrefix}-tts-plays`
 
   const [isSpeaking, setIsSpeaking] = useState(false)
+
   const [autoPlay, setAutoPlay] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem(keyAuto) === '1'
   })
+
   const [rate, setRate] = useState<number>(() => {
     if (typeof window === 'undefined') return 1.0
     const v = Number(localStorage.getItem(keyRate) || '1.0')
     return Number.isFinite(v) ? v : 1.0
   })
 
+  const [playsUsed, setPlaysUsed] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0
+    const v = Number(sessionStorage.getItem(keyPlays) || '0')
+    return Number.isFinite(v) ? v : 0
+  })
+
+  const canPlayMore = maxPlays == null ? true : playsUsed < maxPlays
+
+  const setSpeaking = (v: boolean) => {
+    setIsSpeaking(v)
+    onSpeakingChange?.(v)
+  }
+
   useEffect(() => {
     return () => {
       stopSpeak()
-      setIsSpeaking(false)
+      setSpeaking(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (!supported || !autoPlay || !text?.trim()) return
+    if (!supported || !allowAutoPlay || !autoPlay || !text?.trim()) return
+    if (!canPlayMore) return
 
     ;(async () => {
       try {
-        setIsSpeaking(true)
+        // 自動再生も回数に含める
+        const next = playsUsed + 1
+        setPlaysUsed(next)
+        if (typeof window !== 'undefined') sessionStorage.setItem(keyPlays, String(next))
+
+        setSpeaking(true)
         await speak(text, { lang: 'ja-JP', rate, pitch: 1.0 })
       } catch {
       } finally {
-        setIsSpeaking(false)
+        setSpeaking(false)
       }
     })()
-  }, [supported, autoPlay, text, rate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supported, allowAutoPlay, autoPlay, text, rate])
 
   const onPlay = async () => {
     if (!supported || !text?.trim()) return
+    if (!canPlayMore) return
+
     try {
-      setIsSpeaking(true)
+      const next = playsUsed + 1
+      setPlaysUsed(next)
+      if (typeof window !== 'undefined') sessionStorage.setItem(keyPlays, String(next))
+
+      setSpeaking(true)
       await speak(text, { lang: 'ja-JP', rate, pitch: 1.0 })
+    } catch {
     } finally {
-      setIsSpeaking(false)
+      setSpeaking(false)
     }
   }
 
   const onStop = () => {
     stopSpeak()
-    setIsSpeaking(false)
+    setSpeaking(false)
   }
 
   const onReplay = async () => {
@@ -82,17 +129,16 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
 
   return (
     <div style={{ margin: '12px 0' }}>
-      {/* ▶️ ⏹ 🔁 横並び */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-        }}
-      >
+      {/* ▶️ ⏹ 🔁 */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120 }}>
-          <Button variant="main" onClick={onPlay} disabled={!supported || isSpeaking}>
+          <Button
+            variant="main"
+            onClick={onPlay}
+            disabled={!supported || isSpeaking || !canPlayMore}
+          >
             {isSpeaking ? '🔊 再生中…' : '▶️ 再生'}
+            {maxPlays != null ? `（${playsUsed}/${maxPlays}）` : ''}
           </Button>
         </div>
 
@@ -103,13 +149,18 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
         </div>
 
         <div style={{ flex: 1, minWidth: 120 }}>
-          <Button variant="success" onClick={onReplay} disabled={!supported}>
+          <Button
+            variant="success"
+            onClick={onReplay}
+            disabled={!supported || !canPlayMore}
+          >
             🔁 もう一度
+            {maxPlays != null ? `（残り${Math.max(0, maxPlays - playsUsed)}）` : ''}
           </Button>
         </div>
       </div>
 
-      {/* 設定系は下に */}
+      {/* 設定系 */}
       <div
         style={{
           marginTop: 10,
@@ -117,34 +168,32 @@ export default function ListeningControls({ text, storageKeyPrefix = 'listening'
           gap: 14,
           flexWrap: 'wrap',
           alignItems: 'center',
+          opacity: supported ? 1 : 0.7,
         }}
       >
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input type="checkbox" checked={autoPlay} onChange={toggleAuto} />
-          自動再生
-        </label>
+        {/* examは自動再生オフ推奨 */}
+        <Button variant="sub" onClick={toggleAuto} disabled={!supported || !allowAutoPlay}>
+          {allowAutoPlay ? (autoPlay ? '自動再生：ON' : '自動再生：OFF') : '自動再生：OFF'}
+        </Button>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ opacity: 0.7 }}>速度</span>
-          {[0.9, 1.0, 1.1].map(v => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => changeRate(v)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: 999,
-                border: '1px solid rgba(0,0,0,0.12)',
-                background: rate === v ? 'rgba(0,0,0,0.85)' : 'transparent',
-                color: rate === v ? '#fff' : 'inherit',
-                cursor: 'pointer',
-                fontWeight: 700,
-              }}
-            >
-              {v.toFixed(1)}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, opacity: 0.8 }}>速度</span>
+          <Button variant="sub" onClick={() => changeRate(0.9)} disabled={!supported}>
+            0.9
+          </Button>
+          <Button variant="sub" onClick={() => changeRate(1.0)} disabled={!supported}>
+            1.0
+          </Button>
+          <Button variant="sub" onClick={() => changeRate(1.1)} disabled={!supported}>
+            1.1
+          </Button>
         </div>
+
+        {maxPlays != null && (
+          <span style={{ fontSize: 12, opacity: 0.8 }}>
+            ※ 模擬試験では再生回数に制限があります
+          </span>
+        )}
       </div>
     </div>
   )

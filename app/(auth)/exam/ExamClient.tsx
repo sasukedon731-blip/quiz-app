@@ -98,6 +98,7 @@ export default function ExamClient({ quiz }: Props) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
+  const [isListeningSpeaking, setIsListeningSpeaking] = useState(false)
 
   // ✅ 回答後 自動で次へ進むまでの「操作ロック」
   const advancingRef = useRef(false)
@@ -514,7 +515,7 @@ export default function ExamClient({ quiz }: Props) {
                 )}
 
                 <div style={{ marginTop: 10 }}>
-                  <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam`} />
+                  <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam-result-${q.id}`} />
                 </div>
 
                 <div className="resultChoices">
@@ -576,7 +577,13 @@ export default function ExamClient({ quiz }: Props) {
         </div>
       )}
 
-      <ListeningControls text={current.listeningText} storageKeyPrefix={`${quizType}-exam`} />
+      <ListeningControls
+        text={current.listeningText}
+        storageKeyPrefix={`${quizType}-exam-${current.id}`}
+        allowAutoPlay={false}
+        maxPlays={2}
+        onSpeakingChange={setIsListeningSpeaking}
+      />
 
       <div className="choiceList">
         {current.choices.map((c, i) => {
@@ -587,7 +594,7 @@ export default function ExamClient({ quiz }: Props) {
               key={i}
               variant={isChosen ? 'sub' : 'choice'}
               onClick={() => answer(i)}
-              disabled={selected !== null}
+              disabled={selected !== null || isListeningSpeaking}
               // ✅ 正誤表示しない
               isCorrect={false}
               isWrong={false}
