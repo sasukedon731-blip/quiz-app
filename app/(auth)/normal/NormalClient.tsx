@@ -593,7 +593,7 @@ export default function NormalClient({ quiz }: Props) {
 
       <h2>{current.question}</h2>
 
-      {/* ✅ 標識画像（signId がある場合） */}
+      {/* ✅ 画像表示の優先順位：signId > imageUrl（←二重表示を防ぐ） */}
       {current.signId ? (
         <div
           style={{
@@ -609,7 +609,7 @@ export default function NormalClient({ quiz }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/signs/512/${current.signId}.png`}
-            alt="標識"
+            alt={current.imageAlt || '標識'}
             style={{
               width: 240,
               maxWidth: '100%',
@@ -620,10 +620,7 @@ export default function NormalClient({ quiz }: Props) {
             }}
           />
         </div>
-      ) : null}
-
-      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
-      {current.imageUrl ? (
+      ) : current.imageUrl ? (
         <div
           style={{
             margin: '12px 0',
@@ -663,8 +660,8 @@ export default function NormalClient({ quiz }: Props) {
         </div>
       )}
 
-      {/* ✅ MP3がない場合：読み上げ */}
-      <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} />
+      {/* ✅ MP3がない場合：読み上げ（text がある時だけ） */}
+      {current.listeningText ? <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} /> : null}
 
       {current.choices.map((c, i) => (
         <Button

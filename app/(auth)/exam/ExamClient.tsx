@@ -20,7 +20,7 @@ const EXAM_TIME_SEC = 20 * 60
 function getExamQuestionCount(quizType: QuizType) {
   // 外国免許：50問
   if (quizType === 'gaikoku-license') return 50
-  // それ以外：今まで通り30問（必要なら科目別に増やせる）
+  // それ以外：30問（必要なら科目別に増やせる）
   return 30
 }
 
@@ -201,10 +201,7 @@ export default function ExamClient({ quiz }: Props) {
     setIndex(nextIndex)
 
     try {
-      localStorage.setItem(
-        progressKey,
-        JSON.stringify({ index: nextIndex, timeLeft: timeLeftRef.current, finished: false })
-      )
+      localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex, timeLeft: timeLeftRef.current, finished: false }))
     } catch {}
   }, [finishExam, progressKey, questions.length])
 
@@ -259,14 +256,8 @@ export default function ExamClient({ quiz }: Props) {
     setFinished(false)
     setAnswers([])
 
-    localStorage.setItem(
-      sessionKey,
-      JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } })
-    )
-    localStorage.setItem(
-      progressKey,
-      JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false })
-    )
+    localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
+    localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizType])
@@ -306,14 +297,7 @@ export default function ExamClient({ quiz }: Props) {
             },
           })
         )
-        localStorage.setItem(
-          progressKey,
-          JSON.stringify({
-            index: indexRef.current,
-            timeLeft: timeLeftRef.current,
-            finished,
-          })
-        )
+        localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current, timeLeft: timeLeftRef.current, finished }))
       } catch {}
     }
 
@@ -383,21 +367,13 @@ export default function ExamClient({ quiz }: Props) {
         JSON.stringify({
           questions,
           answers: answersRef.current,
-          // ✅ scoreはanswersから算出して保存（ズレ防止）
           score: answersRef.current.filter(a => a?.isCorrect).length,
           meta: {
             contentSig: `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`,
           },
         })
       )
-      localStorage.setItem(
-        progressKey,
-        JSON.stringify({
-          index: indexRef.current,
-          timeLeft: timeLeftRef.current,
-          finished,
-        })
-      )
+      localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current, timeLeft: timeLeftRef.current, finished }))
     } catch {}
     goModeSelect()
   }
@@ -415,14 +391,8 @@ export default function ExamClient({ quiz }: Props) {
 
     try {
       const contentSig = `${quizType}:${quiz.questions.length}:${quiz.questions[0]?.id ?? 0}:${quiz.questions[quiz.questions.length - 1]?.id ?? 0}`
-      localStorage.setItem(
-        sessionKey,
-        JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } })
-      )
-      localStorage.setItem(
-        progressKey,
-        JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false })
-      )
+      localStorage.setItem(sessionKey, JSON.stringify({ questions: built, answers: [], score: 0, meta: { contentSig } }))
+      localStorage.setItem(progressKey, JSON.stringify({ index: 0, timeLeft: EXAM_TIME_SEC, finished: false }))
     } catch {}
   }
 
@@ -439,8 +409,8 @@ export default function ExamClient({ quiz }: Props) {
     ;(quiz.sections ?? []).forEach(s => sectionLabelMap.set(s.id, s.label))
 
     const sectionStats = (() => {
-      type Stat = { id: string; label: string; total: number; correct: number }
-      const map = new Map<string, Stat>()
+      type Stat = { id: string; label: string; total: number; correct: number; accuracy: number; wrong: number }
+      const map = new Map<string, { id: string; label: string; total: number; correct: number }>()
 
       questions.forEach((q, i) => {
         const sid = q.sectionId ?? 'all'
@@ -462,7 +432,7 @@ export default function ExamClient({ quiz }: Props) {
         return { ...s, accuracy, wrong: s.total - s.correct }
       })
 
-      // 弱い順（正答率が低い→間違い数が多い→出題数が多い）
+      // 弱い順
       arr.sort((a, b) => a.accuracy - b.accuracy || b.wrong - a.wrong || b.total - a.total)
       return arr
     })()
@@ -531,6 +501,9 @@ export default function ExamClient({ quiz }: Props) {
             const selectedIdx = a?.selectedIndex ?? null
             const correctIdx = a?.correctIndex ?? q.correctIndex
 
+            const hasSign = Boolean((q as any).signId)
+            const imgUrl = hasSign ? `/signs/256/${(q as any).signId}.png` : (q as any).imageUrl
+
             return (
               <div key={q.id} className="resultItem">
                 <div className="resultHead">
@@ -540,6 +513,14 @@ export default function ExamClient({ quiz }: Props) {
                   <div className="resultMark">{selectedIdx === null ? '—' : selectedIdx === correctIdx ? '✅' : '❌'}</div>
                 </div>
 
+                {/* ✅ 画像（signId 優先、なければ imageUrl） */}
+                {imgUrl ? (
+                  <div className="panelSoft" style={{ marginTop: 10, background: '#fff' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imgUrl} alt="問題画像" style={{ width: '100%', height: 'auto', borderRadius: 12, objectFit: 'contain' }} />
+                  </div>
+                ) : null}
+
                 {q.audioUrl && (
                   <div style={{ marginTop: 10 }}>
                     <audio controls src={q.audioUrl} preload="none" />
@@ -547,7 +528,9 @@ export default function ExamClient({ quiz }: Props) {
                 )}
 
                 <div style={{ marginTop: 10 }}>
-                  <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam-result-${q.id}`} />
+                  {q.listeningText ? (
+                    <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam-result-${q.id}`} />
+                  ) : null}
                 </div>
 
                 <div className="resultChoices">
@@ -572,6 +555,9 @@ export default function ExamClient({ quiz }: Props) {
     )
   }
 
+  const hasSign = Boolean((current as any).signId)
+  const imageUrl = hasSign ? `/signs/512/${(current as any).signId}.png` : (current as any).imageUrl
+
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`} subtitle="回答すると自動で次の問題へ進みます（正誤は表示されません）">
       <div className="kicker">
@@ -584,6 +570,14 @@ export default function ExamClient({ quiz }: Props) {
       </div>
 
       <h2 className="question">{current.question}</h2>
+
+      {/* ✅ 画像（signId 優先、なければ imageUrl） */}
+      {imageUrl ? (
+        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt="問題画像" style={{ width: '100%', height: 'auto', borderRadius: 12, objectFit: 'contain' }} />
+        </div>
+      ) : null}
 
       {current.audioUrl && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>

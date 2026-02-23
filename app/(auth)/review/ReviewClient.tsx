@@ -189,6 +189,9 @@ export default function ReviewClient({ quiz }: Props) {
 
   const isLastNow = index >= questions.length - 1
 
+  const hasSign = Boolean((current as any).signId)
+  const imageUrl = hasSign ? `/signs/512/${(current as any).signId}.png` : ((current as any).imageUrl as string | undefined)
+
   return (
     <QuizLayout title={`${quiz.title}（復習）`} subtitle="正解した問題はリストから消えます">
       <div className="kicker">
@@ -200,12 +203,12 @@ export default function ReviewClient({ quiz }: Props) {
 
       <h2 className="question">{current.question}</h2>
 
-      {/* ✅ 画像（イラスト問題・聴解の状況図など） */}
-      {(current as any).imageUrl ? (
+      {/* ✅ 画像（signId 優先、なければ imageUrl） */}
+      {imageUrl ? (
         <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={(current as any).imageUrl as string}
+            src={imageUrl}
             alt={((current as any).imageAlt as string) || '問題の画像'}
             style={{
               width: '100%',
