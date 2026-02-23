@@ -890,7 +890,7 @@ export const japaneseN4Quiz: Quiz = {
     {
       id: 90,
       sectionId: "reading",
-      question: `（89と同じ本文）
+      question: `木村さんへ。田中さんから電話で「明日の会議は10時ではなく11時から、場所は同じ会議室」と連絡がありました。佐藤より。
 木村さんは明日どこへ行けばいい？`,
       choices: ["田中さんの家", "同じ会議室", "駅前", "未定"],
       correctIndex: 1,
@@ -910,7 +910,7 @@ export const japaneseN4Quiz: Quiz = {
     {
       id: 92,
       sectionId: "reading",
-      question: `（91と同じ本文）
+      question: `【マナー】おじぎは、相手に感謝やあやまる気持ちを伝えるときにします。軽いおじぎは少し頭を下げ、深いおじぎは腰まで下げます。
 軽いおじぎはどうしますか。`,
       choices: ["腰まで下げる", "少し頭を下げる", "手を振る", "目を閉じる"],
       correctIndex: 1,
@@ -920,7 +920,7 @@ export const japaneseN4Quiz: Quiz = {
     {
       id: 93,
       sectionId: "reading",
-      question: `（91と同じ本文）
+      question: `【マナー】おじぎは、相手に感謝やあやまる気持ちを伝えるときにします。軽いおじぎは少し頭を下げ、深いおじぎは腰まで下げます。
 おじぎはどんなとき？`,
       choices: ["挨拶のみ", "お礼や謝罪時も", "外国人のみ", "勉強中"],
       correctIndex: 1,
@@ -930,7 +930,7 @@ export const japaneseN4Quiz: Quiz = {
     {
       id: 94,
       sectionId: "reading",
-      question: `（91と同じ本文）
+      question: `【マナー】おじぎは、相手に感謝やあやまる気持ちを伝えるときにします。軽いおじぎは少し頭を下げ、深いおじぎは腰まで下げます。
 「深く下げる」のはどんな時？`,
       choices: ["眠い", "少し感謝", "強い感謝・謝罪", "怒っている"],
       correctIndex: 2,

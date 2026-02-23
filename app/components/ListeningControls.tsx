@@ -66,6 +66,16 @@ export default function ListeningControls({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+useEffect(() => {
+  if (typeof window === "undefined") return
+  const v = Number(sessionStorage.getItem(keyPlays) || "0")
+  setPlaysUsed(Number.isFinite(v) ? v : 0)
+  // speakingも切っておくと安全（問題切替時の音切れ対策）
+  stopSpeak()
+  setSpeaking(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [keyPlays])
+
   useEffect(() => {
     if (!supported || !allowAutoPlay || !autoPlay || !text?.trim()) return
     if (!canPlayMore) return

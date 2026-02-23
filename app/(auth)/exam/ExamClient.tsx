@@ -582,6 +582,7 @@ export default function ExamClient({ quiz }: Props) {
       )}
 
       <ListeningControls
+      key={`${quizType}-${current.id}`} 
         text={current.listeningText}
         storageKeyPrefix={`${quizType}-exam-${current.id}`}
         allowAutoPlay={false}
