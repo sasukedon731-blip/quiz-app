@@ -164,11 +164,35 @@ function inferKind(question: string, choices: any[]): GameKind {
 // prompt生成
 // -------------------------
 function buildSpeedChoicePrompt(question: string) {
-  // 長文は捨てて指示に寄せる（テンポ最優先）
-  if (isLongReadingLike(question)) return "正しい答えは？"
-  if (/漢字/.test(question)) return "正しい漢字は？"
-  if (/読み|よみ/.test(question)) return "正しい読みは？"
-  return "正しい答えは？"
+  const clean = question.replace(/\s+/g, " ").trim()
+
+  // ✅ まず短いならそのまま（文脈を残す）
+  if (clean.length <= 42) return clean
+
+  // ✅ 「漢字/読み」系は最優先で文を残す
+  if (/漢字|読み|よみ|ひらがな|カタカナ/.test(clean)) {
+    // 1文目（。まで）を優先
+    const first = clean.split("。")[0].trim()
+    if (first && first.length <= 42) return first + "。"
+
+    // 「？」があればそこまで
+    const qidx = clean.indexOf("？")
+    if (qidx >= 0 && qidx <= 42) return clean.slice(0, qidx + 1)
+
+    // 最後は切ってでも残す
+    return clean.slice(0, 41) + "…"
+  }
+
+  // ✅ 一般：まず1文目
+  const firstSentence = clean.split("。")[0].trim()
+  if (firstSentence && firstSentence.length <= 42) return firstSentence + "。"
+
+  // ✅ 「？」があればそこまで
+  const qidx = clean.indexOf("？")
+  if (qidx >= 0 && qidx <= 42) return clean.slice(0, qidx + 1)
+
+  // ✅ 最後の手段：先頭短縮
+  return clean.slice(0, 41) + "…"
 }
 
 function buildTileDropPrompt(question: string) {
