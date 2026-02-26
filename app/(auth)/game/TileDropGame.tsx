@@ -63,7 +63,9 @@ export default function TileDropGame({
   const [displayName, setDisplayName] = useState<string>("")
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
+  const [mode, setMode] = useState<GameMode>(
+    modeParam === "attack" ? "attack" : "normal"
+  )
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
   const pool = useMemo(() => {
@@ -109,7 +111,9 @@ export default function TileDropGame({
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const [bestScore, setBestScore] = useState<number>(0)
-  const [leaderboard, setLeaderboard] = useState<{ displayName: string; bestScore: number }[]>([])
+  const [leaderboard, setLeaderboard] = useState<
+    { displayName: string; bestScore: number }[]
+  >([])
 
   const activeKeyRef = useRef<string>("")
   const resolvedRef = useRef<boolean>(false)
@@ -195,7 +199,7 @@ export default function TileDropGame({
     } else if (type === "miss") {
       osc.type = "sawtooth"
       osc.frequency.setValueAtTime(220, now)
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.10)
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.1)
       gain.gain.setValueAtTime(0.0001, now)
       gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
@@ -204,8 +208,8 @@ export default function TileDropGame({
       osc.frequency.setValueAtTime(880, now)
       osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06)
       gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.10, now + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10)
+      gain.gain.exponentialRampToValueAtTime(0.1, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1)
     }
 
     osc.connect(gain)
@@ -229,20 +233,76 @@ export default function TileDropGame({
     return map
   }, [pool])
 
-  function pickQuestion(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
-    const wantDifficulty = nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
+  // ======================================================
+  // ✅ ゲーム入力ガード（短文化前提を守る）
+  // ======================================================
+  const MAX_PROMPT = 34
+  const MAX_CHOICES = 8
+  const MAX_CHOICE_CHARS = 8
+
+  function isGameQuestionSafe(q: any) {
+    if (!q) return false
+    if (typeof q.prompt !== "string" || q.prompt.length > MAX_PROMPT) return false
+    if (!Array.isArray(q.answer) || q.answer.length < 1) return false
+    if (!Array.isArray(q.choices)) return false
+    if (q.choices.length < 4 || q.choices.length > MAX_CHOICES) return false
+    if (q.choices.some((c: any) => typeof c !== "string" || c.length > MAX_CHOICE_CHARS)) return false
+    return true
+  }
+
+  function pickQuestion(
+    nextMode: GameMode,
+    nextDifficulty: GameDifficulty,
+    nextLevel: number
+  ) {
+    const wantDifficulty =
+      nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
     const candidates = poolByDifficulty.get(wantDifficulty) ?? []
     if (candidates.length > 0) return pickRandom(candidates)
     if (pool.length > 0) return pickRandom(pool)
     return fallbackQuestions[0]
   }
 
-  function resetRound(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
-    const q = pickQuestion(nextMode, nextDifficulty, nextLevel)
+  // ======================================================
+  // ✅ resetRound：安全な問題だけ採用（事故防止）
+  // ======================================================
+  function resetRound(
+    nextMode: GameMode,
+    nextDifficulty: GameDifficulty,
+    nextLevel: number
+  ) {
+    // 1) まずは通常ピック
+    let q: any = pickQuestion(nextMode, nextDifficulty, nextLevel)
+
+    // 2) ダメなら最大12回リトライ（同difficulty内/全体プールの揺れで当たる）
+    let tries = 0
+    while (!isGameQuestionSafe(q) && tries < 12) {
+      q = pickQuestion(nextMode, nextDifficulty, nextLevel)
+      tries++
+    }
+
+    // 3) それでもダメなら fallback から安全なやつを探す
+    if (!isGameQuestionSafe(q)) {
+      const safeFallback = fallbackQuestions.find((x) => isGameQuestionSafe(x))
+      if (safeFallback) q = safeFallback
+    }
+
+    // 4) 最終的に無理なら ready に戻す（クラッシュ回避）
+    if (!isGameQuestionSafe(q)) {
+      setToast("ゲーム用の短い問題がありません（短文化済み問題を用意してください）")
+      setPhase("ready")
+      setCurrent(null)
+      return
+    }
+
     setCurrent(q)
     setInputIndex(0)
     resolvedRef.current = false
-    activeKeyRef.current = `${q.id}:${Date.now()}`
+
+    // q.id が無い可能性もあるので保険（表示キー用）
+    const qid = (q as any).id ?? (q as any).prompt ?? "q"
+    activeKeyRef.current = `${String(qid)}:${Date.now()}`
+
     setToast("")
     setPlateFx("none")
   }
@@ -468,13 +528,19 @@ export default function TileDropGame({
                 <div style={styles.label}>モード</div>
                 <div style={styles.seg}>
                   <button
-                    style={{ ...styles.segBtn, ...(mode === "normal" ? styles.segActive : {}) }}
+                    style={{
+                      ...styles.segBtn,
+                      ...(mode === "normal" ? styles.segActive : {}),
+                    }}
                     onClick={() => setMode("normal")}
                   >
                     ノーマル（学習）
                   </button>
                   <button
-                    style={{ ...styles.segBtn, ...(mode === "attack" ? styles.segActive : {}) }}
+                    style={{
+                      ...styles.segBtn,
+                      ...(mode === "attack" ? styles.segActive : {}),
+                    }}
                     onClick={() => {
                       if (!uid) {
                         setToast("ランキングはログインが必要です（ノーマル推奨）")
@@ -493,9 +559,19 @@ export default function TileDropGame({
                 </div>
 
                 {!uid ? (
-                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 12,
+                      opacity: 0.75,
+                      lineHeight: 1.5,
+                    }}
+                  >
                     ※ ゲストはノーマルのみ。ランキング参加は
-                    <button onClick={() => router.push("/login")} style={styles.inlineLinkBtn}>
+                    <button
+                      onClick={() => router.push("/login")}
+                      style={styles.inlineLinkBtn}
+                    >
                       ログイン
                     </button>
                     が必要です。
@@ -505,17 +581,32 @@ export default function TileDropGame({
 
               <div style={styles.field}>
                 <div style={styles.label}>難易度</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}
+                  >
                     {pool[0]?.difficulty ?? difficulty}
                   </span>
                 </div>
-                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
+                <div style={styles.help}>
+                  ※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。
+                </div>
               </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button onClick={startGame} disabled={pool.length === 0} style={{ ...styles.btn, ...styles.btnMain }}>
+              <button
+                onClick={startGame}
+                disabled={pool.length === 0}
+                style={{ ...styles.btn, ...styles.btnMain }}
+              >
                 ゲーム開始
               </button>
             </div>
@@ -527,7 +618,10 @@ export default function TileDropGame({
 
           {/* Playing */}
           <div style={{ display: phase === "playing" ? "block" : "none" }}>
-            <motion.div style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }} animate={shakeControls}>
+            <motion.div
+              style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }}
+              animate={shakeControls}
+            >
               <div style={styles.dangerLine} />
 
               {/* Overlay chips */}
@@ -581,7 +675,11 @@ export default function TileDropGame({
                           ? { opacity: [1, 1, 0], scale: [1, 1.08, 0.95] }
                           : { opacity: 1, scale: 1 }
                       }
-                      transition={plateFx === "success" ? { duration: 0.32, ease: "easeOut" } : { duration: 0.05 }}
+                      transition={
+                        plateFx === "success"
+                          ? { duration: 0.32, ease: "easeOut" }
+                          : { duration: 0.05 }
+                      }
                       style={{ transformOrigin: "center" }}
                     >
                       <motion.div
@@ -598,7 +696,10 @@ export default function TileDropGame({
                         <div style={styles.prompt}>{current.prompt}</div>
                         <div style={styles.progress}>
                           {current.answer.map((a, i) => (
-                            <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
+                            <span
+                              key={`${a}-${i}`}
+                              style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }}
+                            />
                           ))}
                         </div>
                       </motion.div>
@@ -612,7 +713,11 @@ export default function TileDropGame({
                 <div style={styles.tilesTitle}>タイルを順番に押せ</div>
                 <div style={styles.tilesGrid}>
                   {(current?.choices ?? []).map((c, idx) => (
-                    <button key={`${c}-${idx}`} onClick={() => onTilePress(c)} style={styles.tileBtn}>
+                    <button
+                      key={`${c}-${idx}`}
+                      onClick={() => onTilePress(c)}
+                      style={styles.tileBtn}
+                    >
                       {c}
                     </button>
                   ))}
@@ -636,14 +741,22 @@ export default function TileDropGame({
                 </div>
 
                 <div style={{ marginTop: 12, ...styles.lbBox }}>
-                  <div style={{ fontWeight: 900, marginBottom: 8 }}>ランキング（全期間 / 上位30）</div>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                    ランキング（全期間 / 上位30）
+                  </div>
                   {leaderboard.length === 0 ? (
-                    <div style={{ fontSize: 13, opacity: 0.7 }}>読み込み中 / まだデータがありません</div>
+                    <div style={{ fontSize: 13, opacity: 0.7 }}>
+                      読み込み中 / まだデータがありません
+                    </div>
                   ) : (
                     <ol style={{ margin: 0, paddingLeft: 18 }}>
                       {leaderboard.map((x, i) => (
-                        <li key={`${x.displayName}-${i}`} style={{ marginBottom: 6, fontSize: 13 }}>
-                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} — <b>{x.bestScore}</b>
+                        <li
+                          key={`${x.displayName}-${i}`}
+                          style={{ marginBottom: 6, fontSize: 13 }}
+                        >
+                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} —{" "}
+                          <b>{x.bestScore}</b>
                         </li>
                       ))}
                     </ol>
@@ -651,7 +764,9 @@ export default function TileDropGame({
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
+              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
+                ノーマルはランキング保存しません（学習用）
+              </div>
             )}
 
             <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -665,7 +780,10 @@ export default function TileDropGame({
               >
                 もう一回
               </button>
-              <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
+              <Link
+                href="/select-mode"
+                style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}
+              >
                 学習メニューへ
               </Link>
             </div>
@@ -715,7 +833,13 @@ const styles: Record<string, CSSProperties> = {
   },
   compactCenter: { flex: 1, minWidth: 0 },
   compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
-  compactSub: { fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  compactSub: {
+    fontSize: 12,
+    opacity: 0.7,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
 
   soundBtn: {
     width: 36,
@@ -752,18 +876,46 @@ const styles: Record<string, CSSProperties> = {
   panelTitle: { fontWeight: 900, fontSize: 16 },
 
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12 },
-  field: { background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 },
+  field: {
+    background: "#f8fafc",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 12,
+  },
   label: { fontWeight: 900, fontSize: 12, opacity: 0.75 },
   help: { marginTop: 8, fontSize: 12, opacity: 0.7, lineHeight: 1.5 },
 
   seg: { display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" },
-  segBtn: { padding: "10px 12px", borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
+  segBtn: {
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
   segActive: { border: "1px solid #2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.12)" },
 
-  pill: { padding: "8px 12px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
+  pill: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
-  inlineLinkBtn: { marginLeft: 6, border: "none", background: "transparent", padding: 0, color: "#2563eb", fontWeight: 900, cursor: "pointer", textDecoration: "underline" },
+  inlineLinkBtn: {
+    marginLeft: 6,
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    color: "#2563eb",
+    fontWeight: 900,
+    cursor: "pointer",
+    textDecoration: "underline",
+  },
 
   btn: { padding: "10px 14px", borderRadius: 14, border: "none", cursor: "pointer", fontWeight: 900 },
   btnMain: { background: "#2563eb", color: "#fff" },
@@ -805,12 +957,38 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
     position: "relative",
   },
-  plateBadge: { position: "absolute", top: 12, right: 12, fontSize: 11, fontWeight: 900, opacity: 0.75, padding: "4px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" },
-  prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
+  plateBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    fontSize: 11,
+    fontWeight: 900,
+    opacity: 0.75,
+    padding: "4px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+  },
+  prompt: {
+    fontSize: "clamp(18px, 5vw, 22px)" as any,
+    fontWeight: 900,
+    textAlign: "center",
+    padding: "14px 0 8px",
+  },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
   dot: { width: 10, height: 10, borderRadius: 999, background: "#fff", display: "inline-block" },
 
-  toast: { position: "absolute", top: 12, left: 12, padding: "8px 12px", borderRadius: 14, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, boxShadow: "0 10px 22px rgba(0,0,0,0.08)", zIndex: 30 },
+  toast: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    padding: "8px 12px",
+    borderRadius: 14,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    fontWeight: 900,
+    boxShadow: "0 10px 22px rgba(0,0,0,0.08)",
+    zIndex: 30,
+  },
 
   tilesArea: {
     position: "absolute",

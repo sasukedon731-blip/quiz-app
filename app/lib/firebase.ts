@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDYBEGv8HSUGR-RHe_aerf3aAk03vd8x1o",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: "foreign-license-quiz.firebaseapp.com",
   projectId: "foreign-license-quiz",
   storageBucket: "foreign-license-quiz.firebasestorage.app",
