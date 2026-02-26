@@ -1,7 +1,7 @@
 // app/(auth)/game/fromQuizzes.ts
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
-import type { GameQuestion, GameDifficulty } from "./types"
+import type { GameQuestion, GameDifficulty, GameKind } from "./types"
 
 export type GameGenOptions = {
   difficulty?: GameDifficulty
@@ -32,9 +32,10 @@ export function buildGameQuestionsFromQuizzes(
   const src = quiz.questions as any[]
 
   const mapped = src
-    .map((q, idx) => mapStudyQuestionToGameFill(q, quizType, idx, o))
+    .map((q, idx) => mapStudyToGame(q, quizType, idx, o))
     .filter((v): v is GameQuestion => !!v)
 
+  // 最終フィルタ（ゲーム破壊要因を除去）
   return mapped.filter((g) => {
     if (!g.enabled) return false
     if (!g.prompt || g.prompt.length > o.maxPromptChars) return false
@@ -45,10 +46,13 @@ export function buildGameQuestionsFromQuizzes(
   })
 }
 
-// ✅ 互換: 既存コードが buildGamePoolFromQuizzes をimportしても落ちない
+// ✅ 互換（既存importがこれでもOK）
 export const buildGamePoolFromQuizzes = buildGameQuestionsFromQuizzes
 
-function mapStudyQuestionToGameFill(
+// -------------------------
+// 変換本体
+// -------------------------
+function mapStudyToGame(
   q: any,
   quizType: QuizType,
   index: number,
@@ -62,32 +66,112 @@ function mapStudyQuestionToGameFill(
 
   const correct = String(q.choices[q.correctIndex] ?? "").trim()
   if (!correct) return null
-  if (correct.length > o.maxChoiceChars) return null
-
-  const pool = sanitizeChoices(q.choices, correct, o)
-  if (pool.length < Math.min(o.minChoices, o.maxChoices)) return null
-
-  const prompt = clampPrompt(buildGamePrompt(rawQuestion, o), o.maxPromptChars)
 
   // ✅ id を必ず付与
   const srcId =
     typeof (q as any).id === "number" || typeof (q as any).id === "string"
       ? String((q as any).id)
       : `${quizType}-${index}`
+  const id = `qz-${quizType}-${srcId}`
 
-  return {
-    id: `qz-${quizType}-${srcId}`,
-    type: "fill",
-    prompt,
-    answer: [correct],
-    choices: pool,
-    difficulty: o.difficulty,
-    enabled: true,
-    quizType,
+  // -------------------------
+  // ✅ kind 判定（P0：tile-drop / speed-choice）
+  // -------------------------
+  const kind = inferKind(rawQuestion, q.choices)
+
+  // -------------------------
+  // ✅ kind別の短文化・制約
+  // -------------------------
+
+  // --- speed-choice（4択が基本。N4漢字/語彙系の救済） ---
+  if (kind === "speed-choice") {
+    // speed-choiceは 4択でOKにする
+    const opts = {
+      ...o,
+      maxChoices: Math.min(o.maxChoices, 4),
+      minChoices: Math.min(o.minChoices, 4),
+      maxPromptChars: Math.max(o.maxPromptChars, 42),
+      maxChoiceChars: Math.max(o.maxChoiceChars, 14),
+      allowAutoTrimChoice: true,
+    } as Required<GameGenOptions>
+
+    const pool = sanitizeChoices(q.choices, correct, opts)
+    if (pool.length < 4) return null
+
+    // promptは「短い指示」に寄せる
+    const prompt = clampPrompt(buildSpeedChoicePrompt(rawQuestion), opts.maxPromptChars)
+
+    return {
+      id,
+      kind: "speed-choice",
+      type: "reading", // 表示ラベル用途（厳密じゃなくてOK）
+      prompt,
+      answer: [correct],
+      choices: pool.slice(0, 4),
+      difficulty: (opts.difficulty ?? "N4") as GameDifficulty,
+      enabled: true,
+      quizType,
+    }
+  }
+
+  // --- tile-drop（テンポ重視：短いprompt + 6〜8択） ---
+  {
+    // tile-dropは短いchoiceが必要。正解が長すぎるなら落とす
+    if (correct.length > o.maxChoiceChars) return null
+
+    const pool = sanitizeChoices(q.choices, correct, o)
+    if (pool.length < Math.min(o.minChoices, o.maxChoices)) return null
+
+    const prompt = clampPrompt(buildTileDropPrompt(rawQuestion), o.maxPromptChars)
+
+    return {
+      id,
+      kind: "tile-drop",
+      type: /助詞/.test(rawQuestion) ? "particle" : "fill",
+      prompt,
+      answer: [correct],
+      choices: pool,
+      difficulty: o.difficulty,
+      enabled: true,
+      quizType,
+    }
   }
 }
 
-function buildGamePrompt(question: string, o: Required<GameGenOptions>) {
+// -------------------------
+// kind 推定（雑でOK：テンポ優先）
+// -------------------------
+function inferKind(question: string, choices: any[]): GameKind {
+  const q = question
+
+  // 漢字・読み・どの漢字 など → speed-choice
+  if (/漢字|読み|よみ|ひらがな|カタカナ/.test(q)) return "speed-choice"
+
+  // choicesが短い語彙4択っぽいなら speed-choice を優先
+  const c = (choices ?? []).map((x) => String(x ?? "").trim()).filter(Boolean)
+  const avgLen = c.length ? c.reduce((s, v) => s + v.length, 0) / c.length : 0
+  if (c.length === 4 && avgLen <= 10) return "speed-choice"
+
+  // 助詞/空欄/穴埋め → tile-drop
+  if (/助詞/.test(q)) return "tile-drop"
+  if (/（\s*）|＿{2,}|_{2,}|〔\s*〕|【\s*】/.test(q)) return "tile-drop"
+
+  // デフォルト
+  return "tile-drop"
+}
+
+// -------------------------
+// prompt生成
+// -------------------------
+function buildSpeedChoicePrompt(question: string) {
+  // 長文は捨てて指示に寄せる（テンポ最優先）
+  if (isLongReadingLike(question)) return "正しい答えは？"
+  if (/漢字/.test(question)) return "正しい漢字は？"
+  if (/読み|よみ/.test(question)) return "正しい読みは？"
+  return "正しい答えは？"
+}
+
+function buildTileDropPrompt(question: string) {
   const q = normalizePrompt(question)
 
   const hasBlank =
@@ -117,6 +201,9 @@ function normalizePrompt(s: string) {
     .trim()
 }
 
+// -------------------------
+// choices整形
+// -------------------------
 function sanitizeChoices(rawChoices: any[], correct: string, o: Required<GameGenOptions>) {
   const uniq = new Map<string, string>()
 
@@ -134,7 +221,8 @@ function sanitizeChoices(rawChoices: any[], correct: string, o: Required<GameGen
     uniq.set(v, v)
   }
 
-  if (!uniq.has(correct)) uniq.set(correct, correct)
+  if (correct.length <= o.maxChoiceChars) uniq.set(correct, correct)
+  else return []
 
   const all = Array.from(uniq.values()).filter((v) => v !== correct)
   const picked = pickRandom(all, Math.max(0, o.maxChoices - 1))
@@ -148,6 +236,9 @@ function sanitizeChoices(rawChoices: any[], correct: string, o: Required<GameGen
   return shuffle(pool).slice(0, o.maxChoices)
 }
 
+// -------------------------
+// util
+// -------------------------
 function clampPrompt(s: string, maxChars: number) {
   const t = s.replace(/\s+/g, " ").trim()
   if (t.length <= maxChars) return t

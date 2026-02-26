@@ -45,15 +45,22 @@ export async function fetchGameQuestions(params: {
     if (!v) return
     // Basic validation (avoid runtime crashes)
     if (!v.prompt || !Array.isArray(v.answer) || !Array.isArray(v.choices) || !v.difficulty || !v.type) return
-    items.push({
-      id: d.id,
-      type: v.type,
-      prompt: v.prompt,
-      answer: v.answer,
-      choices: v.choices,
-      difficulty: v.difficulty,
-      enabled: !!v.enabled,
-    })
+   items.push({
+  id: d.id,
+
+  // ✅ 追加：Firestoreにkindが無い古いデータでも動くように推定
+  kind:
+    (v.kind as any) ??
+    (/漢字|読み|よみ|ひらがな|カタカナ/.test(String(v.prompt ?? "")) ? "speed-choice" : "tile-drop"),
+
+  type: v.type,
+  prompt: v.prompt,
+  answer: v.answer,
+  choices: v.choices,
+  difficulty: v.difficulty,
+  enabled: Boolean(v.enabled),
+  quizType: v.quizType,
+})
   })
   return items
 }

@@ -16,6 +16,7 @@ import { fetchAttackLeaderboard, submitAttackScore } from "./firestore"
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 
 type Phase = "ready" | "playing" | "over"
+type SfxType = "hit" | "miss" | "combo"
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -26,16 +27,15 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 function difficultyForAttack(level: number): GameDifficulty {
-  if (level <= 3) return "N5"
-  if (level <= 6) return "N4"
-  if (level <= 9) return "N3"
+  if (level <= 3) return "N4"
+  if (level <= 7) return "N3"
   if (level <= 12) return "N2"
   return "N1"
 }
 
-function speedFor(mode: GameMode, level: number) {
-  if (mode === "normal") return 5.5
-  return clamp(6 - (level - 1) * 0.28, 2.2, 6)
+function secPerQuestion(mode: GameMode, level: number) {
+  if (mode === "normal") return 6.5
+  return clamp(6 - (level - 1) * 0.25, 3.0, 6.0)
 }
 
 function vib(pattern: number | number[]) {
@@ -48,9 +48,7 @@ function vib(pattern: number | number[]) {
   }
 }
 
-type SfxType = "hit" | "miss" | "combo"
-
-export default function TileDropGame({
+export default function SpeedChoiceGame({
   quizType,
   modeParam,
 }: {
@@ -63,15 +61,37 @@ export default function TileDropGame({
   const [displayName, setDisplayName] = useState<string>("")
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [mode, setMode] = useState<GameMode>(
-    modeParam === "attack" ? "attack" : "normal"
-  )
-  const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
+  const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
+  const [difficulty, setDifficulty] = useState<GameDifficulty>("N4")
 
   const pool = useMemo(() => {
-    const built = buildGamePoolFromQuizzes(quizType)
-if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop")
-    return fallbackQuestions.filter((q) => q.enabled)
+    // ✅ speed-choice だけ
+    const built = buildGamePoolFromQuizzes(
+      quizType,
+      quizType === "japanese-n4"
+        ? {
+            difficulty: "N4",
+            maxPromptChars: 42,
+            maxChoices: 4,
+            minChoices: 4,
+            maxChoiceChars: 14,
+            allowAutoTrimChoice: true,
+          }
+        : {
+            difficulty: "N3",
+            maxPromptChars: 42,
+            maxChoices: 4,
+            minChoices: 4,
+            maxChoiceChars: 14,
+            allowAutoTrimChoice: true,
+          }
+    )
+
+    const filtered = built.filter((q) => q.enabled && q.kind === "speed-choice")
+    if (filtered.length) return filtered
+
+    // fallback があれば使う（無ければ空でOK）
+    return fallbackQuestions.filter((q) => q.enabled && q.kind === "speed-choice")
   }, [quizType])
 
   useEffect(() => {
@@ -93,30 +113,26 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
   const [combo, setCombo] = useState(0)
 
   const [current, setCurrent] = useState<GameQuestion | null>(null)
-  const [inputIndex, setInputIndex] = useState(0)
   const [toast, setToast] = useState<string>("")
-
-  // ✅ 正解時の「弾ける」演出（対象プレートのみ）
-  const [plateFx, setPlateFx] = useState<"none" | "success">("none")
 
   // ✅ コンボポップ
   const [comboPop, setComboPop] = useState<number | null>(null)
   const comboPopTimer = useRef<number | null>(null)
 
-  // ✅ 画面揺れ（framer controls）
+  // ✅ 画面揺れ
   const shakeControls = useAnimationControls()
+
+  // ✅ タイマー
+  const [timeLeft, setTimeLeft] = useState(0)
+  const timerRef = useRef<number | null>(null)
+  const resolvedRef = useRef<boolean>(false)
 
   // ✅ サウンド
   const [soundOn, setSoundOn] = useState(true)
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const [bestScore, setBestScore] = useState<number>(0)
-  const [leaderboard, setLeaderboard] = useState<
-    { displayName: string; bestScore: number }[]
-  >([])
-
-  const activeKeyRef = useRef<string>("")
-  const resolvedRef = useRef<boolean>(false)
+  const [leaderboard, setLeaderboard] = useState<{ displayName: string; bestScore: number }[]>([])
 
   // ===== Auth（ゲストOK）=====
   useEffect(() => {
@@ -126,7 +142,6 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
         setDisplayName("")
         return
       }
-
       setUid(u.uid)
 
       const dn = u.displayName || ""
@@ -149,6 +164,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
   useEffect(() => {
     return () => {
       if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+      if (timerRef.current) window.clearInterval(timerRef.current)
       try {
         audioCtxRef.current?.close()
       } catch {
@@ -158,7 +174,6 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     }
   }, [])
 
-  // ✅ TypeScript的に null を確実に潰した版
   function ensureAudio(): AudioContext | null {
     if (!soundOn) return null
     if (typeof window === "undefined") return null
@@ -170,13 +185,9 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     if (!audioCtxRef.current) {
       audioCtxRef.current = new Ctx()
     }
-
     const ctx = audioCtxRef.current
     if (!ctx) return null
-
-    if (ctx.state === "suspended") {
-      ctx.resume().catch(() => null)
-    }
+    if (ctx.state === "suspended") ctx.resume().catch(() => null)
     return ctx
   }
 
@@ -192,14 +203,14 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     if (type === "hit") {
       osc.type = "triangle"
       osc.frequency.setValueAtTime(660, now)
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.05)
+      osc.frequency.exponentialRampToValueAtTime(980, now + 0.05)
       gain.gain.setValueAtTime(0.0001, now)
       gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08)
     } else if (type === "miss") {
       osc.type = "sawtooth"
       osc.frequency.setValueAtTime(220, now)
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.1)
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.10)
       gain.gain.setValueAtTime(0.0001, now)
       gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
@@ -208,8 +219,8 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
       osc.frequency.setValueAtTime(880, now)
       osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06)
       gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.1, now + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1)
+      gain.gain.exponentialRampToValueAtTime(0.10, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10)
     }
 
     osc.connect(gain)
@@ -233,78 +244,47 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     return map
   }, [pool])
 
-  // ======================================================
-  // ✅ ゲーム入力ガード（短文化前提を守る）
-  // ======================================================
-  const MAX_PROMPT = 34
-  const MAX_CHOICES = 8
-  const MAX_CHOICE_CHARS = 8
-
-  function isGameQuestionSafe(q: any) {
-    if (!q) return false
-    if (typeof q.prompt !== "string" || q.prompt.length > MAX_PROMPT) return false
-    if (!Array.isArray(q.answer) || q.answer.length < 1) return false
-    if (!Array.isArray(q.choices)) return false
-    if (q.choices.length < 4 || q.choices.length > MAX_CHOICES) return false
-    if (q.choices.some((c: any) => typeof c !== "string" || c.length > MAX_CHOICE_CHARS)) return false
-    return true
-  }
-
-  function pickQuestion(
-    nextMode: GameMode,
-    nextDifficulty: GameDifficulty,
-    nextLevel: number
-  ) {
-    const wantDifficulty =
-      nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
+  function pickQuestion(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
+    const wantDifficulty = nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
     const candidates = poolByDifficulty.get(wantDifficulty) ?? []
     if (candidates.length > 0) return pickRandom(candidates)
     if (pool.length > 0) return pickRandom(pool)
-    return fallbackQuestions[0]
+    return null
   }
 
-  // ======================================================
-  // ✅ resetRound：安全な問題だけ採用（事故防止）
-  // ======================================================
-  function resetRound(
-    nextMode: GameMode,
-    nextDifficulty: GameDifficulty,
-    nextLevel: number
-  ) {
-    // 1) まずは通常ピック
-    let q: any = pickQuestion(nextMode, nextDifficulty, nextLevel)
+  function clearTimer() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    timerRef.current = null
+  }
 
-    // 2) ダメなら最大12回リトライ（同difficulty内/全体プールの揺れで当たる）
-    let tries = 0
-    while (!isGameQuestionSafe(q) && tries < 12) {
-      q = pickQuestion(nextMode, nextDifficulty, nextLevel)
-      tries++
-    }
+  function startTimer(sec: number) {
+    clearTimer()
+    setTimeLeft(sec)
+    const startedAt = Date.now()
+    timerRef.current = window.setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000
+      const left = Math.max(0, sec - elapsed)
+      setTimeLeft(left)
+      if (left <= 0) {
+        clearTimer()
+        onTimeout()
+      }
+    }, 50)
+  }
 
-    // 3) それでもダメなら fallback から安全なやつを探す
-    if (!isGameQuestionSafe(q)) {
-      const safeFallback = fallbackQuestions.find((x) => isGameQuestionSafe(x))
-      if (safeFallback) q = safeFallback
-    }
-
-    // 4) 最終的に無理なら ready に戻す（クラッシュ回避）
-    if (!isGameQuestionSafe(q)) {
-      setToast("ゲーム用の短い問題がありません（短文化済み問題を用意してください）")
+  function resetRound(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
+    const q = pickQuestion(nextMode, nextDifficulty, nextLevel)
+    if (!q) {
+      setToast("スピード問題がありません（まずN4データを増やします）")
       setPhase("ready")
       setCurrent(null)
       return
     }
 
     setCurrent(q)
-    setInputIndex(0)
-    resolvedRef.current = false
-
-    // q.id が無い可能性もあるので保険（表示キー用）
-    const qid = (q as any).id ?? (q as any).prompt ?? "q"
-    activeKeyRef.current = `${String(qid)}:${Date.now()}`
-
     setToast("")
-    setPlateFx("none")
+    resolvedRef.current = false
+    startTimer(secPerQuestion(nextMode, nextLevel))
   }
 
   function startGame() {
@@ -327,12 +307,11 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     setComboPop(null)
 
     setPhase("playing")
-    setTimeout(() => {
-      resetRound(nextMode, difficulty, 1)
-    }, 0)
+    setTimeout(() => resetRound(nextMode, difficulty, 1), 0)
   }
 
   async function endGame() {
+    clearTimer()
     setPhase("over")
 
     if (mode !== "attack" || !uid) return
@@ -379,15 +358,24 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     }
   }
 
+  function fireComboPop(nextCombo: number) {
+    if (nextCombo < 2) return
+    setComboPop(nextCombo)
+    playSfx("combo")
+    if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+    comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
+  }
+
   function miss(reason: "timeout" | "wrong") {
     if (phase !== "playing") return
     if (resolvedRef.current) return
 
     resolvedRef.current = true
+    clearTimer()
+
     setCombo(0)
     setComboPop(null)
 
-    // ✅ ミス演出：揺れ + バイブ + 音
     triggerShake()
     vib([40, 20, 40])
     playSfx("miss")
@@ -402,22 +390,11 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
         const nextLevel = mode === "attack" ? level + 1 : level
         if (mode === "attack") setLevel(nextLevel)
         resetRound(mode, difficulty, nextLevel)
-      }, 280)
+      }, 240)
       return next
     })
 
     setToast(reason === "timeout" ? "時間切れ！" : "ミス！")
-  }
-
-  function fireComboPop(nextCombo: number) {
-    // ✅ 2以上から出す（うるさくしない）
-    if (nextCombo < 2) return
-
-    setComboPop(nextCombo)
-    playSfx("combo")
-
-    if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
-    comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
   }
 
   function success() {
@@ -426,14 +403,14 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     if (resolvedRef.current) return
 
     resolvedRef.current = true
+    clearTimer()
 
-    const base = 10 * current.answer.length
+    const base = 12
     const comboBonus = Math.min(combo, 20)
     const gained = base + comboBonus
 
     setScore((s) => s + gained)
 
-    // ✅ 正解音（軽く）
     playSfx("hit")
 
     const nextCombo = combo + 1
@@ -442,55 +419,43 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
 
     setToast(`+${gained}`)
 
-    // ✅ 正解演出：scale 1 → 1.08 → 0.95 → fade
-    setPlateFx("success")
-
     setTimeout(() => {
       const nextLevel = mode === "attack" ? level + 1 : level
       if (mode === "attack") setLevel(nextLevel)
       resetRound(mode, difficulty, nextLevel)
-    }, 320)
+    }, 220)
   }
 
-  function onTilePress(label: string) {
-    // ✅ iOS等に備えて、最初のタップでAudioContextを起こす
-    ensureAudio()
+  function onTimeout() {
+    miss("timeout")
+  }
 
+  function onPick(choice: string) {
+    ensureAudio()
     if (phase !== "playing") return
     if (!current) return
     if (resolvedRef.current) return
 
-    const expected = current.answer[inputIndex]
-    if (label !== expected) {
+    const correct = current.answer[0]
+    if (choice !== correct) {
       miss("wrong")
       return
     }
-
-    const next = inputIndex + 1
-    setInputIndex(next)
-    if (next >= current.answer.length) success()
+    success()
   }
 
-  const speedSec = useMemo(() => speedFor(mode, level), [mode, level])
-  const fallY = 420
-  const plateKey = current ? activeKeyRef.current : "none"
-
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
-
-  // ✅ 下の中断を消した分、広く
-  const playAreaHeight = "calc(100svh - 128px)"
 
   return (
     <main style={styles.page} className="game-root">
       <div style={styles.shell}>
-        {/* Compact bar */}
         <div style={styles.compactBar}>
           <Link href="/select-mode" style={styles.compactBack}>
             ←
           </Link>
 
           <div style={styles.compactCenter}>
-            <div style={styles.compactTitle}>日本語バトル（落ち物）</div>
+            <div style={styles.compactTitle}>日本語バトル（4択スピード）</div>
             <div style={styles.compactSub}>{quizTitle}</div>
           </div>
 
@@ -498,7 +463,6 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
             type="button"
             onClick={() => {
               setSoundOn((v) => !v)
-              // ONにした瞬間、起動
               setTimeout(() => ensureAudio(), 0)
             }}
             style={styles.soundBtn}
@@ -528,19 +492,13 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 <div style={styles.label}>モード</div>
                 <div style={styles.seg}>
                   <button
-                    style={{
-                      ...styles.segBtn,
-                      ...(mode === "normal" ? styles.segActive : {}),
-                    }}
+                    style={{ ...styles.segBtn, ...(mode === "normal" ? styles.segActive : {}) }}
                     onClick={() => setMode("normal")}
                   >
                     ノーマル（学習）
                   </button>
                   <button
-                    style={{
-                      ...styles.segBtn,
-                      ...(mode === "attack" ? styles.segActive : {}),
-                    }}
+                    style={{ ...styles.segBtn, ...(mode === "attack" ? styles.segActive : {}) }}
                     onClick={() => {
                       if (!uid) {
                         setToast("ランキングはログインが必要です（ノーマル推奨）")
@@ -554,24 +512,12 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                   </button>
                 </div>
 
-                <div style={styles.help}>
-                  ノーマル：難易度固定 / アタック：速度UP + 難易度が徐々に上がる
-                </div>
+                <div style={styles.help}>4択をテンポよく解くモード。N4（漢字/読み）と相性抜群。</div>
 
                 {!uid ? (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      fontSize: 12,
-                      opacity: 0.75,
-                      lineHeight: 1.5,
-                    }}
-                  >
+                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
                     ※ ゲストはノーマルのみ。ランキング参加は
-                    <button
-                      onClick={() => router.push("/login")}
-                      style={styles.inlineLinkBtn}
-                    >
+                    <button onClick={() => router.push("/login")} style={styles.inlineLinkBtn}>
                       ログイン
                     </button>
                     が必要です。
@@ -581,32 +527,17 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
 
               <div style={styles.field}>
                 <div style={styles.label}>難易度</div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}
-                  >
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
                     {pool[0]?.difficulty ?? difficulty}
                   </span>
                 </div>
-                <div style={styles.help}>
-                  ※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。
-                </div>
+                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは自動で上がります。</div>
               </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button
-                onClick={startGame}
-                disabled={pool.length === 0}
-                style={{ ...styles.btn, ...styles.btnMain }}
-              >
+              <button onClick={startGame} disabled={pool.length === 0} style={{ ...styles.btn, ...styles.btnMain }}>
                 ゲーム開始
               </button>
             </div>
@@ -618,20 +549,14 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
 
           {/* Playing */}
           <div style={{ display: phase === "playing" ? "block" : "none" }}>
-            <motion.div
-              style={{ position: "relative", height: playAreaHeight, overflow: "hidden" }}
-              animate={shakeControls}
-            >
-              <div style={styles.dangerLine} />
-
-              {/* Overlay chips */}
-              <div style={styles.overlayChips}>
+            <motion.div style={{ position: "relative", overflow: "hidden" }} animate={shakeControls}>
+              <div style={styles.topInfoRow}>
                 <span style={styles.chip}>Lv {level}</span>
                 <span style={styles.chip}>Combo {combo}</span>
+                <span style={styles.timerChip}>{timeLeft.toFixed(1)}s</span>
                 {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
               </div>
 
-              {/* Combo Pop */}
               <AnimatePresence>
                 {comboPop ? (
                   <motion.div
@@ -647,7 +572,6 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 ) : null}
               </AnimatePresence>
 
-              {/* Toast */}
               <AnimatePresence>
                 {toast ? (
                   <motion.div
@@ -663,66 +587,17 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 ) : null}
               </AnimatePresence>
 
-              {/* Falling plate */}
-              <div style={{ position: "absolute", left: 0, right: 0, top: 0 }}>
-                <AnimatePresence>
-                  {current ? (
-                    <motion.div
-                      key={plateKey}
-                      initial={{ opacity: 1, scale: 1 }}
-                      animate={
-                        plateFx === "success"
-                          ? { opacity: [1, 1, 0], scale: [1, 1.08, 0.95] }
-                          : { opacity: 1, scale: 1 }
-                      }
-                      transition={
-                        plateFx === "success"
-                          ? { duration: 0.32, ease: "easeOut" }
-                          : { duration: 0.05 }
-                      }
-                      style={{ transformOrigin: "center" }}
-                    >
-                      <motion.div
-                        initial={{ y: -120, opacity: 1 }}
-                        animate={{ y: fallY, opacity: 1 }}
-                        transition={{ duration: speedSec, ease: "linear" }}
-                        onAnimationComplete={() => {
-                          if (resolvedRef.current) return
-                          miss("timeout")
-                        }}
-                        style={styles.plate}
-                      >
-                        <div style={styles.plateBadge}>{current.type.toUpperCase()}</div>
-                        <div style={styles.prompt}>{current.prompt}</div>
-                        <div style={styles.progress}>
-                          {current.answer.map((a, i) => (
-                            <span
-                              key={`${a}-${i}`}
-                              style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
+              <div style={styles.questionBox}>
+                <div style={styles.qBadge}>SPEED</div>
+                <div style={styles.prompt}>{current?.prompt ?? "…"}</div>
               </div>
 
-              {/* Tiles */}
-              <div style={styles.tilesArea}>
-                <div style={styles.tilesTitle}>タイルを順番に押せ</div>
-                <div style={styles.tilesGrid}>
-                  {(current?.choices ?? []).map((c, idx) => (
-                    <button
-                      key={`${c}-${idx}`}
-                      onClick={() => onTilePress(c)}
-                      style={styles.tileBtn}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-                {/* ✅ 中断ボタンは撤去（左上矢印で十分） */}
+              <div style={styles.choicesGrid}>
+                {(current?.choices ?? []).slice(0, 4).map((c, idx) => (
+                  <button key={`${c}-${idx}`} onClick={() => onPick(c)} style={styles.choiceBtn}>
+                    {c}
+                  </button>
+                ))}
               </div>
             </motion.div>
           </div>
@@ -741,22 +616,14 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 </div>
 
                 <div style={{ marginTop: 12, ...styles.lbBox }}>
-                  <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                    ランキング（全期間 / 上位30）
-                  </div>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>ランキング（全期間 / 上位30）</div>
                   {leaderboard.length === 0 ? (
-                    <div style={{ fontSize: 13, opacity: 0.7 }}>
-                      読み込み中 / まだデータがありません
-                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.7 }}>読み込み中 / まだデータがありません</div>
                   ) : (
                     <ol style={{ margin: 0, paddingLeft: 18 }}>
                       {leaderboard.map((x, i) => (
-                        <li
-                          key={`${x.displayName}-${i}`}
-                          style={{ marginBottom: 6, fontSize: 13 }}
-                        >
-                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} —{" "}
-                          <b>{x.bestScore}</b>
+                        <li key={`${x.displayName}-${i}`} style={{ marginBottom: 6, fontSize: 13 }}>
+                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} — <b>{x.bestScore}</b>
                         </li>
                       ))}
                     </ol>
@@ -764,9 +631,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
-                ノーマルはランキング保存しません（学習用）
-              </div>
+              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
             <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -780,10 +645,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
               >
                 もう一回
               </button>
-              <Link
-                href="/select-mode"
-                style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}
-              >
+              <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
                 学習メニューへ
               </Link>
             </div>
@@ -795,11 +657,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
 }
 
 const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: "100svh",
-    background: "#f6f7fb",
-    padding: "clamp(10px, 3vw, 18px)" as any,
-  },
+  page: { minHeight: "100svh", background: "#f6f7fb", padding: "clamp(10px, 3vw, 18px)" as any },
   shell: { maxWidth: 980, margin: "0 auto" },
 
   compactBar: {
@@ -833,13 +691,7 @@ const styles: Record<string, CSSProperties> = {
   },
   compactCenter: { flex: 1, minWidth: 0 },
   compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
-  compactSub: {
-    fontSize: 12,
-    opacity: 0.7,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
+  compactSub: { fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
 
   soundBtn: {
     width: 36,
@@ -865,72 +717,36 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 12,
   },
 
-  card: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    padding: 16,
-    boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
-  },
-
+  card: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 16, boxShadow: "0 10px 24px rgba(0,0,0,0.06)" },
   panelTitle: { fontWeight: 900, fontSize: 16 },
 
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12 },
-  field: {
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 12,
-  },
+  field: { background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 },
   label: { fontWeight: 900, fontSize: 12, opacity: 0.75 },
   help: { marginTop: 8, fontSize: 12, opacity: 0.7, lineHeight: 1.5 },
 
   seg: { display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" },
-  segBtn: {
-    padding: "10px 12px",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  segBtn: { padding: "10px 12px", borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
   segActive: { border: "1px solid #2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.12)" },
 
-  pill: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  pill: { padding: "8px 12px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900 },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
-  inlineLinkBtn: {
-    marginLeft: 6,
-    border: "none",
-    background: "transparent",
-    padding: 0,
-    color: "#2563eb",
-    fontWeight: 900,
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
+  inlineLinkBtn: { marginLeft: 6, border: "none", background: "transparent", padding: 0, color: "#2563eb", fontWeight: 900, cursor: "pointer", textDecoration: "underline" },
 
   btn: { padding: "10px 14px", borderRadius: 14, border: "none", cursor: "pointer", fontWeight: 900 },
   btnMain: { background: "#2563eb", color: "#fff" },
   btnGhost: { background: "#111827", color: "#fff" },
 
-  dangerLine: { position: "absolute", left: 0, right: 0, top: "58%" as any, height: 2, background: "rgba(239,68,68,0.6)" },
-
-  overlayChips: { position: "absolute", top: 10, right: 12, display: "flex", gap: 8, zIndex: 20 },
+  topInfoRow: { display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginBottom: 10, flexWrap: "wrap" },
   chip: { padding: "8px 10px", borderRadius: 999, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, fontSize: 12, boxShadow: "0 10px 20px rgba(0,0,0,0.06)" },
+  timerChip: { padding: "8px 10px", borderRadius: 999, background: "#111827", color: "#fff", fontWeight: 900, fontSize: 12 },
 
   comboPop: {
     position: "absolute",
     left: "50%",
-    top: "44%",
-    transform: "translate(-50%, -50%)",
+    top: 120,
+    transform: "translateX(-50%)",
     zIndex: 35,
     padding: "10px 14px",
     borderRadius: 999,
@@ -946,68 +762,20 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
-  plate: {
-    width: "min(640px, 92%)",
-    margin: "0 auto",
-    background: "#111827",
-    color: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    border: "1px solid rgba(255,255,255,0.14)",
-    boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
-    position: "relative",
-  },
-  plateBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    fontSize: 11,
-    fontWeight: 900,
-    opacity: 0.75,
-    padding: "4px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-  },
-  prompt: {
-    fontSize: "clamp(18px, 5vw, 22px)" as any,
-    fontWeight: 900,
-    textAlign: "center",
-    padding: "14px 0 8px",
-  },
-  progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
-  dot: { width: 10, height: 10, borderRadius: 999, background: "#fff", display: "inline-block" },
+  toast: { position: "absolute", top: 12, left: 12, padding: "8px 12px", borderRadius: 14, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, boxShadow: "0 10px 22px rgba(0,0,0,0.08)", zIndex: 30 },
 
-  toast: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    padding: "8px 12px",
-    borderRadius: 14,
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    fontWeight: 900,
-    boxShadow: "0 10px 22px rgba(0,0,0,0.08)",
-    zIndex: 30,
-  },
+  questionBox: { position: "relative", background: "#111827", color: "#fff", borderRadius: 18, padding: 16, border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 18px 34px rgba(0,0,0,0.22)" },
+  qBadge: { position: "absolute", top: 12, right: 12, fontSize: 11, fontWeight: 900, opacity: 0.75, padding: "4px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" },
+  prompt: { fontSize: "clamp(18px, 5vw, 24px)" as any, fontWeight: 900, textAlign: "center", padding: "18px 0 8px" },
 
-  tilesArea: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: "10px 12px calc(10px + env(safe-area-inset-bottom))" as any,
-    background: "linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.8))",
-    borderTop: "1px solid #e5e7eb",
-  },
-  tilesTitle: { fontWeight: 900, marginBottom: 8 },
-  tilesGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 10 },
-  tileBtn: {
-    padding: "clamp(10px, 2.6vw, 14px) clamp(8px, 2.2vw, 10px)" as any,
+  choicesGrid: { marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  choiceBtn: {
+    padding: "clamp(12px, 3.2vw, 16px)" as any,
     borderRadius: 16,
     border: "1px solid #e5e7eb",
     background: "#fff",
     fontWeight: 900,
-    fontSize: "clamp(14px, 4.2vw, 18px)" as any,
+    fontSize: "clamp(16px, 4.8vw, 20px)" as any,
     cursor: "pointer",
     boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
   },

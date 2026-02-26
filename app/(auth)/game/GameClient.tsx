@@ -1,17 +1,33 @@
 "use client"
 
+import { useMemo } from "react"
 import { useSearchParams } from "next/navigation"
+
 import type { QuizType } from "@/app/data/types"
 import TileDropGame from "./TileDropGame"
+import SpeedChoiceGame from "./SpeedChoiceGame"
+import type { GameKind } from "./types"
 
-export default function GameClient() {
+function isGameKind(v: string | null): v is GameKind {
+  return v === "tile-drop" || v === "speed-choice" || v === "sentence-build"
+}
+
+export default function GameClient({ quizType }: { quizType: QuizType }) {
   const params = useSearchParams()
+  const modeParam = params.get("mode") // "normal" | "attack"
+  const kindParam = params.get("kind")
 
-  // ✅ ゲームは1本固定：日本語N4（typeは無視）
-  const quizType: QuizType = "japanese-n4"
+  const kind: GameKind = useMemo(() => {
+    if (isGameKind(kindParam)) return kindParam
+    // ✅ 最短でN4が出る導線
+    if (quizType === "japanese-n4") return "speed-choice"
+    return "tile-drop"
+  }, [kindParam, quizType])
 
-  // ✅ TileDropGame が期待しているのは modeParam
-  const modeParam = params.get("mode") // "normal" | "attack" など
+  if (kind === "speed-choice") {
+    return <SpeedChoiceGame quizType={quizType} modeParam={modeParam} />
+  }
 
+  // sentence-build は後で追加（今は tile-drop に落としてOK）
   return <TileDropGame quizType={quizType} modeParam={modeParam} />
 }
