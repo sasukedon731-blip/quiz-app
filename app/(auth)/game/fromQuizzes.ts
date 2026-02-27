@@ -21,11 +21,15 @@ const DEFAULT_OPTS: Required<GameGenOptions> = {
   allowAutoTrimChoice: false,
 }
 
-export function buildGameQuestionsFromQuizzes(
-  quizType: QuizType,
-  opts?: GameGenOptions
-): GameQuestion[] {
-  const o = { ...DEFAULT_OPTS, ...(opts ?? {}) }
+export function buildGameQuestionsFromQuizzes(quizType: QuizType, opts?: GameGenOptions): GameQuestion[] {
+  const merged = { ...DEFAULT_OPTS, ...(opts ?? {}) } as Required<GameGenOptions>
+
+  // ✅ japanese-n4 はデフォ difficulty をN4寄せ（optsで指定があれば優先）
+  const o: Required<GameGenOptions> = {
+    ...merged,
+    difficulty: (opts?.difficulty ?? (quizType === "japanese-n4" ? "N4" : merged.difficulty)) as GameDifficulty,
+  }
+
   const quiz = (quizzes as any)[quizType]
   if (!quiz?.questions || !Array.isArray(quiz.questions)) return []
 
@@ -40,6 +44,15 @@ export function buildGameQuestionsFromQuizzes(
     if (!g.enabled) return false
     if (!g.prompt || g.prompt.length > o.maxPromptChars) return false
     if (!g.answer?.length) return false
+
+    // speed-choice は 4 択前提なので minChoices 判定を緩める
+    if (g.kind === "speed-choice") {
+      if (!g.choices || g.choices.length !== 4) return false
+      if (g.choices.some((c) => c.length > Math.max(o.maxChoiceChars, 14))) return false
+      return true
+    }
+
+    // tile-drop
     if (!g.choices || g.choices.length < Math.min(o.minChoices, o.maxChoices)) return false
     if (g.choices.some((c) => c.length > o.maxChoiceChars)) return false
     return true
@@ -61,6 +74,12 @@ function mapStudyToGame(
   if (!q || typeof q !== "object") return null
   if (!Array.isArray(q.choices) || typeof q.correctIndex !== "number") return null
 
+  // ✅ 聴解は完全除外（これが最重要）
+  // - japanese-n4.ts には sectionId: "listening" がある
+  // - さらに将来 listeningText がある問題も弾けるようにする
+  if ((q as any).sectionId === "listening") return null
+  if (typeof (q as any).listeningText === "string" && String((q as any).listeningText).trim()) return null
+
   const rawQuestion = String(q.question ?? "").trim()
   if (!rawQuestion) return null
 
@@ -75,21 +94,21 @@ function mapStudyToGame(
   const id = `qz-${quizType}-${srcId}`
 
   // -------------------------
-  // ✅ kind 判定（P0：tile-drop / speed-choice）
+  // ✅ kind 判定（最優先：sectionId → fallback：旧推定）
   // -------------------------
-  const kind = inferKind(rawQuestion, q.choices)
+  const sectionId = String((q as any).sectionId ?? "").trim()
+  const kind = inferKindBySection(quizType, sectionId) ?? inferKindByHeuristic(rawQuestion, q.choices)
 
   // -------------------------
   // ✅ kind別の短文化・制約
   // -------------------------
 
-  // --- speed-choice（4択が基本。N4漢字/語彙系の救済） ---
+  // --- speed-choice（4択固定：文字・語彙/漢字・読み系に最適） ---
   if (kind === "speed-choice") {
-    // speed-choiceは 4択でOKにする
     const opts = {
       ...o,
-      maxChoices: Math.min(o.maxChoices, 4),
-      minChoices: Math.min(o.minChoices, 4),
+      maxChoices: 4,
+      minChoices: 4,
       maxPromptChars: Math.max(o.maxPromptChars, 42),
       maxChoiceChars: Math.max(o.maxChoiceChars, 14),
       allowAutoTrimChoice: true,
@@ -98,8 +117,12 @@ function mapStudyToGame(
     const pool = sanitizeChoices(q.choices, correct, opts)
     if (pool.length < 4) return null
 
-    // promptは「短い指示」に寄せる
     const prompt = clampPrompt(buildSpeedChoicePrompt(rawQuestion), opts.maxPromptChars)
+
+    // ✅ N4の「文字・語彙」は speed-choice に寄せるので difficulty もN4寄せ
+    const d: GameDifficulty =
+      (opts.difficulty ??
+        (quizType === "japanese-n4" ? "N4" : "N5")) as GameDifficulty
 
     return {
       id,
@@ -108,7 +131,7 @@ function mapStudyToGame(
       prompt,
       answer: [correct],
       choices: pool.slice(0, 4),
-      difficulty: (opts.difficulty ?? "N4") as GameDifficulty,
+      difficulty: d,
       enabled: true,
       quizType,
     }
@@ -139,9 +162,27 @@ function mapStudyToGame(
 }
 
 // -------------------------
-// kind 推定（雑でOK：テンポ優先）
+// ✅ sectionId ベースの kind 判定（最優先）
 // -------------------------
-function inferKind(question: string, choices: any[]): GameKind {
+function inferKindBySection(quizType: QuizType, sectionId: string): GameKind | null {
+  // N4の構造に合わせる（あなたの japanese-n4.ts に完全一致）
+  if (quizType === "japanese-n4") {
+    if (sectionId === "moji-goi") return "speed-choice"
+    if (sectionId === "bunpo") return "tile-drop"
+    if (sectionId === "reading") return "tile-drop"
+    if (sectionId === "listening") return null // ここは mapStudyToGame で除外済みだが念のため
+    return "tile-drop"
+  }
+
+  // 他教材は section が無いこともあるので null にして heuristic へ
+  if (!sectionId) return null
+  return null
+}
+
+// -------------------------
+// fallback：旧推定（雑でOK：互換用）
+// -------------------------
+function inferKindByHeuristic(question: string, choices: any[]): GameKind {
   const q = question
 
   // 漢字・読み・どの漢字 など → speed-choice
@@ -156,7 +197,6 @@ function inferKind(question: string, choices: any[]): GameKind {
   if (/助詞/.test(q)) return "tile-drop"
   if (/（\s*）|＿{2,}|_{2,}|〔\s*〕|【\s*】/.test(q)) return "tile-drop"
 
-  // デフォルト
   return "tile-drop"
 }
 
