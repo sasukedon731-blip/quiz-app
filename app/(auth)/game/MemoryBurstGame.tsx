@@ -22,6 +22,7 @@ export default function MemoryBurstGame({
 }) {
   const router = useRouter()
   const params = useSearchParams()
+  const autostart = params.get("autostart") === "1"
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
   const section = params.get("section") // いまは未使用（将来拡張用）
 
@@ -52,7 +53,13 @@ export default function MemoryBurstGame({
         return t - 1
       })
     }, 1000)
-    return () => window.clearInterval(id)
+    useEffect(() => {
+    if (autostart && phase === "ready") {
+      start()
+    }
+  }, [autostart, phase])
+
+  return () => window.clearInterval(id)
   }, [phase])
 
   function start() {
@@ -113,13 +120,7 @@ export default function MemoryBurstGame({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <button
           type="button"
-          onClick={() => {
-            if (phase === "ready") {
-              router.push(`/game?type=${quizType}&kind=tile-drop`)
-              return
-            }
-            setPhase("ready")
-          }}
+          onClick={() => router.push(`/game?type=${quizType}&kind=tile-drop`)}
           style={{ background: "transparent", border: "none", cursor: "pointer" }}
         >
           ← 戻る
@@ -128,7 +129,7 @@ export default function MemoryBurstGame({
         <div />
       </div>
 
-      {phase === "ready" && (
+      {phase === "ready" && !autostart && (
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>一瞬表示 → 記憶で答える</div>
           <div style={{ opacity: 0.9, lineHeight: 1.6 }}>

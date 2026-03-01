@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
@@ -23,6 +23,8 @@ export default function FlashJudgeGame({
   modeParam: string | null
 }) {
   const router = useRouter()
+  const params = useSearchParams()
+  const autostart = params.get("autostart") === "1"
 
   const params = useSearchParams()
   const phaseSection = params.get("section")
@@ -59,7 +61,13 @@ export default function FlashJudgeGame({
         return t - 1
       })
     }, 1000)
-    return () => window.clearInterval(id)
+    useEffect(() => {
+    if (autostart && phase === "ready") {
+      startGame()
+    }
+  }, [autostart, phase])
+
+  return () => window.clearInterval(id)
   }, [phase])
 
   function nextQuestion() {

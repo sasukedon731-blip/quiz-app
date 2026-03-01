@@ -580,7 +580,7 @@ export default function TileDropGame({
                   if (selectedKind === "tile-drop") {
                     startGame()
                   } else {
-                    router.push(`/game?type=${quizType}&kind=${selectedKind}`)
+                    router.push(`/game?type=${quizType}&kind=${selectedKind}&autostart=1`)
                   }
                 }}
                 disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
