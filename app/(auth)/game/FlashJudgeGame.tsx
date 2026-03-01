@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
@@ -26,7 +25,6 @@ export default function FlashJudgeGame({
   const params = useSearchParams()
   const autostart = params.get("autostart") === "1"
 
-  const params = useSearchParams()
   const phaseSection = params.get("section")
 
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
@@ -61,14 +59,16 @@ export default function FlashJudgeGame({
         return t - 1
       })
     }, 1000)
-    useEffect(() => {
-    if (autostart && phase === "ready") {
-      startGame()
-    }
-  }, [autostart, phase])
 
   return () => window.clearInterval(id)
   }, [phase])
+
+  useEffect(() => {
+    if (autostart) {
+      start()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart])
 
   function nextQuestion() {
     if (!pool.length) {

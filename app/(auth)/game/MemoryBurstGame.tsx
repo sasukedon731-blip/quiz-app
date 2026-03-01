@@ -53,14 +53,16 @@ export default function MemoryBurstGame({
         return t - 1
       })
     }, 1000)
-    useEffect(() => {
-    if (autostart && phase === "ready") {
-      start()
-    }
-  }, [autostart, phase])
 
   return () => window.clearInterval(id)
   }, [phase])
+
+  useEffect(() => {
+    if (autostart) {
+      start()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart])
 
   function start() {
     setScore(0)
