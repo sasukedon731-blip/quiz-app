@@ -14,6 +14,7 @@ import type { GameDifficulty, GameMode, GameQuestion } from "./types"
 import { fallbackQuestions } from "./questions"
 import { fetchAttackLeaderboard, submitAttackScore } from "./firestore"
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
+import { getTileDropPool } from "./pools/tileDropPools"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -76,12 +77,22 @@ export default function TileDropGame({
     return "tile-drop" // all / bunpo / reading
   }, [quizType, selectedSection])
 
-  // ✅ pool（tile-drop用のみ）
+  // ✅ pool（tile-drop専用）
+  // 1) まずは「落ちゲー専用プール」を最優先（混在事故を防ぐ）
+  // 2) まだ用意が無い教材だけ、暫定で quizzes から生成（最後の保険）
   const pool = useMemo(() => {
-    // tile-drop側は、既存の buildGamePoolFromQuizzes を使う（ここは「落ちゲー用」）
+    const dedicated = getTileDropPool(quizType)
+    if (dedicated.length) return dedicated
+
     const built = buildGamePoolFromQuizzes(quizType)
-    if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop")
-    return fallbackQuestions.filter((q) => q.enabled && q.kind === "tile-drop")
+    if (built.length) {
+      const enabled = built.filter((q) => q.enabled)
+      const preferTileDrop = enabled.filter((q) => q.kind === "tile-drop")
+      if (preferTileDrop.length) return preferTileDrop
+      return enabled
+    }
+
+    return fallbackQuestions.filter((q) => q.enabled)
   }, [quizType])
 
   useEffect(() => {

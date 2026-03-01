@@ -6,14 +6,29 @@ import { useSearchParams } from "next/navigation"
 import type { QuizType } from "@/app/data/types"
 import TileDropGame from "./TileDropGame"
 import SpeedChoiceGame from "./SpeedChoiceGame"
+import FlashJudgeGame from "./FlashJudgeGame"
+import MemoryBurstGame from "./MemoryBurstGame"
 import type { GameKind } from "./types"
 
 function isQuizType(v: any): v is QuizType {
-  return v === "japanese-n4" || v === "gaikoku-license" || v === "genba-listening"
+  return (
+    v === "japanese-n4" ||
+    v === "japanese-n3" ||
+    v === "japanese-n2" ||
+    v === "gaikoku-license" ||
+    v === "genba-listening" ||
+    v === "road-signs"
+  )
 }
 
 function isGameKind(v: any): v is GameKind {
-  return v === "tile-drop" || v === "speed-choice" || v === "sentence-build"
+  return (
+    v === "tile-drop" ||
+    v === "speed-choice" ||
+    v === "flash-judge" ||
+    v === "memory-burst" ||
+    v === "sentence-build"
+  )
 }
 
 export default function GameClient() {
@@ -35,6 +50,14 @@ export default function GameClient() {
 
   if (kind === "speed-choice") {
     return <SpeedChoiceGame quizType={quizType} modeParam={modeParam} />
+  }
+
+  if (kind === "flash-judge") {
+    return <FlashJudgeGame quizType={quizType} modeParam={modeParam} />
+  }
+
+  if (kind === "memory-burst") {
+    return <MemoryBurstGame quizType={quizType} modeParam={modeParam} />
   }
 
   return <TileDropGame quizType={quizType} modeParam={modeParam} />
