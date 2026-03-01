@@ -1,12 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
-import type { MemoryBurstQuestion, GameMode } from "./types"
+import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
 
 type Phase = "ready" | "show" | "question" | "over"
@@ -23,28 +21,25 @@ export default function MemoryBurstGame({
   modeParam: string | null
 }) {
   const router = useRouter()
-
   const params = useSearchParams()
-  const sectionParam = params.get("section")
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
+  const section = params.get("section") // いまは未使用（将来拡張用）
 
   const pool = useMemo(() => {
     let list = getMemoryBurstPool(quizType)
-    if (quizType === "japanese-n4") {
-      const section = sectionParam
-      if (section && section !== "all") {
-        list = list.filter((q) => q.sectionId === section)
-      }
-    }
-    return list
-  }, [quizType, sectionParam])
+    // 将来：sectionで絞るならここ
+    void section
+    return list.filter((q) => q.enabled)
+  }, [quizType, section])
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [timeLeft, setTimeLeft] = useState<number>(60)
-  const [score, setScore] = useState<number>(0)
+  const [timeLeft, setTimeLeft] = useState<number>(mode === "attack" ? 60 : 90)
+  const [score, setScore] = useState(0)
   const [current, setCurrent] = useState<MemoryBurstQuestion | null>(null)
   const [feedback, setFeedback] = useState<string>("")
+  const [showMs] = useState<number>(2500)
 
+  // タイマー（playing中のみ）
   useEffect(() => {
     if (phase === "ready" || phase === "over") return
     const id = window.setInterval(() => {
@@ -60,25 +55,27 @@ export default function MemoryBurstGame({
     return () => window.clearInterval(id)
   }, [phase])
 
-  function next() {
-    if (!pool.length) {
-      setCurrent(null)
-      return
-    }
-    setFeedback("")
-    const q = pickRandom(pool)
-    setCurrent(q)
-    setPhase("show")
-    // ✅ まず表示 → 2.5秒で消す
-    window.setTimeout(() => {
-      setPhase((p) => (p === "show" ? "question" : p))
-    }, 2500)
-  }
-
   function start() {
     setScore(0)
+    setFeedback("")
     setTimeLeft(mode === "attack" ? 60 : 90)
-    next()
+    const q = pickRandom(pool)
+    setCurrent(q || null)
+    setPhase("show")
+    // show → question
+    window.setTimeout(() => {
+      setPhase("question")
+    }, showMs)
+  }
+
+  function next() {
+    const q = pickRandom(pool)
+    setCurrent(q || null)
+    setFeedback("")
+    setPhase("show")
+    window.setTimeout(() => {
+      setPhase("question")
+    }, showMs)
   }
 
   function choose(i: number) {
@@ -97,10 +94,36 @@ export default function MemoryBurstGame({
     }, 600)
   }
 
+  const choiceStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.06)",
+    fontWeight: 900,
+    fontSize: "clamp(16px, 4.8vw, 20px)",
+    lineHeight: 1.2,
+    textAlign: "left",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
+  }
+
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <Link href="/">← 戻る</Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (phase === "ready") {
+              router.push(`/game?type=${quizType}&kind=tile-drop`)
+              return
+            }
+            setPhase("ready")
+          }}
+          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+        >
+          ← 戻る
+        </button>
         <div style={{ fontWeight: 700 }}>Memory Burst</div>
         <div />
       </div>
@@ -115,14 +138,52 @@ export default function MemoryBurstGame({
           </div>
           <div style={{ marginTop: 12, opacity: 0.85 }}>問題数：{pool.length}問</div>
           <button
-            onClick={() => {
-                if (phase === "ready") {
-                  router.push("/select-mode")
-                  return
-                }
-                setPhase("ready")
-}}
-            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
+            onClick={start}
+            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 900 }}
+          >
+            ゲーム開始
+          </button>
+        </div>
+      )}
+
+      {(phase === "show" || phase === "question") && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ fontWeight: 900 }}>残り {timeLeft}s</div>
+            <div style={{ fontWeight: 900 }}>score {score}</div>
+          </div>
+
+          <div style={{ marginTop: 14, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
+            {phase === "show" ? (
+              <div style={{ fontSize: "clamp(18px, 5vw, 24px)", fontWeight: 900, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {current?.displayText ?? ""}
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: "clamp(16px, 4.6vw, 22px)", fontWeight: 900, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                  {current?.question ?? ""}
+                </div>
+                <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+                  {(current?.choices ?? []).map((c, i) => (
+                    <button key={i} onClick={() => choose(i)} style={choiceStyle}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                {feedback && <div style={{ marginTop: 10, fontWeight: 900 }}>{feedback}</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {phase === "over" && (
+        <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>終了！</div>
+          <div style={{ marginTop: 8, fontSize: 18, fontWeight: 800 }}>score: {score}</div>
+          <button
+            onClick={() => setPhase("ready")}
+            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 900 }}
           >
             もう一回
           </button>

@@ -101,7 +101,13 @@ export default function FlashJudgeGame({
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <Link href="/">← 戻る</Link>
+        <button type="button" onClick={() => {
+          if (phase === "ready") {
+            router.push(`/game?type=${quizType}&kind=tile-drop`)
+            return
+          }
+          setPhase("ready")
+        }} style={{ background: "transparent", border: "none", cursor: "pointer" }}>← 戻る</button>
         <div style={{ fontWeight: 700 }}>Flash Judge</div>
         <div />
       </div>

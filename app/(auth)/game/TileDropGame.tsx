@@ -513,6 +513,13 @@ export default function TileDropGame({
                 </button>
               </div>
               <div style={styles.help}>※ ここで3つのゲームを切り替えできます</div>
+              <div style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.6 }}>
+                <b>落ちゲー</b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
+                <br />
+                <b>○×</b>：文が正しいなら○、間違いなら×。
+                <br />
+                <b>記憶4択</b>：一瞬表示→消えたあとに答える。
+              </div>
             </div>
           </div>
 
