@@ -65,6 +65,7 @@ export default function TileDropGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
   const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
+  const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">("tile-drop")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
   // ✅ Readyで選べる（カテゴリのみ）
@@ -439,6 +440,20 @@ export default function TileDropGame({
   const fallY = 420
   const plateKey = current ? activeKeyRef.current : "none"
 
+  const shuffledChoices = useMemo(() => {
+    const base = current?.choices ?? []
+    // ✅ 同じ問題で毎レンダーごとに並びが変わらないように、IDでseedを固定
+    const seed = current?.id ?? "seed"
+    const h = Array.from(seed).reduce((a, c) => a + c.charCodeAt(0), 0)
+    const arr = [...base]
+    // Fisher–Yates
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = (h + i * 9301 + 49297) % (i + 1)
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+  }, [current?.id])
+
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
   // ✅ 下の中断を消した分、広く
@@ -449,9 +464,18 @@ export default function TileDropGame({
       <div style={styles.shell}>
         {/* Compact bar */}
         <div style={styles.compactBar}>
-          <Link href="/select-mode" style={styles.compactBack}>
+          <button
+            type="button"
+            onClick={() => {
+              // ゲーム中でも「スタート設定」に戻す
+              setPhase("ready")
+              setCurrent(null)
+              setToast("")
+            }}
+            style={{ ...styles.compactBack, background: "transparent", border: "none", cursor: "pointer" }}
+          >
             ←
-          </Link>
+          </button>
 
           <div style={styles.compactCenter}>
             <div style={styles.compactTitle}>日本語バトル（ゲーム）</div>
@@ -467,20 +491,20 @@ export default function TileDropGame({
               <div style={styles.label}>ゲーム</div>
               <div style={styles.seg}>
                 <button
-                  style={{ ...styles.segBtn, ...(true ? styles.segActive : {}) }}
-                  onClick={() => router.push(`/game?type=${quizType}&kind=tile-drop`)}
+                  style={{ ...styles.segBtn, ...(selectedKind === "tile-drop" ? styles.segActive : {}) }}
+                  onClick={() => setSelectedKind("tile-drop")}
                 >
                   落ちゲー
                 </button>
                 <button
-                  style={styles.segBtn}
-                  onClick={() => router.push(`/game?type=${quizType}&kind=flash-judge`)}
+                  style={{ ...styles.segBtn, ...(selectedKind === "flash-judge" ? styles.segActive : {}) }}
+                  onClick={() => setSelectedKind("flash-judge")}
                 >
                   ○×（文法）
                 </button>
                 <button
-                  style={styles.segBtn}
-                  onClick={() => router.push(`/game?type=${quizType}&kind=memory-burst`)}
+                  style={{ ...styles.segBtn, ...(selectedKind === "memory-burst" ? styles.segActive : {}) }}
+                  onClick={() => setSelectedKind("memory-burst")}
                 >
                   記憶4択
                 </button>
@@ -542,8 +566,14 @@ export default function TileDropGame({
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
               <button
-                onClick={startGame}
-                disabled={filteredPool.length === 0}
+                onClick={() => {
+                  if (selectedKind === "tile-drop") {
+                    startGame()
+                  } else {
+                    router.push(`/game?type=${quizType}&kind=${selectedKind}`)
+                  }
+                }}
+                disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
                 style={{ ...styles.btn, ...styles.btnMain }}
               >
                 ゲーム開始
