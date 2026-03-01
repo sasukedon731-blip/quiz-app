@@ -465,9 +465,16 @@ export default function SpeedChoiceGame({
     <main style={styles.page} className="game-root">
       <div style={styles.shell}>
         <div style={styles.compactBar}>
-          <Link href="/select-mode" style={styles.compactBack}>
+          <button
+            type="button"
+            onClick={() => {
+              setPhase("ready")
+              setToast("")
+            }}
+            style={{ ...styles.compactBack, background: "transparent", border: "none", cursor: "pointer" }}
+          >
             ←
-          </Link>
+          </button>
 
           <div style={styles.compactCenter}>
             <div style={styles.compactTitle}>日本語バトル（4択スピード）</div>

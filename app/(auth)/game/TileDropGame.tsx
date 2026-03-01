@@ -452,7 +452,7 @@ export default function TileDropGame({
       ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
     return arr
-  }, [current?.id])
+  }, [current?.id, current?.choices])
 
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
@@ -678,7 +678,7 @@ export default function TileDropGame({
               <div style={styles.tilesArea}>
                 <div style={styles.tilesTitle}>タイルを順番に押せ</div>
                 <div style={styles.tilesGrid}>
-                  {(current?.choices ?? []).map((c, idx) => (
+                  {shuffledChoices.map((c, idx) => (
                     <button key={`${c}-${idx}`} onClick={() => onTilePress(c)} style={styles.tileBtn}>
                       {c}
                     </button>
