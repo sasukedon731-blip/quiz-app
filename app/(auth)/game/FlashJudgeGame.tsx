@@ -3,10 +3,17 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { onAuthStateChanged } from "firebase/auth"
+import { auth } from "@/app/lib/firebase"
+import { submitAttackScore } from "./firestore"
 
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
 import { getFlashJudgePool } from "./pools/flashJudgePools"
+
+const ATTACK_LEVELS: QuizType[] = ["japanese-n4","japanese-n3","japanese-n2"]
+
+function levelLabel(i: number): "N4"|"N3"|"N2" { return i===2 ? "N2" : i===1 ? "N3" : "N4" }
 
 type Phase = "ready" | "playing" | "over"
 
@@ -29,8 +36,20 @@ export default function FlashJudgeGame({
 
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
 
+  const [phase, setPhase] = useState<Phase>("ready")
+  const [score, setScore] = useState<number>(0)
+  const [life, setLife] = useState<number>(3)
+  const [uid, setUid] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string>("")
+
+  const isAttack = mode === "attack" && quizType.startsWith("japanese-")
+  const [attackLevelIndex, setAttackLevelIndex] = useState(0)
+  const [stageCorrect, setStageCorrect] = useState(0)
+  const activeQuizType: QuizType = isAttack ? ATTACK_LEVELS[attackLevelIndex] : quizType
+
+
   const pool = useMemo(() => {
-    let list = getFlashJudgePool(quizType)
+    let list = getFlashJudgePool(activeQuizType)
     if (quizType === "japanese-n4") {
       const section = phaseSection
       if (section && section !== "all") {
@@ -38,30 +57,22 @@ export default function FlashJudgeGame({
       }
     }
     return list
-  }, [quizType, phaseSection])
+  }, [activeQuizType, phaseSection])
+  const [maxLevelReached, setMaxLevelReached] = useState(0)
+  const [bestStageAtMax, setBestStageAtMax] = useState(0)
 
-  const [phase, setPhase] = useState<Phase>("ready")
-  const [timeLeft, setTimeLeft] = useState<number>(30)
-  const [score, setScore] = useState<number>(0)
+
   const [combo, setCombo] = useState<number>(0)
   const [current, setCurrent] = useState<FlashJudgeQuestion | null>(null)
   const [lastMsg, setLastMsg] = useState<string>("")
 
   useEffect(() => {
-    if (phase !== "playing") return
-    const id = window.setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          window.clearInterval(id)
-          setPhase("over")
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
-
-  return () => window.clearInterval(id)
-  }, [phase])
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUid(u?.uid ?? null)
+      setDisplayName(u?.displayName ?? "")
+    })
+    return () => unsub()
+  }, [])
 
   useEffect(() => {
     if (autostart) {
@@ -82,7 +93,13 @@ export default function FlashJudgeGame({
     setScore(0)
     setCombo(0)
     setLastMsg("")
-    setTimeLeft(mode === "attack" ? 30 : 45)
+    setLife(3)
+    if (isAttack) {
+      setAttackLevelIndex(0)
+      setStageCorrect(0)
+      setMaxLevelReached(0)
+      setBestStageAtMax(0)
+    }
     setPhase("playing")
     nextQuestion()
   }
@@ -97,10 +114,31 @@ export default function FlashJudgeGame({
       const bonus = newCombo >= 5 ? 2 : 1
       setScore((s) => s + 10 * bonus)
       setLastMsg(newCombo >= 5 ? `✅ 正解！(x${bonus})` : "✅ 正解！")
+
+      if (isAttack) {
+        setStageCorrect((prev) => {
+          const next = prev + 1
+          // best stage at max level
+          setBestStageAtMax((bs) => (attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs))
+          if (next >= 30) {
+            setAttackLevelIndex((i) => {
+              const ni = (i + 1) % 3
+              setMaxLevelReached((m) => Math.max(m, ni))
+              return ni
+            })
+            return 0
+          }
+          return next
+        })
+      }
     } else {
       setCombo(0)
       setScore((s) => Math.max(0, s - 5))
       setLastMsg("❌ ミス！")
+      setLife((prev) => {
+        const next = prev - 1
+        return next < 0 ? 0 : next
+      })
     }
 
     nextQuestion()
@@ -116,13 +154,13 @@ export default function FlashJudgeGame({
           }
           setPhase("ready")
         }} style={{ background: "transparent", border: "none", cursor: "pointer" }}>← 戻る</button>
-        <div style={{ fontWeight: 700 }}>Flash Judge</div>
+        <div style={{ fontWeight: 700 }}>瞬判ジャッジ</div>
         <div />
       </div>
 
       {phase === "ready" && (
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>瞬間判定（○ / ×）</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>瞬判ジャッジ（○ / ×）</div>
           <div style={{ opacity: 0.9, lineHeight: 1.6 }}>
             文が正しいなら <b>○</b>、間違いなら <b>×</b>。
             <br />
@@ -145,7 +183,7 @@ export default function FlashJudgeGame({
         <div style={{ marginTop: 18 }}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" }}>
-              ⏱ {timeLeft}s
+              ❤️ {life}
             </div>
             <div style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" }}>
               🧠 score {score}

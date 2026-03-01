@@ -2,10 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { onAuthStateChanged } from "firebase/auth"
+import { auth } from "@/app/lib/firebase"
+import { submitAttackScore } from "./firestore"
 
 import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
+
+const ATTACK_LEVELS: QuizType[] = ["japanese-n4","japanese-n3","japanese-n2"]
+
+function levelLabel(i: number): "N4"|"N3"|"N2" { return i===2 ? "N2" : i===1 ? "N3" : "N4" }
 
 type Phase = "ready" | "show" | "question" | "over"
 
@@ -24,38 +31,61 @@ export default function MemoryBurstGame({
   const params = useSearchParams()
   const autostart = params.get("autostart") === "1"
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
+  const isAttack = mode === "attack" && quizType.startsWith("japanese-")
+  const [attackLevelIndex, setAttackLevelIndex] = useState(0)
+  const [stageCorrect, setStageCorrect] = useState(0)
+  const [maxLevelReached, setMaxLevelReached] = useState(0)
+  const [bestStageAtMax, setBestStageAtMax] = useState(0)
+  const activeQuizType: QuizType = isAttack ? ATTACK_LEVELS[attackLevelIndex] : quizType
   const section = params.get("section") // いまは未使用（将来拡張用）
 
   const pool = useMemo(() => {
-    let list = getMemoryBurstPool(quizType)
+    let list = getMemoryBurstPool(activeQuizType)
     // 将来：sectionで絞るならここ
     void section
     return list.filter((q) => q.enabled)
   }, [quizType, section])
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [timeLeft, setTimeLeft] = useState<number>(mode === "attack" ? 60 : 90)
+  const [life, setLife] = useState(3)
+  const [uid, setUid] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string>("")
   const [score, setScore] = useState(0)
   const [current, setCurrent] = useState<MemoryBurstQuestion | null>(null)
   const [feedback, setFeedback] = useState<string>("")
   const [showMs] = useState<number>(2500)
 
-  // タイマー（playing中のみ）
   useEffect(() => {
-    if (phase === "ready" || phase === "over") return
-    const id = window.setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          window.clearInterval(id)
-          setPhase("over")
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUid(u?.uid ?? null)
+      setDisplayName(u?.displayName ?? "")
+    })
+    return () => unsub()
+  }, [])
 
-  return () => window.clearInterval(id)
-  }, [phase])
+
+ 
+
+  useEffect(() => {
+    if (phase === "ready") return
+    if (life > 0) return
+    setPhase("over")
+  }, [life, phase])
+
+  useEffect(() => {
+    if (!isAttack) return
+    if (phase !== "over") return
+    if (!uid) return
+    submitAttackScore({
+      gameId: "memory-burst",
+      uid,
+      displayName: displayName || "匿名",
+      score,
+      bestLevel: levelLabel(maxLevelReached),
+      bestStage: bestStageAtMax,
+    }).catch(() => null)
+  }, [isAttack, phase, uid, displayName, score, maxLevelReached, bestStageAtMax])
+ // タイマー（playing中のみ）
 
   useEffect(() => {
     if (autostart) {
@@ -67,7 +97,13 @@ export default function MemoryBurstGame({
   function start() {
     setScore(0)
     setFeedback("")
-    setTimeLeft(mode === "attack" ? 60 : 90)
+    setLife(3)
+    if (isAttack) {
+      setAttackLevelIndex(0)
+      setStageCorrect(0)
+      setMaxLevelReached(0)
+      setBestStageAtMax(0)
+    }
     const q = pickRandom(pool)
     setCurrent(q || null)
     setPhase("show")
@@ -93,12 +129,30 @@ export default function MemoryBurstGame({
     if (ok) {
       setScore((s) => s + 15)
       setFeedback("✅ 正解！")
+      if (isAttack) {
+        setStageCorrect((prev) => {
+          const next = prev + 1
+          setBestStageAtMax((bs) => (attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs))
+          if (next >= 30) {
+            setAttackLevelIndex((i) => {
+              const ni = (i + 1) % 3
+              setMaxLevelReached((m) => Math.max(m, ni))
+              return ni
+            })
+            return 0
+          }
+          return next
+        })
+      }
     } else {
       setScore((s) => Math.max(0, s - 5))
       setFeedback("❌ ちがう")
+      setLife((prev) => {
+        const next = prev - 1
+        return next < 0 ? 0 : next
+      })
     }
     window.setTimeout(() => {
-      if (timeLeft <= 0) return
       next()
     }, 600)
   }
@@ -127,7 +181,7 @@ export default function MemoryBurstGame({
         >
           ← 戻る
         </button>
-        <div style={{ fontWeight: 700 }}>Memory Burst</div>
+        <div style={{ fontWeight: 700 }}>フラッシュ記憶</div>
         <div />
       </div>
 
@@ -152,7 +206,7 @@ export default function MemoryBurstGame({
       {(phase === "show" || phase === "question") && (
         <div style={{ marginTop: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <div style={{ fontWeight: 900 }}>残り {timeLeft}s</div>
+            <div style={{ fontWeight: 900 }}>❤️ {life}</div>
             <div style={{ fontWeight: 900 }}>score {score}</div>
           </div>
 

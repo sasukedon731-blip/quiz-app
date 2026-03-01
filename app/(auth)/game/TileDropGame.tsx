@@ -22,6 +22,25 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
 
+const GAME_LABEL: Record<"tile-drop" | "flash-judge" | "memory-burst", string> = {
+  "tile-drop": "文字ブレイク",
+  "flash-judge": "瞬判ジャッジ",
+  "memory-burst": "フラッシュ記憶",
+}
+
+const GAME_DESC: Record<"tile-drop" | "flash-judge" | "memory-burst", string> = {
+  "tile-drop": "下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。",
+  "flash-judge": "文が正しいなら○、間違いなら×。テンポよく判定します。",
+  "memory-burst": "一瞬表示→消えたあとに答える。記憶力バトル。",
+}
+
+function difficultyLabelFromQuizType(qt: string): "N4" | "N3" | "N2" | "N5" {
+  if (qt === "japanese-n2") return "N2"
+  if (qt === "japanese-n3") return "N3"
+  if (qt === "japanese-n4") return "N4"
+  return "N5"
+}
+
 function pickOne<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
@@ -65,6 +84,16 @@ export default function TileDropGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
   const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
+
+  // ✅ Attack: N4→N3→N2→N4（30問正解で昇格）
+  const attackLevels: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
+  const [attackLevelIndex, setAttackLevelIndex] = useState(0)
+  const [stageCorrect, setStageCorrect] = useState(0)
+  const [maxLevelReached, setMaxLevelReached] = useState(0)
+  const [bestStageAtMax, setBestStageAtMax] = useState(0)
+  const isAttack = modeParam === "attack" || mode === "attack"
+  const activeQuizType: QuizType = (isAttack && quizType.startsWith("japanese-") ? attackLevels[attackLevelIndex] : quizType)
+  const activeDifficulty = difficultyLabelFromQuizType(activeQuizType)
   const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">("tile-drop")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
@@ -72,13 +101,13 @@ export default function TileDropGame({
   const [selectedSection, setSelectedSection] = useState<"all" | "moji-goi" | "bunpo" | "reading">("all")
 
   // ✅ pool（tile-drop専用）
-  // 1) まずは「落ちゲー専用プール」を最優先（混在事故を防ぐ）
+  // 1) まずは「文字ブレイク専用プール」を最優先（混在事故を防ぐ）
   // 2) まだ用意が無い教材だけ、暫定で quizzes から生成（最後の保険）
   const pool = useMemo(() => {
-    const dedicated = getTileDropPool(quizType)
+    const dedicated = getTileDropPool(activeQuizType)
     if (dedicated.length) return dedicated
 
-    const built = buildGamePoolFromQuizzes(quizType)
+    const built = buildGamePoolFromQuizzes(activeQuizType)
     if (built.length) {
       const enabled = built.filter((q) => q.enabled)
       const preferTileDrop = enabled.filter((q) => q.kind === "tile-drop")
@@ -87,30 +116,30 @@ export default function TileDropGame({
     }
 
     return fallbackQuestions.filter((q) => q.enabled)
-  }, [quizType])
+  }, [activeQuizType])
 
-  // ✅ カテゴリで落ちゲー問題を絞る（混在しない）
+  // ✅ カテゴリで文字ブレイク問題を絞る（混在しない）
   const filteredPool = useMemo(() => {
-    if (quizType !== "japanese-n4") return pool
+    if (!activeQuizType.startsWith("japanese-")) return pool
     if (selectedSection === "all") return pool
     return pool.filter((q) => q.sectionId === selectedSection)
-  }, [pool, quizType, selectedSection])
+  }, [pool, activeQuizType, selectedSection])
 
 
   useEffect(() => {
-    const d = pool[0]?.difficulty
-    if (d) setDifficulty(d)
+    setDifficulty(activeDifficulty)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quizType])
+  }, [activeQuizType, activeDifficulty])
 
-  useEffect(() => {
+useEffect(() => {
     if (phase !== "ready") return
     if (modeParam === "attack") setMode("attack")
     else if (modeParam === "normal") setMode("normal")
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modeParam, quizType, phase])
+  }, [modeParam, activeQuizType, phase])
 
   const [score, setScore] = useState(0)
+  const [correctCount, setCorrectCount] = useState(0)
   const [life, setLife] = useState(3)
   const [level, setLevel] = useState(1)
   const [combo, setCombo] = useState(0)
@@ -284,9 +313,17 @@ export default function TileDropGame({
 
   function startGameAs(nextMode: GameMode) {
     setScore(0)
+    setCorrectCount(0)
     setCombo(0)
     setLife(3)
     setLevel(1)
+
+    if (nextMode === "attack" && quizType.startsWith("japanese-")) {
+      setAttackLevelIndex(0)
+      setStageCorrect(0)
+      setMaxLevelReached(0)
+      setBestStageAtMax(0)
+    }
     setBestScore(0)
     setLeaderboard([])
     setComboPop(null)
@@ -315,10 +352,12 @@ export default function TileDropGame({
 
     try {
       const res = await submitAttackScore({
+        gameId: selectedKind,
         uid,
         displayName: displayName || "匿名",
         score,
-        currentBestScore: currentBest,
+        bestLevel: (maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4"),
+        bestStage: bestStageAtMax,
       })
       setBestScore(res.bestScore)
     } catch (e) {
@@ -326,7 +365,7 @@ export default function TileDropGame({
     }
 
     try {
-      const lb = await fetchAttackLeaderboard(30)
+      const lb = await fetchAttackLeaderboard({ gameId: selectedKind, take: 30 })
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
     } catch (e) {
       console.error(e)
@@ -397,6 +436,26 @@ export default function TileDropGame({
     const gained = base + comboBonus
 
     setScore((s) => s + gained)
+    setCorrectCount((c) => c + 1)
+
+    if (mode === "attack" && quizType.startsWith("japanese-")) {
+      setStageCorrect((prev) => {
+        const next = prev + 1
+        // update best stage at max level
+        setBestStageAtMax((bs) => (attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs))
+        if (next >= 30) {
+          // level up
+          setAttackLevelIndex((i) => {
+            const ni = (i + 1) % 3
+            setMaxLevelReached((m) => Math.max(m, ni))
+            if (ni > maxLevelReached) setBestStageAtMax(0)
+            return ni
+          })
+          return 0
+        }
+        return next
+      })
+    }
 
     // ✅ 正解音（軽く）
     playSfx("hit")
@@ -497,7 +556,7 @@ export default function TileDropGame({
                   style={{ ...styles.segBtn, ...(selectedKind === "tile-drop" ? styles.segActive : {}) }}
                   onClick={() => setSelectedKind("tile-drop")}
                 >
-                  落ちゲー
+                  文字ブレイク
                 </button>
                 <button
                   style={{ ...styles.segBtn, ...(selectedKind === "flash-judge" ? styles.segActive : {}) }}
@@ -509,16 +568,16 @@ export default function TileDropGame({
                   style={{ ...styles.segBtn, ...(selectedKind === "memory-burst" ? styles.segActive : {}) }}
                   onClick={() => setSelectedKind("memory-burst")}
                 >
-                  記憶4択
+                  フラッシュ記憶
                 </button>
               </div>
               <div style={styles.help}>※ ここで3つのゲームを切り替えできます</div>
               <div style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.6 }}>
-                <b>落ちゲー</b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
+                <b>文字ブレイク</b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
                 <br />
                 <b>○×</b>：文が正しいなら○、間違いなら×。
                 <br />
-                <b>記憶4択</b>：一瞬表示→消えたあとに答える。
+                <b>フラッシュ記憶</b>：一瞬表示→消えたあとに答える。
               </div>
             </div>
           </div>

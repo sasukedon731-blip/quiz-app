@@ -344,10 +344,12 @@ export default function SpeedChoiceGame({
 
     try {
       const res = await submitAttackScore({
+        gameId: "speed-choice",
         uid,
         displayName: displayName || "匿名",
         score,
-        currentBestScore: currentBest,
+        bestLevel: "N4",
+        bestStage: 0,
       })
       setBestScore(res.bestScore)
     } catch (e) {
@@ -355,7 +357,7 @@ export default function SpeedChoiceGame({
     }
 
     try {
-      const lb = await fetchAttackLeaderboard(30)
+      const lb = await fetchAttackLeaderboard({ gameId: "speed-choice", take: 30 })
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
     } catch (e) {
       console.error(e)

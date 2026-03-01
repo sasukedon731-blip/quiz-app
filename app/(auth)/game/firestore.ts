@@ -75,28 +75,41 @@ export async function fetchGameQuestions(params: {
 //  - updatedAt
 
 export async function submitAttackScore(params: {
+  gameId: "tile-drop" | "flash-judge" | "memory-burst" | "speed-choice" | "sentence-build"
   uid: string
   displayName: string
   score: number
-  currentBestScore?: number
+  bestLevel?: "N4" | "N3" | "N2"
+  bestStage?: number
 }): Promise<{ bestScore: number }> {
-  const bestScore = Math.max(params.currentBestScore ?? 0, params.score)
+  // ✅ per-game leaderboard (Attack only)
+  const ref = doc(db, "attackLeaderboards", params.gameId, "entries", params.uid)
+
+  // Merge update: keep bestScore
+  const bestScore = Math.max(params.score ?? 0, 0)
+
   await setDoc(
-    doc(db, "attackLeaderboard", params.uid),
+    ref,
     {
       uid: params.uid,
       displayName: params.displayName || "匿名",
       bestScore,
-      lastScore: params.score,
+      bestLevel: params.bestLevel ?? "N4",
+      bestStage: params.bestStage ?? 0,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
   )
+
   return { bestScore }
 }
 
-export async function fetchAttackLeaderboard(take = 50): Promise<LeaderboardEntry[]> {
-  const col = collection(db, "attackLeaderboard")
+export async function fetchAttackLeaderboard(params: {
+  gameId: "tile-drop" | "flash-judge" | "memory-burst" | "speed-choice" | "sentence-build"
+  take?: number
+}): Promise<LeaderboardEntry[]> {
+  const take = params.take ?? 50
+  const col = collection(db, "attackLeaderboards", params.gameId, "entries")
   const q = query(col, orderBy("bestScore", "desc"), limit(take))
   const snap = await getDocs(q)
   const items: LeaderboardEntry[] = []
@@ -107,6 +120,8 @@ export async function fetchAttackLeaderboard(take = 50): Promise<LeaderboardEntr
       uid: v.uid || d.id,
       displayName: v.displayName || "匿名",
       bestScore: Number(v.bestScore ?? 0),
+      bestLevel: v.bestLevel,
+      bestStage: Number(v.bestStage ?? 0),
       updatedAt: v.updatedAt,
     })
   })

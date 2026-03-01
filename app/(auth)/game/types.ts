@@ -62,5 +62,7 @@ export type LeaderboardEntry = {
   uid: string
   displayName: string
   bestScore: number
+  bestLevel?: "N4" | "N3" | "N2"
+  bestStage?: number
   updatedAt?: any
 }
