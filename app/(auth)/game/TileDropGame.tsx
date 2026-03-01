@@ -93,6 +93,7 @@ export default function TileDropGame({
   const [bestStageAtMax, setBestStageAtMax] = useState(0)
   const isAttack = modeParam === "attack" || mode === "attack"
   const activeQuizType: QuizType = (isAttack && quizType.startsWith("japanese-") ? attackLevels[attackLevelIndex] : quizType)
+  const launchQuizType: QuizType = activeQuizType
   const activeDifficulty = difficultyLabelFromQuizType(activeQuizType)
   const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">("tile-drop")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
@@ -611,7 +612,32 @@ useEffect(() => {
                   ノーマル：難易度固定 / アタック：速度UP + 難易度が徐々に上がる
                 </div>
 
-                {!uid ? (
+                
+                {mode === "normal" && quizType.startsWith("japanese-") ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
+                      ノーマルの級（N4 / N3 / N2）
+                    </div>
+                    <div style={styles.seg}>
+                      {(["japanese-n4", "japanese-n3", "japanese-n2"] as QuizType[]).map((lv) => (
+                        <button
+                          key={lv}
+                          style={{ ...styles.segBtn, ...(quizType === lv ? styles.segActive : {}) }}
+                          onClick={() => {
+                            // クイズ級だけ切り替え（画面はそのまま）
+                            router.replace(`/game?type=${lv}&kind=tile-drop&mode=normal`)
+                          }}
+                        >
+                          {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7, lineHeight: 1.5 }}>
+                      ※ アタックは常に <b>N4スタート</b> で自動的に昇格します
+                    </div>
+                  </div>
+                ) : null}
+{!uid ? (
                   <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
                     ※ ゲストはノーマルのみ。ランキング参加は
                     <button onClick={() => router.push("/login")} style={styles.inlineLinkBtn}>
@@ -639,7 +665,7 @@ useEffect(() => {
                   if (selectedKind === "tile-drop") {
                     startGame()
                   } else {
-                    router.push(`/game?type=${quizType}&kind=${selectedKind}&autostart=1`)
+                    router.push(`/game?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
                   }
                 }}
                 disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
