@@ -468,9 +468,13 @@ export default function SpeedChoiceGame({
           <button
             type="button"
             onClick={() => {
-              setPhase("ready")
-              setToast("")
-            }}
+                if (phase === "ready") {
+                  router.push("/select-mode")
+                  return
+                }
+                setPhase("ready")
+                setToast("")
+              }}
             style={{ ...styles.compactBack, background: "transparent", border: "none", cursor: "pointer" }}
           >
             ←

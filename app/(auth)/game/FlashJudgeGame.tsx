@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
@@ -21,6 +22,8 @@ export default function FlashJudgeGame({
   quizType: QuizType
   modeParam: string | null
 }) {
+  const router = useRouter()
+
   const params = useSearchParams()
   const phaseSection = params.get("section")
 
@@ -167,8 +170,13 @@ export default function FlashJudgeGame({
           <div style={{ marginTop: 8, fontSize: 18, fontWeight: 800 }}>score: {score}</div>
           <button
             onClick={() => {
-              setPhase("ready")
-            }}
+                if (phase === "ready") {
+                  router.push("/select-mode")
+                  return
+                }
+                setPhase("ready")
+                setToast("")
+              }}
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
           >
             もう一回

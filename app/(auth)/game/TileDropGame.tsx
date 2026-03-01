@@ -467,11 +467,14 @@ export default function TileDropGame({
           <button
             type="button"
             onClick={() => {
-              // ゲーム中でも「スタート設定」に戻す
-              setPhase("ready")
-              setCurrent(null)
-              setToast("")
-            }}
+                if (phase === "ready") {
+                  router.push("/select-mode")
+                  return
+                }
+                setPhase("ready")
+                setCurrent(null)
+                setToast("")
+              }}
             style={{ ...styles.compactBack, background: "transparent", border: "none", cursor: "pointer" }}
           >
             ←

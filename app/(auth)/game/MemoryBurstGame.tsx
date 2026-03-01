@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
@@ -21,6 +22,8 @@ export default function MemoryBurstGame({
   quizType: QuizType
   modeParam: string | null
 }) {
+  const router = useRouter()
+
   const params = useSearchParams()
   const sectionParam = params.get("section")
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
@@ -113,64 +116,13 @@ export default function MemoryBurstGame({
           <div style={{ marginTop: 12, opacity: 0.85 }}>問題数：{pool.length}問</div>
           <button
             onClick={() => {
-              setPhase("show")
-              start()
-            }}
-            disabled={!pool.length}
-            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
-          >
-            {pool.length ? "スタート" : "問題がありません（テンプレから追加してね）"}
-          </button>
-        </div>
-      )}
-
-      {(phase === "show" || phase === "question") && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" }}>
-              ⏱ {timeLeft}s
-            </div>
-            <div style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.18)" }}>
-              🧠 score {score}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
-            {phase === "show" ? (
-              <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                {current?.displayText ?? ""}
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {current?.question ?? ""}
-                </div>
-                <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
-                  {current?.choices?.map((c, i) => (
-                    <button
-                      key={i}
-                      onClick={() => choose(i)}
-                      style={{ padding: "12px 12px", borderRadius: 14, fontWeight: 800, textAlign: "left" }}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-                {feedback && <div style={{ marginTop: 10, fontWeight: 900 }}>{feedback}</div>}
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {phase === "over" && (
-        <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
-          <div style={{ fontSize: 22, fontWeight: 900 }}>終了！</div>
-          <div style={{ marginTop: 8, fontSize: 18, fontWeight: 800 }}>score: {score}</div>
-          <button
-            onClick={() => {
-              setPhase("ready")
-            }}
+                if (phase === "ready") {
+                  router.push("/select-mode")
+                  return
+                }
+                setPhase("ready")
+                setToast("")
+              }}
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
           >
             もう一回
