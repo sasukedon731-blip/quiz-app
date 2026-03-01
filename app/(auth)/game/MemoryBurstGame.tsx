@@ -121,8 +121,7 @@ export default function MemoryBurstGame({
                   return
                 }
                 setPhase("ready")
-                setToast("")
-              }}
+}}
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
           >
             もう一回
