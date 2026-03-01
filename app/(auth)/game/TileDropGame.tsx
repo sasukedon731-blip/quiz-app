@@ -70,13 +70,6 @@ export default function TileDropGame({
   // ✅ Readyで選べる（カテゴリのみ）
   const [selectedSection, setSelectedSection] = useState<"all" | "moji-goi" | "bunpo" | "reading">("all")
 
-  // ✅ カテゴリ（問題の性質）からゲーム種別を内部決定（ユーザーに選ばせない）
-  const resolvedKind = useMemo<"tile-drop" | "speed-choice">(() => {
-    if (quizType !== "japanese-n4") return "tile-drop"
-    if (selectedSection === "moji-goi") return "speed-choice"
-    return "tile-drop" // all / bunpo / reading
-  }, [quizType, selectedSection])
-
   // ✅ pool（tile-drop専用）
   // 1) まずは「落ちゲー専用プール」を最優先（混在事故を防ぐ）
   // 2) まだ用意が無い教材だけ、暫定で quizzes から生成（最後の保険）
@@ -94,6 +87,14 @@ export default function TileDropGame({
 
     return fallbackQuestions.filter((q) => q.enabled)
   }, [quizType])
+
+  // ✅ カテゴリで落ちゲー問題を絞る（混在しない）
+  const filteredPool = useMemo(() => {
+    if (quizType !== "japanese-n4") return pool
+    if (selectedSection === "all") return pool
+    return pool.filter((q) => q.sectionId === selectedSection)
+  }, [pool, quizType, selectedSection])
+
 
   useEffect(() => {
     const d = pool[0]?.difficulty
@@ -271,17 +272,6 @@ export default function TileDropGame({
   }
 
   function startGame() {
-    // ✅ kind は内部決定。speed-choice の場合は専用ページ（component）へ遷移。
-    if (resolvedKind === "speed-choice") {
-      const m = mode === "attack" ? "attack" : "normal"
-      router.push(
-        `/game?type=${encodeURIComponent(String(quizType))}&mode=${m}&kind=speed-choice&section=${encodeURIComponent(
-          selectedSection
-        )}`
-      )
-      return
-    }
-
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")
@@ -464,76 +454,9 @@ export default function TileDropGame({
           </Link>
 
           <div style={styles.compactCenter}>
-            <div style={styles.compactTitle}>日本語バトル（落ち物）</div>
+            <div style={styles.compactTitle}>日本語バトル（ゲーム）</div>
             <div style={styles.compactSub}>{quizTitle}</div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSoundOn((v) => !v)
-              // ONにした瞬間、起動
-              setTimeout(() => ensureAudio(), 0)
-            }}
-            style={styles.soundBtn}
-            aria-label="toggle sound"
-            title="Sound"
-          >
-            {soundOn ? "🔊" : "🔇"}
-          </button>
-
-          <div style={styles.compactStats}>
-            <span style={styles.badge}>S {score}</span>
-            <span style={styles.badge}>❤ {life}</span>
-          </div>
-        </div>
-
-        <section style={styles.card}>
-          {/* Ready */}
-          <div style={{ display: phase === "ready" ? "block" : "none" }}>
-            <div style={styles.panelTitle}>スタート設定</div>
-
-            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
-              教材：<b>{quizTitle}</b>
-            </div>
-
-            {/* ✅ N4だけカテゴリを見せる（ゲームは内部決定） */}
-            {quizType === "japanese-n4" ? (
-              <div style={{ marginTop: 14, ...styles.field }}>
-                <div style={styles.label}>カテゴリ</div>
-                <div style={styles.seg}>
-                  <button
-                    style={{ ...styles.segBtn, ...(selectedSection === "all" ? styles.segActive : {}) }}
-                    onClick={() => setSelectedSection("all")}
-                  >
-                    すべて
-                  </button>
-                  <button
-                    style={{ ...styles.segBtn, ...(selectedSection === "moji-goi" ? styles.segActive : {}) }}
-                    onClick={() => setSelectedSection("moji-goi")}
-                  >
-                    文字・語彙
-                  </button>
-                  <button
-                    style={{ ...styles.segBtn, ...(selectedSection === "bunpo" ? styles.segActive : {}) }}
-                    onClick={() => setSelectedSection("bunpo")}
-                  >
-                    文法
-                  </button>
-                  <button
-                    style={{ ...styles.segBtn, ...(selectedSection === "reading" ? styles.segActive : {}) }}
-                    onClick={() => setSelectedSection("reading")}
-                  >
-                    読解
-                  </button>
-                </div>
-
-                <div style={styles.help}>
-                  ※ ゲームはカテゴリに合わせて自動で切り替わります（文字・語彙＝4択 / それ以外＝落ちゲー）
-                </div>
-
-                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-                  ゲーム：<b>{resolvedKind === "speed-choice" ? "4択スピード" : "落ちゲー"}</b>
                 </div>
               </div>
             ) : (
@@ -596,7 +519,7 @@ export default function TileDropGame({
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
               <button
                 onClick={startGame}
-                disabled={resolvedKind === "tile-drop" && pool.length === 0}
+                disabled={filteredPool.length === 0}
                 style={{ ...styles.btn, ...styles.btnMain }}
               >
                 ゲーム開始
@@ -604,7 +527,7 @@ export default function TileDropGame({
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              問題数：<b>{resolvedKind === "tile-drop" ? pool.length : "（4択側で表示）"}</b>
+              問題数：<b>{filteredPool.length}</b>
             </div>
 
             {toast ? (
