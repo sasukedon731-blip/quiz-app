@@ -457,15 +457,39 @@ export default function TileDropGame({
             <div style={styles.compactTitle}>日本語バトル（ゲーム）</div>
             <div style={styles.compactSub}>{quizTitle}</div>
           </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
-                ゲーム：<b>落ちゲー</b>
-              </div>
-            )}
+        </div>
 
-            <div style={styles.row}>
+        <section style={styles.panel}>
+{/* Ready */}
+        <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }}>
+          <div style={styles.row}>
+            <div style={styles.field}>
+              <div style={styles.label}>ゲーム</div>
+              <div style={styles.seg}>
+                <button
+                  style={{ ...styles.segBtn, ...(true ? styles.segActive : {}) }}
+                  onClick={() => router.push(`/game?type=${quizType}&kind=tile-drop`)}
+                >
+                  落ちゲー
+                </button>
+                <button
+                  style={styles.segBtn}
+                  onClick={() => router.push(`/game?type=${quizType}&kind=flash-judge`)}
+                >
+                  ○×（文法）
+                </button>
+                <button
+                  style={styles.segBtn}
+                  onClick={() => router.push(`/game?type=${quizType}&kind=memory-burst`)}
+                >
+                  記憶4択
+                </button>
+              </div>
+              <div style={styles.help}>※ ここで3つのゲームを切り替えできます</div>
+            </div>
+          </div>
+
+<div style={styles.row}>
               <div style={styles.field}>
                 <div style={styles.label}>モード</div>
                 <div style={styles.seg}>
