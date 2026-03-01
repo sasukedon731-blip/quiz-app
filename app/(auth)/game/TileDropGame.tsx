@@ -21,7 +21,7 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
 
-function pickRandom<T>(arr: T[]): T {
+function pickOne<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
@@ -63,15 +63,25 @@ export default function TileDropGame({
   const [displayName, setDisplayName] = useState<string>("")
 
   const [phase, setPhase] = useState<Phase>("ready")
-  const [mode, setMode] = useState<GameMode>(
-    modeParam === "attack" ? "attack" : "normal"
-  )
+  const [mode, setMode] = useState<GameMode>(modeParam === "attack" ? "attack" : "normal")
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
+  // ✅ Readyで選べる（カテゴリのみ）
+  const [selectedSection, setSelectedSection] = useState<"all" | "moji-goi" | "bunpo" | "reading">("all")
+
+  // ✅ カテゴリ（問題の性質）からゲーム種別を内部決定（ユーザーに選ばせない）
+  const resolvedKind = useMemo<"tile-drop" | "speed-choice">(() => {
+    if (quizType !== "japanese-n4") return "tile-drop"
+    if (selectedSection === "moji-goi") return "speed-choice"
+    return "tile-drop" // all / bunpo / reading
+  }, [quizType, selectedSection])
+
+  // ✅ pool（tile-drop用のみ）
   const pool = useMemo(() => {
+    // tile-drop側は、既存の buildGamePoolFromQuizzes を使う（ここは「落ちゲー用」）
     const built = buildGamePoolFromQuizzes(quizType)
-if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop")
-    return fallbackQuestions.filter((q) => q.enabled)
+    if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop")
+    return fallbackQuestions.filter((q) => q.enabled && q.kind === "tile-drop")
   }, [quizType])
 
   useEffect(() => {
@@ -111,9 +121,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const [bestScore, setBestScore] = useState<number>(0)
-  const [leaderboard, setLeaderboard] = useState<
-    { displayName: string; bestScore: number }[]
-  >([])
+  const [leaderboard, setLeaderboard] = useState<{ displayName: string; bestScore: number }[]>([])
 
   const activeKeyRef = useRef<string>("")
   const resolvedRef = useRef<boolean>(false)
@@ -199,7 +207,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     } else if (type === "miss") {
       osc.type = "sawtooth"
       osc.frequency.setValueAtTime(220, now)
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.1)
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.10)
       gain.gain.setValueAtTime(0.0001, now)
       gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
@@ -208,8 +216,8 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
       osc.frequency.setValueAtTime(880, now)
       osc.frequency.exponentialRampToValueAtTime(1320, now + 0.06)
       gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.1, now + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1)
+      gain.gain.exponentialRampToValueAtTime(0.10, now + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10)
     }
 
     osc.connect(gain)
@@ -233,81 +241,36 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
     return map
   }, [pool])
 
-  // ======================================================
-  // ✅ ゲーム入力ガード（短文化前提を守る）
-  // ======================================================
-  const MAX_PROMPT = 34
-  const MAX_CHOICES = 8
-  const MAX_CHOICE_CHARS = 8
-
-  function isGameQuestionSafe(q: any) {
-    if (!q) return false
-    if (typeof q.prompt !== "string" || q.prompt.length > MAX_PROMPT) return false
-    if (!Array.isArray(q.answer) || q.answer.length < 1) return false
-    if (!Array.isArray(q.choices)) return false
-    if (q.choices.length < 4 || q.choices.length > MAX_CHOICES) return false
-    if (q.choices.some((c: any) => typeof c !== "string" || c.length > MAX_CHOICE_CHARS)) return false
-    return true
-  }
-
-  function pickQuestion(
-    nextMode: GameMode,
-    nextDifficulty: GameDifficulty,
-    nextLevel: number
-  ) {
-    const wantDifficulty =
-      nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
+  function pickQuestion(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
+    const wantDifficulty = nextMode === "attack" ? difficultyForAttack(nextLevel) : nextDifficulty
     const candidates = poolByDifficulty.get(wantDifficulty) ?? []
-    if (candidates.length > 0) return pickRandom(candidates)
-    if (pool.length > 0) return pickRandom(pool)
+    if (candidates.length > 0) return pickOne(candidates)
+    if (pool.length > 0) return pickOne(pool)
     return fallbackQuestions[0]
   }
 
-  // ======================================================
-  // ✅ resetRound：安全な問題だけ採用（事故防止）
-  // ======================================================
-  function resetRound(
-    nextMode: GameMode,
-    nextDifficulty: GameDifficulty,
-    nextLevel: number
-  ) {
-    // 1) まずは通常ピック
-    let q: any = pickQuestion(nextMode, nextDifficulty, nextLevel)
-
-    // 2) ダメなら最大12回リトライ（同difficulty内/全体プールの揺れで当たる）
-    let tries = 0
-    while (!isGameQuestionSafe(q) && tries < 12) {
-      q = pickQuestion(nextMode, nextDifficulty, nextLevel)
-      tries++
-    }
-
-    // 3) それでもダメなら fallback から安全なやつを探す
-    if (!isGameQuestionSafe(q)) {
-      const safeFallback = fallbackQuestions.find((x) => isGameQuestionSafe(x))
-      if (safeFallback) q = safeFallback
-    }
-
-    // 4) 最終的に無理なら ready に戻す（クラッシュ回避）
-    if (!isGameQuestionSafe(q)) {
-      setToast("ゲーム用の短い問題がありません（短文化済み問題を用意してください）")
-      setPhase("ready")
-      setCurrent(null)
-      return
-    }
-
+  function resetRound(nextMode: GameMode, nextDifficulty: GameDifficulty, nextLevel: number) {
+    const q = pickQuestion(nextMode, nextDifficulty, nextLevel)
     setCurrent(q)
     setInputIndex(0)
     resolvedRef.current = false
-
-    // q.id が無い可能性もあるので保険（表示キー用）
-    const qid = (q as any).id ?? (q as any).prompt ?? "q"
-    activeKeyRef.current = `${String(qid)}:${Date.now()}`
-
+    activeKeyRef.current = `${q.id}:${Date.now()}`
     setToast("")
     setPlateFx("none")
   }
 
   function startGame() {
+    // ✅ kind は内部決定。speed-choice の場合は専用ページ（component）へ遷移。
+    if (resolvedKind === "speed-choice") {
+      const m = mode === "attack" ? "attack" : "normal"
+      router.push(
+        `/game?type=${encodeURIComponent(String(quizType))}&mode=${m}&kind=speed-choice&section=${encodeURIComponent(
+          selectedSection
+        )}`
+      )
+      return
+    }
+
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")
@@ -523,24 +486,63 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
               教材：<b>{quizTitle}</b>
             </div>
 
+            {/* ✅ N4だけカテゴリを見せる（ゲームは内部決定） */}
+            {quizType === "japanese-n4" ? (
+              <div style={{ marginTop: 14, ...styles.field }}>
+                <div style={styles.label}>カテゴリ</div>
+                <div style={styles.seg}>
+                  <button
+                    style={{ ...styles.segBtn, ...(selectedSection === "all" ? styles.segActive : {}) }}
+                    onClick={() => setSelectedSection("all")}
+                  >
+                    すべて
+                  </button>
+                  <button
+                    style={{ ...styles.segBtn, ...(selectedSection === "moji-goi" ? styles.segActive : {}) }}
+                    onClick={() => setSelectedSection("moji-goi")}
+                  >
+                    文字・語彙
+                  </button>
+                  <button
+                    style={{ ...styles.segBtn, ...(selectedSection === "bunpo" ? styles.segActive : {}) }}
+                    onClick={() => setSelectedSection("bunpo")}
+                  >
+                    文法
+                  </button>
+                  <button
+                    style={{ ...styles.segBtn, ...(selectedSection === "reading" ? styles.segActive : {}) }}
+                    onClick={() => setSelectedSection("reading")}
+                  >
+                    読解
+                  </button>
+                </div>
+
+                <div style={styles.help}>
+                  ※ ゲームはカテゴリに合わせて自動で切り替わります（文字・語彙＝4択 / それ以外＝落ちゲー）
+                </div>
+
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+                  ゲーム：<b>{resolvedKind === "speed-choice" ? "4択スピード" : "落ちゲー"}</b>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
+                ゲーム：<b>落ちゲー</b>
+              </div>
+            )}
+
             <div style={styles.row}>
               <div style={styles.field}>
                 <div style={styles.label}>モード</div>
                 <div style={styles.seg}>
                   <button
-                    style={{
-                      ...styles.segBtn,
-                      ...(mode === "normal" ? styles.segActive : {}),
-                    }}
+                    style={{ ...styles.segBtn, ...(mode === "normal" ? styles.segActive : {}) }}
                     onClick={() => setMode("normal")}
                   >
                     ノーマル（学習）
                   </button>
                   <button
-                    style={{
-                      ...styles.segBtn,
-                      ...(mode === "attack" ? styles.segActive : {}),
-                    }}
+                    style={{ ...styles.segBtn, ...(mode === "attack" ? styles.segActive : {}) }}
                     onClick={() => {
                       if (!uid) {
                         setToast("ランキングはログインが必要です（ノーマル推奨）")
@@ -559,19 +561,9 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 </div>
 
                 {!uid ? (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      fontSize: 12,
-                      opacity: 0.75,
-                      lineHeight: 1.5,
-                    }}
-                  >
+                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, lineHeight: 1.5 }}>
                     ※ ゲストはノーマルのみ。ランキング参加は
-                    <button
-                      onClick={() => router.push("/login")}
-                      style={styles.inlineLinkBtn}
-                    >
+                    <button onClick={() => router.push("/login")} style={styles.inlineLinkBtn}>
                       ログイン
                     </button>
                     が必要です。
@@ -581,30 +573,19 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
 
               <div style={styles.field}>
                 <div style={styles.label}>難易度</div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}
-                  >
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
                     {pool[0]?.difficulty ?? difficulty}
                   </span>
                 </div>
-                <div style={styles.help}>
-                  ※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。
-                </div>
+                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
               </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
               <button
                 onClick={startGame}
-                disabled={pool.length === 0}
+                disabled={resolvedKind === "tile-drop" && pool.length === 0}
                 style={{ ...styles.btn, ...styles.btnMain }}
               >
                 ゲーム開始
@@ -612,8 +593,12 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
             </div>
 
             <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              問題数：<b>{pool.length}</b>
+              問題数：<b>{resolvedKind === "tile-drop" ? pool.length : "（4択側で表示）"}</b>
             </div>
+
+            {toast ? (
+              <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "#b91c1c" }}>{toast}</div>
+            ) : null}
           </div>
 
           {/* Playing */}
@@ -675,11 +660,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                           ? { opacity: [1, 1, 0], scale: [1, 1.08, 0.95] }
                           : { opacity: 1, scale: 1 }
                       }
-                      transition={
-                        plateFx === "success"
-                          ? { duration: 0.32, ease: "easeOut" }
-                          : { duration: 0.05 }
-                      }
+                      transition={plateFx === "success" ? { duration: 0.32, ease: "easeOut" } : { duration: 0.05 }}
                       style={{ transformOrigin: "center" }}
                     >
                       <motion.div
@@ -696,10 +677,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                         <div style={styles.prompt}>{current.prompt}</div>
                         <div style={styles.progress}>
                           {current.answer.map((a, i) => (
-                            <span
-                              key={`${a}-${i}`}
-                              style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }}
-                            />
+                            <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
                           ))}
                         </div>
                       </motion.div>
@@ -713,11 +691,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 <div style={styles.tilesTitle}>タイルを順番に押せ</div>
                 <div style={styles.tilesGrid}>
                   {(current?.choices ?? []).map((c, idx) => (
-                    <button
-                      key={`${c}-${idx}`}
-                      onClick={() => onTilePress(c)}
-                      style={styles.tileBtn}
-                    >
+                    <button key={`${c}-${idx}`} onClick={() => onTilePress(c)} style={styles.tileBtn}>
                       {c}
                     </button>
                   ))}
@@ -741,22 +715,14 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 </div>
 
                 <div style={{ marginTop: 12, ...styles.lbBox }}>
-                  <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                    ランキング（全期間 / 上位30）
-                  </div>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>ランキング（全期間 / 上位30）</div>
                   {leaderboard.length === 0 ? (
-                    <div style={{ fontSize: 13, opacity: 0.7 }}>
-                      読み込み中 / まだデータがありません
-                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.7 }}>読み込み中 / まだデータがありません</div>
                   ) : (
                     <ol style={{ margin: 0, paddingLeft: 18 }}>
                       {leaderboard.map((x, i) => (
-                        <li
-                          key={`${x.displayName}-${i}`}
-                          style={{ marginBottom: 6, fontSize: 13 }}
-                        >
-                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} —{" "}
-                          <b>{x.bestScore}</b>
+                        <li key={`${x.displayName}-${i}`} style={{ marginBottom: 6, fontSize: 13 }}>
+                          <span style={{ fontWeight: 900 }}>{i + 1}.</span> {x.displayName} — <b>{x.bestScore}</b>
                         </li>
                       ))}
                     </ol>
@@ -764,9 +730,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
-                ノーマルはランキング保存しません（学習用）
-              </div>
+              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
             <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -780,10 +744,7 @@ if (built.length) return built.filter((q) => q.enabled && q.kind === "tile-drop"
               >
                 もう一回
               </button>
-              <Link
-                href="/select-mode"
-                style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}
-              >
+              <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
                 学習メニューへ
               </Link>
             </div>
@@ -833,13 +794,7 @@ const styles: Record<string, CSSProperties> = {
   },
   compactCenter: { flex: 1, minWidth: 0 },
   compactTitle: { fontSize: 14, fontWeight: 900, lineHeight: 1.1 },
-  compactSub: {
-    fontSize: 12,
-    opacity: 0.7,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
+  compactSub: { fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
 
   soundBtn: {
     width: 36,
@@ -876,12 +831,7 @@ const styles: Record<string, CSSProperties> = {
   panelTitle: { fontWeight: 900, fontSize: 16 },
 
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 12 },
-  field: {
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 12,
-  },
+  field: { background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 },
   label: { fontWeight: 900, fontSize: 12, opacity: 0.75 },
   help: { marginTop: 8, fontSize: 12, opacity: 0.7, lineHeight: 1.5 },
 
@@ -896,14 +846,7 @@ const styles: Record<string, CSSProperties> = {
   },
   segActive: { border: "1px solid #2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.12)" },
 
-  pill: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  pill: { padding: "8px 12px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 900, cursor: "pointer" },
   pillActive: { border: "1px solid #16a34a", boxShadow: "0 0 0 3px rgba(22,163,74,0.12)" },
 
   inlineLinkBtn: {
@@ -924,7 +867,15 @@ const styles: Record<string, CSSProperties> = {
   dangerLine: { position: "absolute", left: 0, right: 0, top: "58%" as any, height: 2, background: "rgba(239,68,68,0.6)" },
 
   overlayChips: { position: "absolute", top: 10, right: 12, display: "flex", gap: 8, zIndex: 20 },
-  chip: { padding: "8px 10px", borderRadius: 999, background: "#fff", border: "1px solid #e5e7eb", fontWeight: 900, fontSize: 12, boxShadow: "0 10px 20px rgba(0,0,0,0.06)" },
+  chip: {
+    padding: "8px 10px",
+    borderRadius: 999,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    fontWeight: 900,
+    fontSize: 12,
+    boxShadow: "0 10px 20px rgba(0,0,0,0.06)",
+  },
 
   comboPop: {
     position: "absolute",
@@ -968,12 +919,7 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.18)",
   },
-  prompt: {
-    fontSize: "clamp(18px, 5vw, 22px)" as any,
-    fontWeight: 900,
-    textAlign: "center",
-    padding: "14px 0 8px",
-  },
+  prompt: { fontSize: "clamp(18px, 5vw, 22px)" as any, fontWeight: 900, textAlign: "center", padding: "14px 0 8px" },
   progress: { display: "flex", justifyContent: "center", gap: 6, paddingBottom: 6 },
   dot: { width: 10, height: 10, borderRadius: 999, background: "#fff", display: "inline-block" },
 

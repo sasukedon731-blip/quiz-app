@@ -8,26 +8,34 @@ import TileDropGame from "./TileDropGame"
 import SpeedChoiceGame from "./SpeedChoiceGame"
 import type { GameKind } from "./types"
 
-function isGameKind(v: string | null): v is GameKind {
+function isQuizType(v: any): v is QuizType {
+  return v === "japanese-n4" || v === "gaikoku-license" || v === "genba-listening"
+}
+
+function isGameKind(v: any): v is GameKind {
   return v === "tile-drop" || v === "speed-choice" || v === "sentence-build"
 }
 
-export default function GameClient({ quizType }: { quizType: QuizType }) {
+export default function GameClient() {
   const params = useSearchParams()
-  const modeParam = params.get("mode") // "normal" | "attack"
-  const kindParam = params.get("kind")
+
+  const rawType = params.get("type")
+  const rawMode = params.get("mode") // "normal" | "attack"
+  const rawKind = params.get("kind") // "tile-drop" | "speed-choice"
+
+  const quizType: QuizType = useMemo(() => {
+    return isQuizType(rawType) ? rawType : "japanese-n4"
+  }, [rawType])
+
+  const modeParam = rawMode === "attack" ? "attack" : "normal"
 
   const kind: GameKind = useMemo(() => {
-    if (isGameKind(kindParam)) return kindParam
-    // ✅ 最短でN4が出る導線
-    if (quizType === "japanese-n4") return "speed-choice"
-    return "tile-drop"
-  }, [kindParam, quizType])
+    return isGameKind(rawKind) ? rawKind : "tile-drop" // ✅ デフォは落ちゲー
+  }, [rawKind])
 
   if (kind === "speed-choice") {
     return <SpeedChoiceGame quizType={quizType} modeParam={modeParam} />
   }
 
-  // sentence-build は後で追加（今は tile-drop に落としてOK）
   return <TileDropGame quizType={quizType} modeParam={modeParam} />
 }

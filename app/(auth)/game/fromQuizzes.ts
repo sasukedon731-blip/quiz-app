@@ -45,7 +45,7 @@ export function buildGameQuestionsFromQuizzes(quizType: QuizType, opts?: GameGen
     if (!g.prompt || g.prompt.length > o.maxPromptChars) return false
     if (!g.answer?.length) return false
 
-    // speed-choice は 4 択前提なので minChoices 判定を緩める
+    // speed-choice は 4 択前提
     if (g.kind === "speed-choice") {
       if (!g.choices || g.choices.length !== 4) return false
       if (g.choices.some((c) => c.length > Math.max(o.maxChoiceChars, 14))) return false
@@ -74,10 +74,11 @@ function mapStudyToGame(
   if (!q || typeof q !== "object") return null
   if (!Array.isArray(q.choices) || typeof q.correctIndex !== "number") return null
 
-  // ✅ 聴解は完全除外（これが最重要）
-  // - japanese-n4.ts には sectionId: "listening" がある
-  // - さらに将来 listeningText がある問題も弾けるようにする
-  if ((q as any).sectionId === "listening") return null
+  // ✅ sectionId（N4のカテゴリ用）
+  const sectionId = String((q as any).sectionId ?? "").trim()
+
+  // ✅ 聴解は完全除外（最重要）
+  if (sectionId === "listening") return null
   if (typeof (q as any).listeningText === "string" && String((q as any).listeningText).trim()) return null
 
   const rawQuestion = String(q.question ?? "").trim()
@@ -96,14 +97,13 @@ function mapStudyToGame(
   // -------------------------
   // ✅ kind 判定（最優先：sectionId → fallback：旧推定）
   // -------------------------
-  const sectionId = String((q as any).sectionId ?? "").trim()
   const kind = inferKindBySection(quizType, sectionId) ?? inferKindByHeuristic(rawQuestion, q.choices)
 
   // -------------------------
   // ✅ kind別の短文化・制約
   // -------------------------
 
-  // --- speed-choice（4択固定：文字・語彙/漢字・読み系に最適） ---
+  // --- speed-choice（4択固定） ---
   if (kind === "speed-choice") {
     const opts = {
       ...o,
@@ -119,15 +119,15 @@ function mapStudyToGame(
 
     const prompt = clampPrompt(buildSpeedChoicePrompt(rawQuestion), opts.maxPromptChars)
 
-    // ✅ N4の「文字・語彙」は speed-choice に寄せるので difficulty もN4寄せ
     const d: GameDifficulty =
       (opts.difficulty ??
         (quizType === "japanese-n4" ? "N4" : "N5")) as GameDifficulty
 
     return {
       id,
+      sectionId,
       kind: "speed-choice",
-      type: "reading", // 表示ラベル用途（厳密じゃなくてOK）
+      type: "reading",
       prompt,
       answer: [correct],
       choices: pool.slice(0, 4),
@@ -137,9 +137,8 @@ function mapStudyToGame(
     }
   }
 
-  // --- tile-drop（テンポ重視：短いprompt + 6〜8択） ---
+  // --- tile-drop ---
   {
-    // tile-dropは短いchoiceが必要。正解が長すぎるなら落とす
     if (correct.length > o.maxChoiceChars) return null
 
     const pool = sanitizeChoices(q.choices, correct, o)
@@ -149,6 +148,7 @@ function mapStudyToGame(
 
     return {
       id,
+      sectionId,
       kind: "tile-drop",
       type: /助詞/.test(rawQuestion) ? "particle" : "fill",
       prompt,
@@ -162,38 +162,32 @@ function mapStudyToGame(
 }
 
 // -------------------------
-// ✅ sectionId ベースの kind 判定（最優先）
+// ✅ sectionId ベース（N4のみ強制）
 // -------------------------
 function inferKindBySection(quizType: QuizType, sectionId: string): GameKind | null {
-  // N4の構造に合わせる（あなたの japanese-n4.ts に完全一致）
   if (quizType === "japanese-n4") {
     if (sectionId === "moji-goi") return "speed-choice"
     if (sectionId === "bunpo") return "tile-drop"
     if (sectionId === "reading") return "tile-drop"
-    if (sectionId === "listening") return null // ここは mapStudyToGame で除外済みだが念のため
+    if (sectionId === "listening") return null
     return "tile-drop"
   }
-
-  // 他教材は section が無いこともあるので null にして heuristic へ
   if (!sectionId) return null
   return null
 }
 
 // -------------------------
-// fallback：旧推定（雑でOK：互換用）
+// fallback：互換用
 // -------------------------
 function inferKindByHeuristic(question: string, choices: any[]): GameKind {
   const q = question
 
-  // 漢字・読み・どの漢字 など → speed-choice
   if (/漢字|読み|よみ|ひらがな|カタカナ/.test(q)) return "speed-choice"
 
-  // choicesが短い語彙4択っぽいなら speed-choice を優先
   const c = (choices ?? []).map((x) => String(x ?? "").trim()).filter(Boolean)
   const avgLen = c.length ? c.reduce((s, v) => s + v.length, 0) / c.length : 0
   if (c.length === 4 && avgLen <= 10) return "speed-choice"
 
-  // 助詞/空欄/穴埋め → tile-drop
   if (/助詞/.test(q)) return "tile-drop"
   if (/（\s*）|＿{2,}|_{2,}|〔\s*〕|【\s*】/.test(q)) return "tile-drop"
 
@@ -206,32 +200,24 @@ function inferKindByHeuristic(question: string, choices: any[]): GameKind {
 function buildSpeedChoicePrompt(question: string) {
   const clean = question.replace(/\s+/g, " ").trim()
 
-  // ✅ まず短いならそのまま（文脈を残す）
   if (clean.length <= 42) return clean
 
-  // ✅ 「漢字/読み」系は最優先で文を残す
   if (/漢字|読み|よみ|ひらがな|カタカナ/.test(clean)) {
-    // 1文目（。まで）を優先
     const first = clean.split("。")[0].trim()
     if (first && first.length <= 42) return first + "。"
 
-    // 「？」があればそこまで
     const qidx = clean.indexOf("？")
     if (qidx >= 0 && qidx <= 42) return clean.slice(0, qidx + 1)
 
-    // 最後は切ってでも残す
     return clean.slice(0, 41) + "…"
   }
 
-  // ✅ 一般：まず1文目
   const firstSentence = clean.split("。")[0].trim()
   if (firstSentence && firstSentence.length <= 42) return firstSentence + "。"
 
-  // ✅ 「？」があればそこまで
   const qidx = clean.indexOf("？")
   if (qidx >= 0 && qidx <= 42) return clean.slice(0, qidx + 1)
 
-  // ✅ 最後の手段：先頭短縮
   return clean.slice(0, 41) + "…"
 }
 

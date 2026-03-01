@@ -65,34 +65,49 @@ export default function SpeedChoiceGame({
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N4")
 
   const pool = useMemo(() => {
-    // ✅ speed-choice だけ
-    const built = buildGamePoolFromQuizzes(
-      quizType,
-      quizType === "japanese-n4"
-        ? {
-            difficulty: "N4",
-            maxPromptChars: 42,
-            maxChoices: 4,
-            minChoices: 4,
-            maxChoiceChars: 14,
-            allowAutoTrimChoice: true,
-          }
-        : {
-            difficulty: "N3",
-            maxPromptChars: 42,
-            maxChoices: 4,
-            minChoices: 4,
-            maxChoiceChars: 14,
-            allowAutoTrimChoice: true,
-          }
-    )
+  const opts =
+  quizType === "japanese-n4"
+    ? ({
+        difficulty: "N4",
+        maxPromptChars: 42,
+        maxChoices: 4,
+        minChoices: 4,
+        maxChoiceChars: 14,
+        allowAutoTrimChoice: true,
+      } as const)
+    : ({
+        difficulty: "N3",
+        maxPromptChars: 42,
+        maxChoices: 4,
+        minChoices: 4,
+        maxChoiceChars: 14,
+        allowAutoTrimChoice: true,
+      } as const)
 
-    const filtered = built.filter((q) => q.enabled && q.kind === "speed-choice")
-    if (filtered.length) return filtered
+  const built = buildGamePoolFromQuizzes(quizType, opts)
 
-    // fallback があれば使う（無ければ空でOK）
-    return fallbackQuestions.filter((q) => q.enabled && q.kind === "speed-choice")
-  }, [quizType])
+  let filtered = built.filter(
+    (q) => q.enabled && q.kind === "speed-choice"
+  )
+
+  // ✅ N4のみカテゴリ絞り込み
+  if (quizType === "japanese-n4") {
+    const section =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("section")
+        : null
+
+    if (section && section !== "all") {
+      filtered = filtered.filter((q) => q.sectionId === section)
+    }
+  }
+
+  if (filtered.length) return filtered
+
+  return fallbackQuestions.filter(
+    (q) => q.enabled && q.kind === "speed-choice"
+  )
+}, [quizType])
 
   useEffect(() => {
     const d = pool[0]?.difficulty
