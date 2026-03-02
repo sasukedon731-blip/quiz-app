@@ -549,6 +549,115 @@ useEffect(() => {
         <section style={styles.panel}>
 {/* Ready */}
         <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
+
+          <div className="mobileOnly">
+            <div className="mobileSection">
+              <div className="mobileTitle">ゲーム</div>
+              <div className="mobileScroll">
+                <button
+                  type="button"
+                  className={`mobilePill ${selectedKind === "tile-drop" ? "isActive" : ""}`}
+                  onClick={() => setSelectedKind("tile-drop")}
+                >
+                  <span className="ic">🔨</span> 文字ブレイク
+                </button>
+                <button
+                  type="button"
+                  className={`mobilePill ${selectedKind === "flash-judge" ? "isActive" : ""}`}
+                  onClick={() => setSelectedKind("flash-judge")}
+                >
+                  <span className="ic">⚡</span> 瞬判ジャッジ
+                </button>
+                <button
+                  type="button"
+                  className={`mobilePill ${selectedKind === "memory-burst" ? "isActive" : ""}`}
+                  onClick={() => setSelectedKind("memory-burst")}
+                >
+                  <span className="ic">🧠</span> フラッシュ記憶
+                </button>
+              </div>
+
+              <details className="mobileDetails" open>
+                <summary>ルール</summary>
+                <div className="mobileRule">
+                  {selectedKind === "tile-drop" ? (
+                    <div>下のタイルを<b>正しい順</b>でタップして壊す（穴埋め/漢字読み）。</div>
+                  ) : selectedKind === "flash-judge" ? (
+                    <div>文が正しければ<b>○</b>、間違いなら<b>×</b>。</div>
+                  ) : (
+                    <div>一瞬表示→消えたあとに<b>4択</b>で答える。</div>
+                  )}
+                  <div style={{ marginTop: 6, opacity: 0.8 }}>共通：<b>3ミスで終了</b>（時間制限なし）</div>
+                </div>
+              </details>
+            </div>
+
+            <div className="mobileSection">
+              <div className="mobileTitle">モード</div>
+              <div className="mobileRow2">
+                <button
+                  type="button"
+                  className={`mobilePill ${mode === "normal" ? "isActive" : ""}`}
+                  onClick={() => setMode("normal")}
+                >
+                  普通（学習）
+                </button>
+                <button
+                  type="button"
+                  className={`mobilePill ${mode === "attack" ? "isActive" : ""}`}
+                  onClick={() => setMode("attack")}
+                >
+                  攻撃（ランキング）
+                </button>
+              </div>
+
+              {mode === "normal" && quizType.startsWith("japanese-") ? (
+                <div style={{ marginTop: 12 }}>
+                  <div className="mobileTitle" style={{ fontSize: 12, opacity: 0.8 }}>
+                    レベル
+                  </div>
+                  <div className="mobileRow3" style={{ marginTop: 8 }}>
+                    {(["japanese-n4", "japanese-n3", "japanese-n2"] as QuizType[]).map((lv) => (
+                      <button
+                        key={lv}
+                        type="button"
+                        className={`mobilePill ${quizType === lv ? "isActive" : ""}`}
+                        onClick={() => router.replace(`/game?type=${lv}&kind=tile-drop&mode=normal`)}
+                      >
+                        {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                    ※ アタックは<b>N4スタート</b>で自動的に昇格
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mobileMeta">
+              問題数：<b>{filteredPool.length}</b>
+            </div>
+
+            <div className="mobileStartBar">
+              <button
+                type="button"
+                className="mobileStartBtn"
+                onClick={() => {
+                  if (selectedKind === "tile-drop") {
+                    startGame()
+                  } else {
+                    router.push(`/game?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
+                  }
+                }}
+                disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
+              >
+                ゲーム開始
+              </button>
+            </div>
+          </div>
+
+          <div className="desktopOnly">
           <div style={styles.row} className="row2">
             <div style={styles.field}>
               <div style={styles.label}>ゲーム</div>
@@ -688,6 +797,7 @@ useEffect(() => {
             {toast ? (
               <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "#b91c1c" }}>{toast}</div>
             ) : null}
+          </div>
           </div>
 
           {/* Playing */}
@@ -899,6 +1009,82 @@ useEffect(() => {
             gap: 8px;
           }
           .labelShort { font-size: 20px; }
+        }
+
+
+        .mobileOnly { display: none; }
+        .desktopOnly { display: block; }
+
+        @media (max-width: 640px) {
+          .desktopOnly { display: none !important; }
+          .mobileOnly { display: block !important; }
+
+          .readyWrap { max-width: 560px; padding: 12px !important; }
+          .mobileSection {
+            background: rgba(255,255,255,0.75);
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 18px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+          }
+          .mobileTitle { font-weight: 900; font-size: 14px; margin-bottom: 10px; }
+          .mobileScroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobileRow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+          .mobileRow3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+          .mobilePill{
+            border: 1px solid rgba(0,0,0,0.10);
+            background: rgba(255,255,255,0.90);
+            border-radius: 16px;
+            padding: 12px 12px;
+            font-weight: 900;
+            font-size: 14px;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 46px;
+            white-space: nowrap;
+          }
+          .mobilePill .ic{ font-size: 18px; }
+          .mobilePill.isActive{
+            border-color: rgba(37,99,235,0.55);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+          }
+
+          .mobileDetails summary{
+            cursor: pointer;
+            font-weight: 900;
+            margin-top: 10px;
+            outline: none;
+          }
+          .mobileRule{ margin-top: 8px; font-size: 14px; line-height: 1.65; color: #0f172a; }
+          .mobileMeta{ margin-top: 6px; font-size: 12px; opacity: 0.75; padding: 0 2px; }
+
+          .mobileStartBar{
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            z-index: 50;
+          }
+          .mobileStartBtn{
+            width: 100%;
+            padding: 14px 14px;
+            border-radius: 16px;
+            font-weight: 900;
+            font-size: 18px;
+          }
         }
 
       `}</style>
