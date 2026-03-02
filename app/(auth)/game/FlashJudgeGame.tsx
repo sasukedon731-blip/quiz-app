@@ -119,23 +119,24 @@ useEffect(() => {
     let cancelled = false
     ;(async () => {
       setLbLoading(true)
-      try {
-        try {
-        await submitAttackScore({
-                  gameId: "flash-judge",
-                  uid,
-                  displayName: displayName || "匿名",
-                  score,
-                  bestLevel: (maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4"),
-                  bestStage: bestStageAtMax,
-                })
-        
-                const my =
-        } catch (e: any) {
-          console.error(e)
-          setToast(String(e?.message||e).includes('PERMISSION_DENIED') ? '⚠️ 記録保存に失敗（Firestoreルール）' : '⚠️ 記録保存に失敗')
-        }
 
+      // ✅ 先にスコア保存（失敗してもランキング表示は継続）
+      try {
+        await submitAttackScore({
+          gameId: "flash-judge",
+          uid,
+          displayName: displayName || "匿名",
+          score,
+          bestLevel: maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4",
+          bestStage: bestStageAtMax,
+        })
+      } catch (e: any) {
+        console.error(e)
+        const msg = String(e?.message || e)
+        setToast(msg.includes("PERMISSION_DENIED") ? "⚠️ 記録保存に失敗（Firestoreルール）" : "⚠️ 記録保存に失敗")
+      }
+
+      try {
         const my = await fetchMyAttackRank({ gameId: "flash-judge", uid })
         const lb = await fetchAttackLeaderboard({ gameId: "flash-judge", take: 30 })
 
