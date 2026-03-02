@@ -17,6 +17,7 @@ import {
 import { auth, db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
 import { quizCatalog } from "@/app/data/quizCatalog"
+import { fetchMyAttackRank } from "../game/firestore"
 
 type QuizResult = {
   score: number
@@ -136,8 +137,36 @@ export default function MyPage() {
   const router = useRouter()
 
   const [user, setUser] = useState<User | null>(null)
+  const [attackRanks, setAttackRanks] = useState<Record<string, { rank: number | null; bestScore: number }>>({})
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  
+
+useEffect(() => {
+  if (!user) {
+    setAttackRanks({})
+    return
+  }
+  let cancelled = false
+  ;(async () => {
+    const uid = user.uid
+    const games = ["tile-drop", "flash-judge", "memory-burst"] as const
+    const next: Record<string, { rank: number | null; bestScore: number }> = {}
+    for (const gameId of games) {
+      try {
+        const me = await fetchMyAttackRank({ gameId, uid })
+        next[gameId] = { rank: me.rank, bestScore: me.bestScore }
+      } catch {
+        next[gameId] = { rank: null, bestScore: 0 }
+      }
+    }
+    if (cancelled) return
+    setAttackRanks(next)
+  })()
+  return () => {
+    cancelled = true
+  }
+}, [user])
+const [drawerOpen, setDrawerOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -450,6 +479,10 @@ export default function MyPage() {
                 <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, lineHeight: 1.4 }}>
                   アタックで記録更新<br />
                   ゲーム画面右上🏆で順位
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
+                  ベスト：<b>{attackRanks[g.id]?.bestScore ?? 0}</b>{" "}
+                  ／ 順位：<b>{attackRanks[g.id]?.rank ?? "-"}</b>
                 </div>
                 <Link href={`/game?type=japanese-n4&kind=${g.id}&mode=attack`} style={{ display: "inline-block", marginTop: 10, fontWeight: 900 }}>
                   アタック →

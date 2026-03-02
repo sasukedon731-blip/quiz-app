@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/app/lib/firebase"
-import { submitAttackScore } from "./firestore"
+import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./firestore"
 
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
@@ -37,6 +37,21 @@ export default function FlashJudgeGame({
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
 
   const [phase, setPhase] = useState<Phase>("ready")
+
+// ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
+useEffect(() => {
+  if (phase === "ready" && !autostart) {
+    router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [phase, autostart])
+
+  const [lbOpen, setLbOpen] = useState(false)
+  const [lbLoading, setLbLoading] = useState(false)
+  const [lbItems, setLbItems] = useState<{ displayName: string; bestScore: number }[]>([])
+  const [myRank, setMyRank] = useState<number | null>(null)
+  const [myBestScore, setMyBestScore] = useState<number>(0)
+
   const [score, setScore] = useState<number>(0)
   const [life, setLife] = useState<number>(3)
 
@@ -80,6 +95,58 @@ export default function FlashJudgeGame({
     })
     return () => unsub()
   }, [])
+
+  // ✅ アタック：自分の順位/ベストを表示（開始前）
+  useEffect(() => {
+    if (!isAttack) return
+    if (!uid) return
+    if (phase !== "ready") return
+    fetchMyAttackRank({ gameId: "flash-judge", uid })
+      .then((r) => {
+        setMyRank(r.rank)
+        setMyBestScore(r.bestScore)
+      })
+      .catch(() => null)
+  }, [isAttack, uid, phase])
+
+  // ✅ アタック：ゲームオーバー時に記録保存 & ランキング取得
+  useEffect(() => {
+    if (!isAttack) return
+    if (!uid) return
+    if (phase !== "over") return
+
+    let cancelled = false
+    ;(async () => {
+      setLbLoading(true)
+      try {
+        await submitAttackScore({
+          gameId: "flash-judge",
+          uid,
+          displayName: displayName || "匿名",
+          score,
+          bestLevel: (maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4"),
+          bestStage: bestStageAtMax,
+        })
+
+        const my = await fetchMyAttackRank({ gameId: "flash-judge", uid })
+        const lb = await fetchAttackLeaderboard({ gameId: "flash-judge", take: 30 })
+
+        if (!cancelled) {
+          setMyRank(my.rank)
+          setMyBestScore(my.bestScore)
+          setLbItems(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        if (!cancelled) setLbLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAttack, uid, phase, displayName, score, maxLevelReached, bestStageAtMax])
 
   useEffect(() => {
     if (autostart) {
@@ -156,7 +223,7 @@ export default function FlashJudgeGame({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <button type="button" onClick={() => {
           if (phase === "ready") {
-            router.push(`/game?type=${quizType}&kind=tile-drop`)
+            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
             return
           }
           setPhase("ready")

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion"
@@ -78,6 +78,8 @@ export default function TileDropGame({
   modeParam: string | null
 }) {
   const router = useRouter()
+  const params = useSearchParams()
+  const hubKindParam = params.get("hubKind")
 
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
@@ -95,7 +97,10 @@ export default function TileDropGame({
   const activeQuizType: QuizType = (isAttack && quizType.startsWith("japanese-") ? attackLevels[attackLevelIndex] : quizType)
   const launchQuizType: QuizType = activeQuizType
   const activeDifficulty = difficultyLabelFromQuizType(activeQuizType)
-  const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">("tile-drop")
+  const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">(() => {
+    if (hubKindParam === "flash-judge" || hubKindParam === "memory-burst" || hubKindParam === "tile-drop") return hubKindParam
+    return "tile-drop"
+  })
   const [difficulty, setDifficulty] = useState<GameDifficulty>("N5")
 
   // ✅ Readyで選べる（カテゴリのみ）
@@ -201,6 +206,19 @@ useEffect(() => {
     })
     return () => unsub()
   }, [])
+
+  // ✅ アタック：開始前に自分の順位/ベストを取得して表示
+  useEffect(() => {
+    if (mode !== "attack") return
+    if (!uid) return
+    if (phase !== "ready") return
+    fetchMyAttackRank({ gameId: selectedKind, uid })
+      .then((r) => {
+        setMyRank(r.rank)
+        setBestScore(r.bestScore)
+      })
+      .catch(() => null)
+  }, [mode, uid, phase, selectedKind])
 
   // ✅ 掃除
   useEffect(() => {
@@ -620,6 +638,22 @@ function startGame() {
                   <div style={{ marginTop: 6, opacity: 0.8 }}>共通：<b>3ミスで終了</b>（時間制限なし）</div>
                 </div>
               </details>
+            </div>
+
+
+{modeParam === "attack" ? (
+  <div style={{ marginTop: 12, padding: 12, borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", background: "white" }}>
+    <div style={{ fontSize: 12, opacity: 0.7 }}>あなたの順位（{selectedKind === "tile-drop" ? "文字ブレイク" : selectedKind === "flash-judge" ? "瞬判ジャッジ" : "フラッシュ記憶"}）</div>
+    <div style={{ marginTop: 6, fontWeight: 900, fontSize: 16 }}>
+      順位：{hubMyRank ?? "-"} ／ ベスト：{hubMyBest}
+    </div>
+    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+      ※ 記録は「攻撃（ランキング）」で3ミス終了時に保存
+    </div>
+  </div>
+) : null}
+
+</details>
             </div>
 
             <div className="mobileSection">

@@ -47,6 +47,15 @@ export default function MemoryBurstGame({
   }, [quizType, section])
 
   const [phase, setPhase] = useState<Phase>("ready")
+
+// ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
+useEffect(() => {
+  if (phase === "ready" && !autostart) {
+    router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [phase, autostart])
+
   const [life, setLife] = useState(3)
 
   // ✅ ライフが0になったら確実に終了（state更新順のズレ対策）
@@ -183,7 +192,7 @@ export default function MemoryBurstGame({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <button
           type="button"
-          onClick={() => router.push(`/game?type=${quizType}&kind=tile-drop`)}
+          onClick={() => router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)}
           style={{ background: "transparent", border: "none", cursor: "pointer" }}
         >
           ← 戻る

@@ -87,8 +87,20 @@ export async function submitAttackScore(params: {
   // ✅ per-game leaderboard (Attack only)
   const ref = doc(db, "attackLeaderboards", params.gameId, "entries", params.uid)
 
-  // Merge update: keep bestScore
-  const bestScore = Math.max(params.score ?? 0, 0)
+  // Merge update: keep bestScore (do not decrease)
+  let prevBest = 0
+  try {
+    const snap = await getDoc(ref)
+    if (snap.exists()) {
+      const v = snap.data() as any
+      prevBest = Number(v?.bestScore ?? 0) || 0
+    }
+  } catch {
+    // ignore
+  }
+
+  const score = Number(params.score ?? 0) || 0
+  const bestScore = Math.max(prevBest, score)
 
   await setDoc(
     ref,
@@ -96,6 +108,7 @@ export async function submitAttackScore(params: {
       uid: params.uid,
       displayName: params.displayName || "匿名",
       bestScore,
+      lastScore: score,
       bestLevel: params.bestLevel ?? "N4",
       bestStage: params.bestStage ?? 0,
       updatedAt: serverTimestamp(),
@@ -105,6 +118,7 @@ export async function submitAttackScore(params: {
 
   return { bestScore }
 }
+
 
 export async function fetchAttackLeaderboard(params: {
   gameId: "tile-drop" | "flash-judge" | "memory-burst" | "speed-choice" | "sentence-build"
