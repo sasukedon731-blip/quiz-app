@@ -574,11 +574,17 @@ useEffect(() => {
               </div>
               <div style={styles.help}>※ ここで3つのゲームを切り替えできます</div>
               <div style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.6 }}>
-                <b>文字ブレイク</b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
+                <b><>
+                          <span className="labelLong">文字ブレイク</span>
+                          <span className="labelShort">ブレイク</span>
+                        </></b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
                 <br />
                 <b>○×</b>：文が正しいなら○、間違いなら×。
                 <br />
-                <b>フラッシュ記憶</b>：一瞬表示→消えたあとに答える。
+                <b><>
+                          <span className="labelLong">フラッシュ記憶</span>
+                          <span className="labelShort">記憶</span>
+                        </></b>：一瞬表示→消えたあとに答える。
               </div>
             </div>
           </div>
@@ -874,6 +880,18 @@ useEffect(() => {
             font-size: 18px !important;
           }
         }
+
+        .labelShort { display: none; }
+        @media (max-width: 640px) {
+          .labelLong { display: none; }
+          .labelShort { display: inline; }
+          .gameSeg :global(button), .modeSeg :global(button), .levelSeg :global(button) {
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+
       `}</style>
 
 </main>
