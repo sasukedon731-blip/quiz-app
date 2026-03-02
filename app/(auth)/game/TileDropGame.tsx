@@ -520,7 +520,7 @@ useEffect(() => {
   const playAreaHeight = "calc(100svh - 128px)"
 
   return (
-    <main style={styles.page} className="game-root">
+    <main style={styles.page} className="game-root mainPad">
       <div style={styles.shell}>
         {/* Compact bar */}
         <div style={styles.compactBar}>
@@ -548,11 +548,11 @@ useEffect(() => {
 
         <section style={styles.panel}>
 {/* Ready */}
-        <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }}>
+        <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
           <div style={styles.row}>
             <div style={styles.field}>
               <div style={styles.label}>ゲーム</div>
-              <div style={styles.seg}>
+              <div style={styles.seg} className="gameSeg">
                 <button
                   style={{ ...styles.segBtn, ...(selectedKind === "tile-drop" ? styles.segActive : {}) }}
                   onClick={() => setSelectedKind("tile-drop")}
@@ -586,7 +586,7 @@ useEffect(() => {
 <div style={styles.row}>
               <div style={styles.field}>
                 <div style={styles.label}>モード</div>
-                <div style={styles.seg}>
+                <div style={styles.seg} className="modeSeg">
                   <button
                     style={{ ...styles.segBtn, ...(mode === "normal" ? styles.segActive : {}) }}
                     onClick={() => setMode("normal")}
@@ -618,7 +618,7 @@ useEffect(() => {
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
                       ノーマルの級（N4 / N3 / N2）
                     </div>
-                    <div style={styles.seg}>
+                    <div style={styles.seg} className="levelSeg">
                       {(["japanese-n4", "japanese-n3", "japanese-n2"] as QuizType[]).map((lv) => (
                         <button
                           key={lv}
@@ -834,7 +834,49 @@ useEffect(() => {
           </div>
         </section>
       </div>
-    </main>
+    
+      <style jsx>{`
+        .readyWrap { max-width: 720px; margin: 0 auto; }
+        @media (max-width: 640px) {
+          .mainPad { padding-bottom: 92px; }
+          .readyWrap { padding: 12px !important; }
+          /* stack fields */
+          .readyWrap :global(div[style*="styles.row"]) { }
+          /* game buttons */
+          .gameSeg, .modeSeg, .levelSeg {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px !important;
+          }
+          .modeSeg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          /* make buttons finger-friendly */
+          .gameSeg :global(button), .modeSeg :global(button), .levelSeg :global(button) {
+            padding: 12px 10px !important;
+            font-size: 16px !important;
+            border-radius: 14px !important;
+          }
+          /* start button fixed bottom */
+          .startBar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 0 !important;
+            padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            z-index: 50;
+          }
+          .startBar :global(button) {
+            width: 100% !important;
+            padding: 14px 14px !important;
+            font-size: 18px !important;
+          }
+        }
+      `}</style>
+
+</main>
   )
 }
 
