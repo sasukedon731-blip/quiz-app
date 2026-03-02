@@ -48,6 +48,13 @@ export default function MemoryBurstGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
   const [life, setLife] = useState(3)
+
+  // ✅ ライフが0になったら確実に終了（state更新順のズレ対策）
+  useEffect(() => {
+    if (phase !== "ready" && phase !== "over" && life <= 0) {
+      setPhase("over")
+    }
+  }, [life, phase])
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
   const [score, setScore] = useState(0)

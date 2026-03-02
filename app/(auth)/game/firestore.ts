@@ -1,7 +1,9 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
+  getCountFromServer,
   limit,
   orderBy,
   query,
@@ -126,4 +128,34 @@ export async function fetchAttackLeaderboard(params: {
     })
   })
   return items
+}
+
+
+export async function fetchMyAttackRank(params: {
+  gameId: "tile-drop" | "flash-judge" | "memory-burst" | "speed-choice" | "sentence-build"
+  uid: string
+}): Promise<{ rank: number | null; entry: LeaderboardEntry | null; bestScore: number }> {
+  // get my entry
+  const ref = doc(db, "attackLeaderboards", params.gameId, "entries", params.uid)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return { rank: null, entry: null, bestScore: 0 }
+  const v = snap.data() as any
+  const bestScore = Number(v?.bestScore ?? 0) || 0
+
+  // rank by bestScore only (ties share same rank-ish)
+  // rank = count( bestScore > mine ) + 1
+  const col = collection(db, "attackLeaderboards", params.gameId, "entries")
+  const q = query(col, where("bestScore", ">", bestScore))
+  const cnt = await getCountFromServer(q)
+
+  const entry: LeaderboardEntry = {
+    uid: v?.uid ?? params.uid,
+    displayName: v?.displayName ?? "匿名",
+    bestScore,
+    bestLevel: v?.bestLevel ?? "N4",
+    bestStage: v?.bestStage ?? 0,
+    updatedAt: v?.updatedAt ?? null,
+  }
+
+  return { rank: Number(cnt.data().count) + 1, entry, bestScore }
 }

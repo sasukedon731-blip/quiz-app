@@ -12,7 +12,7 @@ import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 import type { GameDifficulty, GameMode, GameQuestion } from "./types"
 import { fallbackQuestions } from "./questions"
-import { fetchAttackLeaderboard, submitAttackScore } from "./firestore"
+import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./firestore"
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 import { getTileDropPool } from "./pools/tileDropPools"
 
@@ -302,7 +302,30 @@ useEffect(() => {
     setPlateFx("none")
   }
 
-  function startGame() {
+  
+  async function openLeaderboard() {
+    setLbOpen(true)
+    setLbLoading(true)
+    try {
+      const list = await fetchAttackLeaderboard({ gameId: selectedKind, take: 50 })
+      setLbItems(list)
+      if (uid) {
+        const me = await fetchMyAttackRank({ gameId: selectedKind, uid })
+        setMyRank(me.rank)
+        setMyBestScore(me.bestScore)
+      } else {
+        setMyRank(null)
+        setMyBestScore(0)
+      }
+    } catch (e) {
+      setLbItems([])
+      setMyRank(null)
+      setMyBestScore(0)
+    } finally {
+      setLbLoading(false)
+    }
+  }
+function startGame() {
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")

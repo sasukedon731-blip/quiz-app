@@ -39,6 +39,13 @@ export default function FlashJudgeGame({
   const [phase, setPhase] = useState<Phase>("ready")
   const [score, setScore] = useState<number>(0)
   const [life, setLife] = useState<number>(3)
+
+  // ✅ ライフが0になったら確実に終了（state更新順のズレ対策）
+  useEffect(() => {
+    if (phase === "playing" && life <= 0) {
+      setPhase("over")
+    }
+  }, [life, phase])
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
 

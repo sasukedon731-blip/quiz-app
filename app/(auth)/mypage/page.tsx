@@ -431,6 +431,34 @@ export default function MyPage() {
 
         {error ? <div style={S.alert}>{error}</div> : null}
 
+
+        {/* 🏆 アタック戦績（自分） */}
+        <section style={S.card}>
+          <div style={S.cardHeadRow}>
+            <div style={S.cardTitle}>🏆 アタック戦績</div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>右上🏆から順位確認</div>
+          </div>
+
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+            {[
+              { id: "tile-drop", label: "🔨 文字ブレイク" },
+              { id: "flash-judge", label: "⚡ 瞬判ジャッジ" },
+              { id: "memory-burst", label: "🧠 フラッシュ記憶" },
+            ].map((g) => (
+              <div key={g.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)", background: "white" }}>
+                <div style={{ fontWeight: 900, fontSize: 12 }}>{g.label}</div>
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, lineHeight: 1.4 }}>
+                  アタックで記録更新<br />
+                  ゲーム画面右上🏆で順位
+                </div>
+                <Link href={`/game?type=japanese-n4&kind=${g.id}&mode=attack`} style={{ display: "inline-block", marginTop: 10, fontWeight: 900 }}>
+                  アタック →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ✅ 業種表示カード */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
@@ -858,4 +886,6 @@ const S: Record<string, React.CSSProperties> = {
   modalCard: { border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#f9fafb" },
   modalLabel: { fontSize: 12, opacity: 0.7, fontWeight: 900 },
   modalValue: { marginTop: 6, fontSize: 22, fontWeight: 900 },
+
+      {
 }
