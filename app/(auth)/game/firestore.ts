@@ -102,7 +102,8 @@ export async function submitAttackScore(params: {
   const score = Number(params.score ?? 0) || 0
   const bestScore = Math.max(prevBest, score)
 
-  await setDoc(
+  try {
+    await setDoc(
     ref,
     {
       uid: params.uid,
@@ -115,6 +116,14 @@ export async function submitAttackScore(params: {
     },
     { merge: true }
   )
+  } catch (e: any) {
+    // Useful surface for UI
+    const msg = String(e?.code || e?.message || e)
+    if (msg.includes('permission') || msg.includes('PERMISSION_DENIED')) {
+      throw new Error('PERMISSION_DENIED')
+    }
+    throw e
+  }
 
   return { bestScore }
 }

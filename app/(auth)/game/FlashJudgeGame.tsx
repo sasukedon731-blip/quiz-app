@@ -63,6 +63,7 @@ useEffect(() => {
   }, [life, phase])
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
+  const [toast, setToast] = useState<string>("")
 
   const isAttack = mode === "attack" && quizType.startsWith("japanese-")
   const [attackLevelIndex, setAttackLevelIndex] = useState(0)
@@ -119,14 +120,21 @@ useEffect(() => {
     ;(async () => {
       setLbLoading(true)
       try {
+        try {
         await submitAttackScore({
-          gameId: "flash-judge",
-          uid,
-          displayName: displayName || "匿名",
-          score,
-          bestLevel: (maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4"),
-          bestStage: bestStageAtMax,
-        })
+                  gameId: "flash-judge",
+                  uid,
+                  displayName: displayName || "匿名",
+                  score,
+                  bestLevel: (maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4"),
+                  bestStage: bestStageAtMax,
+                })
+        
+                const my =
+        } catch (e: any) {
+          console.error(e)
+          setToast(String(e?.message||e).includes('PERMISSION_DENIED') ? '⚠️ 記録保存に失敗（Firestoreルール）' : '⚠️ 記録保存に失敗')
+        }
 
         const my = await fetchMyAttackRank({ gameId: "flash-judge", uid })
         const lb = await fetchAttackLeaderboard({ gameId: "flash-judge", take: 30 })

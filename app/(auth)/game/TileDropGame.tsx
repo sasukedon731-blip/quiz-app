@@ -407,15 +407,25 @@ function startGame() {
         bestStage: bestStageAtMax,
       })
       setBestScore(res.bestScore)
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      if (String(e?.message || e).includes('PERMISSION_DENIED')) {
+        setToast('⚠️ 記録保存に失敗（Firestoreルールで拒否）')
+      } else {
+        setToast('⚠️ 記録保存に失敗しました')
+      }
     }
 
     try {
       const lb = await fetchAttackLeaderboard({ gameId: selectedKind, take: 30 })
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      if (String(e?.message || e).includes('PERMISSION_DENIED')) {
+        setToast('⚠️ 記録保存に失敗（Firestoreルールで拒否）')
+      } else {
+        setToast('⚠️ 記録保存に失敗しました')
+      }
     }
   }
 

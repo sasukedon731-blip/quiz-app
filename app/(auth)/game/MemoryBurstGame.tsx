@@ -66,6 +66,7 @@ useEffect(() => {
   }, [life, phase])
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
+  const [toast, setToast] = useState<string>("")
   const [score, setScore] = useState(0)
   const [current, setCurrent] = useState<MemoryBurstQuestion | null>(null)
   const [feedback, setFeedback] = useState<string>("")
@@ -99,7 +100,7 @@ useEffect(() => {
       score,
       bestLevel: levelLabel(maxLevelReached),
       bestStage: bestStageAtMax,
-    }).catch(() => null)
+    }).catch((e:any)=>{console.error(e); setToast(String(e?.message||e).includes('PERMISSION_DENIED') ? '⚠️ 記録保存に失敗（Firestoreルール）' : '⚠️ 記録保存に失敗')})
   }, [isAttack, phase, uid, displayName, score, maxLevelReached, bestStageAtMax])
  // タイマー（playing中のみ）
 
