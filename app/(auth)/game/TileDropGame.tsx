@@ -549,7 +549,7 @@ useEffect(() => {
         <section style={styles.panel}>
 {/* Ready */}
         <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
-          <div style={styles.row}>
+          <div style={styles.row} className="row2">
             <div style={styles.field}>
               <div style={styles.label}>ゲーム</div>
               <div style={styles.seg} className="gameSeg">
@@ -576,21 +576,21 @@ useEffect(() => {
               <div style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.6 }}>
                 <b><>
                           <span className="labelLong">文字ブレイク</span>
-                          <span className="labelShort">ブレイク</span>
+                          <span className="labelShort">🔨</span>
                         </></b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
                 <br />
                 <b>○×</b>：文が正しいなら○、間違いなら×。
                 <br />
                 <b><>
                           <span className="labelLong">フラッシュ記憶</span>
-                          <span className="labelShort">記憶</span>
+                          <span className="labelShort">🧠</span>
                         </></b>：一瞬表示→消えたあとに答える。
               </div>
             </div>
           </div>
 
 <div style={styles.row}>
-              <div style={styles.field}>
+              <div style={styles.field} className="modeCard">
                 <div style={styles.label}>モード</div>
                 <div style={styles.seg} className="modeSeg">
                   <button
@@ -654,7 +654,7 @@ useEffect(() => {
                 ) : null}
               </div>
 
-              <div style={styles.field}>
+              <div style={styles.field} className="difficultyCard">
                 <div style={styles.label}>難易度</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
@@ -845,6 +845,9 @@ useEffect(() => {
         .readyWrap { max-width: 720px; margin: 0 auto; }
         @media (max-width: 640px) {
           .mainPad { padding-bottom: 92px; }
+          .row2 { flex-direction: column !important; gap: 12px !important; }
+          .difficultyCard { display: none !important; }
+          .modeCard { width: 100% !important; }
           .readyWrap { padding: 12px !important; }
           /* stack fields */
           .readyWrap :global(div[style*="styles.row"]) { }
@@ -887,9 +890,15 @@ useEffect(() => {
           .labelShort { display: inline; }
           .gameSeg :global(button), .modeSeg :global(button), .levelSeg :global(button) {
             white-space: nowrap !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            min-height: 52px;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px;
           }
+          .labelShort { font-size: 20px; }
         }
 
       `}</style>
