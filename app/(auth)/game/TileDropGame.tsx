@@ -131,7 +131,6 @@ export default function TileDropGame({
     return pool.filter((q) => q.sectionId === selectedSection)
   }, [pool, activeQuizType, selectedSection])
 
-
   useEffect(() => {
     setDifficulty(activeDifficulty)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,7 +157,6 @@ useEffect(() => {
   const [myRank, setMyRank] = useState<number | null>(null)
   const [myBestScore, setMyBestScore] = useState<number>(0)
   const [lbLoading, setLbLoading] = useState(false)
-
 
   // ✅ 正解時の「弾ける」演出（対象プレートのみ）
   const [plateFx, setPlateFx] = useState<"none" | "success">("none")
@@ -640,12 +638,11 @@ function startGame() {
               </details>
             </div>
 
-
 {modeParam === "attack" ? (
   <div style={{ marginTop: 12, padding: 12, borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", background: "white" }}>
     <div style={{ fontSize: 12, opacity: 0.7 }}>あなたの順位（{selectedKind === "tile-drop" ? "文字ブレイク" : selectedKind === "flash-judge" ? "瞬判ジャッジ" : "フラッシュ記憶"}）</div>
     <div style={{ marginTop: 6, fontWeight: 900, fontSize: 16 }}>
-      順位：{hubMyRank ?? "-"} ／ ベスト：{hubMyBest}
+      順位：{myRank ?? "-"} ／ ベスト：{myBestScore}
     </div>
     <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
       ※ 記録は「攻撃（ランキング）」で3ミス終了時に保存
@@ -653,7 +650,6 @@ function startGame() {
   </div>
 ) : null}
 
-</details>
             </div>
 
             <div className="mobileSection">
@@ -861,7 +857,6 @@ function startGame() {
             {toast ? (
               <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "#b91c1c" }}>{toast}</div>
             ) : null}
-          </div>
           </div>
 
           {/* Playing */}
@@ -1074,7 +1069,6 @@ function startGame() {
           }
           .labelShort { font-size: 20px; }
         }
-
 
         .mobileOnly { display: none; }
         .desktopOnly { display: block; }
