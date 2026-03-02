@@ -148,6 +148,12 @@ useEffect(() => {
   const [current, setCurrent] = useState<GameQuestion | null>(null)
   const [inputIndex, setInputIndex] = useState(0)
   const [toast, setToast] = useState<string>("")
+  const [lbOpen, setLbOpen] = useState(false)
+  const [lbItems, setLbItems] = useState<any[]>([])
+  const [myRank, setMyRank] = useState<number | null>(null)
+  const [myBestScore, setMyBestScore] = useState<number>(0)
+  const [lbLoading, setLbLoading] = useState(false)
+
 
   // ✅ 正解時の「弾ける」演出（対象プレートのみ）
   const [plateFx, setPlateFx] = useState<"none" | "success">("none")
@@ -302,15 +308,15 @@ useEffect(() => {
     setPlateFx("none")
   }
 
-  
-  async function openLeaderboard() {
+  async function openLeaderboard(nextKind?: "tile-drop" | "flash-judge" | "memory-burst") {
+    const kind = nextKind ?? (selectedKind as any)
     setLbOpen(true)
     setLbLoading(true)
     try {
-      const list = await fetchAttackLeaderboard({ gameId: selectedKind, take: 50 })
+      const list = await fetchAttackLeaderboard({ gameId: kind, take: 50 })
       setLbItems(list)
       if (uid) {
-        const me = await fetchMyAttackRank({ gameId: selectedKind, uid })
+        const me = await fetchMyAttackRank({ gameId: kind, uid })
         setMyRank(me.rank)
         setMyBestScore(me.bestScore)
       } else {
@@ -325,6 +331,7 @@ useEffect(() => {
       setLbLoading(false)
     }
   }
+
 function startGame() {
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")

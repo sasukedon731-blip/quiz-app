@@ -886,6 +886,4 @@ const S: Record<string, React.CSSProperties> = {
   modalCard: { border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#f9fafb" },
   modalLabel: { fontSize: 12, opacity: 0.7, fontWeight: 900 },
   modalValue: { marginTop: 6, fontSize: 22, fontWeight: 900 },
-
-      {
 }
