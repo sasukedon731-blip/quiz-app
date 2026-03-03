@@ -505,6 +505,15 @@ const [drawerOpen, setDrawerOpen] = useState(false)
                 教材を変更 →
               </button>
 
+              <button
+                style={S.linkBtn}
+                onClick={() => router.push("/select-industry")}
+                title="業種選択へ"
+              >
+                業種を変更 →
+              </button>
+
+
               {/* ✅ 業種で絞る/全部表示 */}
               <button
                 style={S.linkBtn}

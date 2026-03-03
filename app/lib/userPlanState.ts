@@ -196,6 +196,37 @@ export async function saveSelectedQuizTypesWithLock(params: {
   return { saved: normalized, nextChangeAllowedAt: next }
 }
 
+
+/**
+ * ✅ 業種の保存（1ヶ月ロック開始をここで管理）
+ * - ロック開始は「今ロック中じゃない」時だけ（毎回延長しない）
+ * - 初回設定でも lock を開始（業種/科目の月1回変更を一つのロックで統一）
+ */
+export async function saveIndustryWithLock(params: {
+  uid: string
+  industry: string
+}): Promise<{ saved: string; nextChangeAllowedAt: Date | null; locked: boolean }> {
+  const state = await loadAndRepairUserPlanState(params.uid)
+
+  const now = new Date()
+  const lockedUntil = state.nextChangeAllowedAt
+  const isLocked = lockedUntil ? now < lockedUntil : false
+  const next = isLocked ? lockedUntil : addMonths(now, 1)
+
+  const ref = doc(db, "users", params.uid)
+  await setDoc(
+    ref,
+    {
+      industry: params.industry,
+      nextChangeAllowedAt: next ? Timestamp.fromDate(next) : null,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  )
+
+  return { saved: params.industry, nextChangeAllowedAt: next, locked: isLocked }
+}
+
 /**
  * ✅ プラン変更保存
  * - selected は plan に合わせて正規化
