@@ -102,23 +102,23 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
-
   {
-    id: "road-signs",
-    title: "道路標識マスター",
-    description: "道路標識だけを集中的に学ぶ（画像つき）",
-    enabled: true,
-    order: 999,
-    modes: ["normal"],
-    sections: [
-      { id: "all", title: "すべて", enabled: true, order: 1 },
-      // ここは後で増やせる（例）
-      // { id: "regulation", title: "規制標識", enabled: true, order: 2 },
-      // { id: "warning", title: "警戒標識", enabled: true, order: 3 },
-      // { id: "instruction", title: "指示標識", enabled: true, order: 4 },
-    ],
-  },
+  id: "road-signs",
+  title: "道路標識マスター",
+  description: "道路標識だけを集中的に学ぶ（画像つき）",
+  enabled: true,
+  order: 999,
 
+  modes: ["normal"],
+
+  sections: [
+    { id: "all", title: "すべて", enabled: true, order: 1 },
+    // ここは後で増やせる（例）
+    // { id: "regulation", title: "規制標識", enabled: true, order: 2 },
+    // { id: "warning", title: "警戒標識", enabled: true, order: 3 },
+    // { id: "instruction", title: "指示標識", enabled: true, order: 4 },
+  ],
+},
   {
     id: "japanese-n2",
     title: "日本語検定 N2",
@@ -138,7 +138,6 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
-
   {
     id: "doboku-sekou-2kyu-1ji",
     title: "2級土木施工管理技士 1次",
@@ -148,7 +147,6 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
-
   {
     id: "denki-sekou-2kyu-1ji",
     title: "2級電気施工管理技士 1次",
@@ -158,7 +156,6 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
-
   {
     id: "kanko-sekou-2kyu-1ji",
     title: "2級管工事施工管理技士 1次",
@@ -178,7 +175,6 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
-
   {
     id: "genba-phrasebook",
     title: "現場で使える用語集（ヒアリング・スピーキング）",
@@ -189,11 +185,10 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
-  // ✅ ここに入れる（quizCatalog 配列の中）
   {
     id: "construction-terms",
     title: "建設・現場 用語（分野別）",
-    description: "イラスト/選択問題で分野別に用語を覚える",
+    description: "説明→用語の4択で分野別に覚える（画像は補助）",
     enabled: true,
     order: 50,
     modes: ["normal", "review"],
@@ -221,17 +216,13 @@ export function getQuizDef(quizType: string): QuizDef | undefined {
  * util: sectionId を解決（無ければ all）
  * ✅ sections が空でも落ちないよう安全化
  */
-export function resolveSection(
-  quiz: QuizDef,
-  sectionId?: string | null,
-): QuizSectionDef {
-  const enabledSections = (quiz.sections ?? [])
-    .filter((s) => s.enabled)
-    .sort((a, b) => a.order - b.order)
+export function resolveSection(quiz: QuizDef, sectionId?: string | null): QuizSectionDef {
+  const enabledSections = (quiz.sections ?? []).filter((s) => s.enabled).sort((a, b) => a.order - b.order)
 
   // 最低1つは必要。もし空なら「all」を仮で返す（保険）
   const fallback: QuizSectionDef =
-    enabledSections[0] ?? {
+    enabledSections[0] ??
+    {
       id: "all",
       title: "総合",
       enabled: true,
