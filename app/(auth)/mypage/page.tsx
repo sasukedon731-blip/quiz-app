@@ -1,18 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { onAuthStateChanged, signOut, User } from "firebase/auth"
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-} from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, limit, orderBy, query } from "firebase/firestore"
 
 import { auth, db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
@@ -68,8 +60,103 @@ function calcAcc(r: QuizResult) {
   return 0
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n))
+// =======================
+// ✅ UI部品（重複なし）
+// =======================
+function GameRow({
+  icon,
+  title,
+  best,
+  rank,
+  onClick,
+}: {
+  icon: string
+  title: string
+  best: number
+  rank: number | null
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "12px 14px",
+        borderRadius: 16,
+        border: "1px solid rgba(0,0,0,0.08)",
+        background: "white",
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <div style={{ fontSize: 18 }}>{icon}</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {title}
+          </div>
+          <div style={{ marginTop: 2, fontSize: 13, opacity: 0.75 }}>
+            Best <b>{best}</b> ・ Rank <b>{rank ? `#${rank}` : "-"}</b>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontWeight: 900, opacity: 0.55 }}>▶</div>
+    </button>
+  )
+}
+
+function MiniStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(0,0,0,0.08)",
+        borderRadius: 16,
+        padding: 12,
+        background: "white",
+      }}
+    >
+      <div style={{ fontWeight: 900, opacity: 0.75, fontSize: 13 }}>{label}</div>
+      <div style={{ fontWeight: 900, fontSize: 28, marginTop: 6 }}>{value}</div>
+      {sub ? <div style={{ marginTop: 4, fontSize: 13, opacity: 0.7 }}>{sub}</div> : null}
+    </div>
+  )
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  const w = 260
+  const h = 60
+  const pad = 6
+  if (!values.length) return <div style={{ opacity: 0.7 }}>データなし</div>
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = Math.max(1, max - min)
+
+  const pts = values.map((v, i) => {
+    const x = pad + (i * (w - pad * 2)) / Math.max(1, values.length - 1)
+    const y = pad + (1 - (v - min) / span) * (h - pad * 2)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
+      <polyline
+        points={pts.join(" ")}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity="0.9"
+      />
+    </svg>
+  )
 }
 
 type DetailState = {
@@ -94,23 +181,12 @@ const INDUSTRY_LABEL: Record<IndustryId, string> = {
 }
 
 function isIndustryId(v: any): v is IndustryId {
-  return (
-    v === "construction" ||
-    v === "manufacturing" ||
-    v === "care" ||
-    v === "driver" ||
-    v === "undecided"
-  )
+  return v === "construction" || v === "manufacturing" || v === "care" || v === "driver" || v === "undecided"
 }
 
 const LS_INDUSTRY_KEY = "selected-industry"
 
-const JAPANESE_BASE: QuizType[] = [
-  "japanese-n4",
-  "japanese-n3",
-  "japanese-n2",
-  "speaking-practice",
-]
+const JAPANESE_BASE: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"]
 
 const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
   construction: [
@@ -137,40 +213,14 @@ export default function MyPage() {
   const router = useRouter()
 
   const [user, setUser] = useState<User | null>(null)
-  const [attackRanks, setAttackRanks] = useState<Record<string, { rank: number | null; bestScore: number }>>({})
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
-  
-
-useEffect(() => {
-  if (!user) {
-    setAttackRanks({})
-    return
-  }
-  let cancelled = false
-  ;(async () => {
-    const uid = user.uid
-    const games = ["tile-drop", "flash-judge", "memory-burst"] as const
-    const next: Record<string, { rank: number | null; bestScore: number }> = {}
-    for (const gameId of games) {
-      try {
-        const me = await fetchMyAttackRank({ gameId, uid })
-        next[gameId] = { rank: me.rank, bestScore: me.bestScore }
-      } catch {
-        next[gameId] = { rank: null, bestScore: 0 }
-      }
-    }
-    if (cancelled) return
-    setAttackRanks(next)
-  })()
-  return () => {
-    cancelled = true
-  }
-}, [user])
-const [drawerOpen, setDrawerOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // ✅ ここが追加：ユーザーの業種（Firestore優先、無ければ localStorage）
+  const [attackRanks, setAttackRanks] = useState<Record<string, { rank: number | null; bestScore: number }>>({})
+
+  // ✅ ユーザーの業種（Firestore優先、無ければ localStorage）
   const [industry, setIndustry] = useState<IndustryId | null>(null)
   const [showAllCards, setShowAllCards] = useState(false)
 
@@ -180,11 +230,11 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     return `${path}${join}industry=${encodeURIComponent(industry)}`
   }
 
-  // ✅ インデックス不要にするため、結果をまとめて持つ（直近N件）
+  // ✅ インデックス不要：結果まとめ持ち
   const [allResults, setAllResults] = useState<QuizResult[]>([])
 
-  // summary data
-  const [latestResults, setLatestResults] = useState<QuizResult[]>([]) // global latest 5
+  // summary
+  const [latestResults, setLatestResults] = useState<QuizResult[]>([]) // global latest 10
   const [progressMap, setProgressMap] = useState<Record<string, Progress>>({})
   const [latestByQuiz, setLatestByQuiz] = useState<Record<string, QuizResult | null>>({})
 
@@ -199,7 +249,9 @@ const [drawerOpen, setDrawerOpen] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailTargetId, setDetailTargetId] = useState<string | null>(null)
 
+  // =======================
   // Auth
+  // =======================
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
@@ -211,7 +263,37 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     return () => unsub()
   }, [router])
 
-  // ✅ 業種ロード（Firestore → localStorage fallback）
+  // =======================
+  // Attack rank（3ゲーム）
+  // =======================
+  useEffect(() => {
+    if (!user) {
+      setAttackRanks({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const uid = user.uid
+      const games = ["tile-drop", "flash-judge", "memory-burst"] as const
+      const next: Record<string, { rank: number | null; bestScore: number }> = {}
+      for (const gameId of games) {
+        try {
+          const me = await fetchMyAttackRank({ gameId, uid })
+          next[gameId] = { rank: me.rank, bestScore: me.bestScore }
+        } catch {
+          next[gameId] = { rank: null, bestScore: 0 }
+        }
+      }
+      if (!cancelled) setAttackRanks(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // =======================
+  // 業種ロード（Firestore → localStorage）
+  // =======================
   useEffect(() => {
     ;(async () => {
       if (!user?.uid) return
@@ -230,17 +312,16 @@ const [drawerOpen, setDrawerOpen] = useState(false)
         // ignore
       }
 
-      // fallback
       try {
         const saved = localStorage.getItem(LS_INDUSTRY_KEY)
-        if (isIndustryId(saved)) {
-          setIndustry(saved)
-        }
+        if (isIndustryId(saved)) setIndustry(saved)
       } catch {}
     })()
   }, [user?.uid])
 
-  // Load summary
+  // =======================
+  // Load summary（results/progress）
+  // =======================
   useEffect(() => {
     ;(async () => {
       if (!user?.uid) return
@@ -248,8 +329,6 @@ const [drawerOpen, setDrawerOpen] = useState(false)
       setError("")
       try {
         const resultsRef = collection(db, "users", user.uid, "results")
-
-        // ✅ 直近200件まとめて取得（orderByだけなら単一インデックスでOK）
         const qAll = query(resultsRef, orderBy("createdAt", "desc"), limit(200))
         const snapAll = await getDocs(qAll)
 
@@ -266,11 +345,8 @@ const [drawerOpen, setDrawerOpen] = useState(false)
         })
 
         setAllResults(all)
+        setLatestResults(all.slice(0, 10))
 
-        // global latest 5
-        setLatestResults(all.slice(0, 5))
-
-        // latest by quizType
         const byQuiz: Record<string, QuizResult | null> = {}
         for (const r of all) {
           const qt = String(r.quizType ?? "")
@@ -279,18 +355,13 @@ const [drawerOpen, setDrawerOpen] = useState(false)
         }
         setLatestByQuiz(byQuiz)
 
-        // progress map
         const prog: Record<string, Progress> = {}
         await Promise.all(
           quizCatalog.map(async (q) => {
             try {
               const pRef = doc(db, "users", user.uid, "progress", q.id)
               const pSnap = await getDoc(pRef)
-              if (pSnap.exists()) {
-                prog[q.id] = (pSnap.data() as any) ?? {}
-              } else {
-                prog[q.id] = {}
-              }
+              prog[q.id] = pSnap.exists() ? ((pSnap.data() as any) ?? {}) : {}
             } catch {
               prog[q.id] = {}
             }
@@ -306,31 +377,18 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     })()
   }, [user?.uid])
 
+  // =======================
+  // detail open/close
+  // =======================
   const openDetail = async (quizType: string, title: string) => {
     if (!user?.uid) return
     setDetailLoading(true)
     setDetailTargetId(quizType)
     try {
-      const resultsRef = collection(db, "users", user.uid, "results")
-      const qOne = query(
-        resultsRef,
-        orderBy("createdAt", "desc"),
-        limit(50)
-      )
-      const snap = await getDocs(qOne)
-      const list = snap.docs
-        .map((d) => d.data() as any)
-        .filter((x) => String(x.quizType ?? "") === quizType)
-        .slice(0, 5)
-        .map((x) => ({
-          score: Number(x.score ?? 0),
-          total: Number(x.total ?? 0),
-          accuracy: typeof x.accuracy === "number" ? x.accuracy : undefined,
-          quizType: x.quizType ?? undefined,
-          mode: x.mode ?? undefined,
-          createdAt: x.createdAt ?? null,
-        }))
+      // ✅ まず allResults から10件切り出し（軽い）
+      const fromCache = allResults.filter((r) => String(r.quizType ?? "") === quizType).slice(0, 10)
 
+      // ✅ progress は正確に取る
       const pRef = doc(db, "users", user.uid, "progress", quizType)
       const pSnap = await getDoc(pRef)
       const prog = pSnap.exists() ? ((pSnap.data() as any) ?? {}) : null
@@ -339,7 +397,7 @@ const [drawerOpen, setDrawerOpen] = useState(false)
         open: true,
         quizType,
         title,
-        results: list,
+        results: fromCache,
         progress: prog,
       })
     } catch (e) {
@@ -351,9 +409,7 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     }
   }
 
-  const closeDetail = () => {
-    setDetail((d) => ({ ...d, open: false }))
-  }
+  const closeDetail = () => setDetail((d) => ({ ...d, open: false }))
 
   const handleLogout = async () => {
     try {
@@ -363,7 +419,9 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     }
   }
 
-  // ✅ マイページ教材カード：業種で絞り込み（日本語基礎は必ず含む）
+  // =======================
+  // catalog visible by industry
+  // =======================
   const allowedSet = useMemo(() => buildAllowed(industry), [industry])
 
   const visibleCatalog = useMemo(() => {
@@ -372,8 +430,15 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     return enabled.filter((q) => allowedSet.has(q.id))
   }, [industry, showAllCards, allowedSet])
 
+  // =======================
+  // summaries
+  // =======================
   const totalSessionsAll = useMemo(() => {
     return Object.values(progressMap).reduce((sum, p) => sum + Number(p.totalSessions ?? 0), 0)
+  }, [progressMap])
+
+  const todaySessionsAll = useMemo(() => {
+    return Object.values(progressMap).reduce((sum, p) => sum + Number(p.todaySessions ?? 0), 0)
   }, [progressMap])
 
   const streakMax = useMemo(() => {
@@ -386,6 +451,9 @@ const [drawerOpen, setDrawerOpen] = useState(false)
     return r ? calcAcc(r) : null
   }, [latestResults])
 
+  // =======================
+  // render
+  // =======================
   if (loading) {
     return (
       <main style={S.page}>
@@ -420,7 +488,6 @@ const [drawerOpen, setDrawerOpen] = useState(false)
               👤 マイページ
             </Link>
 
-            {/* ✅ ここは業種を維持して select-mode へ */}
             <Link style={S.navItem} href={withIndustry("/select-mode")} onClick={() => setDrawerOpen(false)}>
               🎮 学習を始める
             </Link>
@@ -460,59 +527,53 @@ const [drawerOpen, setDrawerOpen] = useState(false)
 
         {error ? <div style={S.alert}>{error}</div> : null}
 
-
-        {/* 🏆 アタック戦績（自分） */}
+        {/* 🏆 アタック戦績（縦並び） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
             <div style={S.cardTitle}>🏆 アタック戦績</div>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>右上🏆から順位確認</div>
           </div>
 
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-            {[
-              { id: "tile-drop", label: "🔨 文字ブレイク" },
-              { id: "flash-judge", label: "⚡ 瞬判ジャッジ" },
-              { id: "memory-burst", label: "🧠 フラッシュ記憶" },
-            ].map((g) => (
-              <div key={g.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)", background: "white" }}>
-                <div style={{ fontWeight: 900, fontSize: 12 }}>{g.label}</div>
-                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
-                  ベスト：<b>{attackRanks[g.id]?.bestScore ?? 0}</b>{" "}
-                  ／ 順位：<b>{attackRanks[g.id]?.rank ?? "-"}</b>
-                </div>
-                <Link href={`/game?type=japanese-n4&kind=${g.id}&mode=attack`} style={{ display: "inline-block", marginTop: 10, fontWeight: 900 }}>
-                  アタック →
-                </Link>
-              </div>
-            ))}
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <GameRow
+              icon="🔨"
+              title="文字ブレイク"
+              best={attackRanks["tile-drop"]?.bestScore ?? 0}
+              rank={attackRanks["tile-drop"]?.rank ?? null}
+              onClick={() => router.push(`/game?type=japanese-n4&kind=tile-drop&mode=attack`)}
+            />
+            <GameRow
+              icon="⚡"
+              title="瞬判ジャッジ"
+              best={attackRanks["flash-judge"]?.bestScore ?? 0}
+              rank={attackRanks["flash-judge"]?.rank ?? null}
+              onClick={() => router.push(`/game?type=japanese-n4&kind=flash-judge&mode=attack`)}
+            />
+            <GameRow
+              icon="🧠"
+              title="フラッシュ記憶"
+              best={attackRanks["memory-burst"]?.bestScore ?? 0}
+              rank={attackRanks["memory-burst"]?.rank ?? null}
+              onClick={() => router.push(`/game?type=japanese-n4&kind=memory-burst&mode=attack`)}
+            />
           </div>
         </section>
 
-        {/* ✅ 業種表示カード */}
+        {/* ✅ あなたの設定 */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
             <div style={S.cardTitle}>あなたの設定</div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                style={S.linkBtn}
-                onClick={() => router.push(withIndustry("/select-quizzes"))}
-                title="教材選択へ"
-              >
+              <button style={S.linkBtn} onClick={() => router.push(withIndustry("/select-quizzes"))} title="教材選択へ">
                 教材を変更 →
               </button>
 
-              {/* ✅ 業種で絞る/全部表示 */}
-              <button
-                style={S.linkBtn}
-                onClick={() => setShowAllCards((v) => !v)}
-                title="教材カードの表示切替"
-              >
+              <button style={S.linkBtn} onClick={() => setShowAllCards((v) => !v)} title="教材カードの表示切替">
                 {showAllCards ? "業種で絞る" : "すべて表示"}
               </button>
             </div>
           </div>
 
-          <div style={S.kvRow}>
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
             <div style={S.kv}>
               <div style={S.kvLabel}>選択中の業種</div>
               <div style={S.kvValue}>{industry ? INDUSTRY_LABEL[industry] : "未設定"}</div>
@@ -523,27 +584,17 @@ const [drawerOpen, setDrawerOpen] = useState(false)
               </div>
             </div>
 
-            <div style={S.kv}>
-              <div style={S.kvLabel}>総学習回数</div>
-              <div style={S.kvValue}>{totalSessionsAll}</div>
-              <div style={S.kvHint}>全教材合計</div>
-            </div>
-
-            <div style={S.kv}>
-              <div style={S.kvLabel}>最新の合格率</div>
-              <div style={S.kvValue}>{latestAcc === null ? "—" : `${latestAcc}%`}</div>
-              <div style={S.kvHint}>直近の結果</div>
-            </div>
-
-            <div style={S.kv}>
-              <div style={S.kvLabel}>最大streak</div>
-              <div style={S.kvValue}>{streakMax || "—"}</div>
-              <div style={S.kvHint}>教材別の最大streak</div>
+            {/* ✅ 進捗（2列・コンパクト） */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <MiniStat label="総学習回数" value={`${totalSessionsAll}`} sub="全教材合計" />
+              <MiniStat label="最新の合格率" value={latestAcc === null ? "—" : `${latestAcc}%`} sub="直近の結果" />
+              <MiniStat label="今日の学習" value={`${todaySessionsAll}`} sub="今日の回数" />
+              <MiniStat label="最大streak" value={streakMax ? String(streakMax) : "—"} sub="教材別の最大streak" />
             </div>
           </div>
         </section>
 
-        {/* 教材カード：業種で最適化 */}
+        {/* 教材カード：業種で最適化（最強：行タップで詳細） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
             <div style={S.cardTitle}>教材</div>
@@ -564,7 +615,28 @@ const [drawerOpen, setDrawerOpen] = useState(false)
               const isThisLoading = detailLoading && detailTargetId === q.id
 
               return (
-                <div key={q.id} style={S.compactRow}>
+                <div
+                  key={q.id}
+                  style={{
+                    ...S.compactRow,
+                    cursor: detailLoading ? "wait" : "pointer",
+                    opacity: isThisLoading ? 0.7 : 1,
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (detailLoading) return
+                    openDetail(q.id, q.title)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      if (detailLoading) return
+                      openDetail(q.id, q.title)
+                    }
+                  }}
+                  aria-label={`${q.title} の詳細`}
+                >
                   <div style={{ minWidth: 0 }}>
                     <div style={S.rowTitle}>{q.title}</div>
                     <div style={S.rowSub}>
@@ -573,36 +645,9 @@ const [drawerOpen, setDrawerOpen] = useState(false)
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      flexWrap: "wrap",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <button
-                      style={S.smallGhostBtn}
-                      onClick={() => openDetail(q.id, q.title)}
-                      disabled={detailLoading}
-                    >
-                      {isThisLoading ? "読込中..." : "詳細"}
-                    </button>
-
-                    {/* ✅ 開始：select-modeへ。industryを維持 + typeも残す */}
-                    <button
-                      style={S.smallBtn}
-                      onClick={() =>
-                        router.push(
-                          industry
-                            ? `/select-mode?industry=${encodeURIComponent(industry)}&type=${encodeURIComponent(q.id)}`
-                            : `/select-mode?type=${encodeURIComponent(q.id)}`
-                        )
-                      }
-                      title="select-modeがtype対応している場合に有効"
-                    >
-                      開始
-                    </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={S.pillSmall}>{isThisLoading ? "読込中..." : "詳細"}</span>
+                    <span style={{ fontWeight: 900, opacity: 0.55 }}>▶</span>
                   </div>
                 </div>
               )
@@ -610,10 +655,10 @@ const [drawerOpen, setDrawerOpen] = useState(false)
           </div>
         </section>
 
-        {/* 最新5件（全体） */}
+        {/* 最新10件（全体） */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
-            <div style={S.cardTitle}>最新の結果（直近5件）</div>
+            <div style={S.cardTitle}>最新の結果（直近10件）</div>
           </div>
 
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
@@ -656,32 +701,31 @@ const [drawerOpen, setDrawerOpen] = useState(false)
                 <div style={S.modalGrid}>
                   <div style={S.modalCard}>
                     <div style={S.modalLabel}>総回数</div>
-                    <div style={S.modalValue}>
-                      {Number(detail.progress?.totalSessions ?? 0)}
-                    </div>
+                    <div style={S.modalValue}>{Number(detail.progress?.totalSessions ?? 0)}</div>
                   </div>
                   <div style={S.modalCard}>
                     <div style={S.modalLabel}>今日</div>
-                    <div style={S.modalValue}>
-                      {Number(detail.progress?.todaySessions ?? 0)}
-                    </div>
+                    <div style={S.modalValue}>{Number(detail.progress?.todaySessions ?? 0)}</div>
                   </div>
                   <div style={S.modalCard}>
                     <div style={S.modalLabel}>streak</div>
-                    <div style={S.modalValue}>
-                      {Number(detail.progress?.streak ?? 0)}
-                    </div>
+                    <div style={S.modalValue}>{Number(detail.progress?.streak ?? 0)}</div>
                   </div>
                   <div style={S.modalCard}>
                     <div style={S.modalLabel}>best</div>
-                    <div style={S.modalValue}>
-                      {Number(detail.progress?.bestStreak ?? 0)}
-                    </div>
+                    <div style={S.modalValue}>{Number(detail.progress?.bestStreak ?? 0)}</div>
                   </div>
                 </div>
 
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontWeight: 900, marginBottom: 8 }}>直近5件</div>
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 6 }}>点数推移（直近10件）</div>
+                  <div style={{ color: "#111" }}>
+                    <Sparkline values={detail.results.slice().reverse().map((r) => calcAcc(r))} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>直近10件</div>
                   {detail.results.length === 0 ? (
                     <div style={S.miniNote}>まだ結果がありません。</div>
                   ) : (
@@ -692,9 +736,7 @@ const [drawerOpen, setDrawerOpen] = useState(false)
                         return (
                           <div key={idx} style={S.resultRow}>
                             <div style={{ minWidth: 0 }}>
-                              <div style={S.resultTitle}>
-                                {d ? fmtDate(d) : "—"}
-                              </div>
+                              <div style={S.resultTitle}>{d ? fmtDate(d) : "—"}</div>
                               <div style={S.resultSub}>
                                 {r.score}/{r.total} ・ {acc}%
                               </div>
@@ -818,6 +860,16 @@ const S: Record<string, React.CSSProperties> = {
   rowTitle: { fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   rowSub: { marginTop: 4, fontSize: 12, opacity: 0.75 },
 
+  pillSmall: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#111827",
+    color: "white",
+    fontWeight: 900,
+    fontSize: 12,
+    whiteSpace: "nowrap",
+  },
+
   smallBtn: {
     border: "none",
     borderRadius: 14,
@@ -906,10 +958,39 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   // Modal
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 2000, display: "grid", placeItems: "center", padding: 14 },
-  modal: { width: "min(720px, 92vw)", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 48px rgba(0,0,0,0.20)" },
-  modalHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14, borderBottom: "1px solid #e5e7eb" },
-  modalClose: { width: 40, height: 40, borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 900 },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.35)",
+    zIndex: 2000,
+    display: "grid",
+    placeItems: "center",
+    padding: 14,
+  },
+  modal: {
+    width: "min(720px, 92vw)",
+    background: "#fff",
+    borderRadius: 18,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 18px 48px rgba(0,0,0,0.20)",
+  },
+  modalHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderBottom: "1px solid #e5e7eb",
+  },
+  modalClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: 18,
+    fontWeight: 900,
+  },
   modalBody: { padding: 14 },
   modalGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 },
   modalCard: { border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#f9fafb" },
