@@ -349,6 +349,7 @@ useEffect(() => {
     activeKeyRef.current = `${q.id}:${Date.now()}`
     setToast("")
     setPlateFx("none")
+    setBurstPieces(null)
   }
 
   async function openLeaderboard(nextKind?: "tile-drop" | "flash-judge" | "memory-burst") {
@@ -573,11 +574,12 @@ function startGame() {
     // ✅ 正解演出：scale 1 → 1.08 → 0.95 → fade
     setPlateFx("success")
 
+    // ✅ 爆散演出が見えるように、次の問題へ進むまで少し待つ
     setTimeout(() => {
       const nextLevel = mode === "attack" ? level + 1 : level
       if (mode === "attack") setLevel(nextLevel)
       resetRound(mode, difficulty, nextLevel)
-    }, 320)
+    }, 780)
   }
 
   function onTilePress(label: string) {
@@ -602,8 +604,8 @@ function startGame() {
   const speedSec = useMemo(() => speedFor(mode, level), [mode, level])
   const fallY = 420
   // ✅ 外国人ユーザー向け：真ん中で約1秒止める
-  const PAUSE_SEC = 1
-  const STOP_RATIO = 0.42
+  const PAUSE_SEC = 1.1
+  const STOP_RATIO = 0.35
   const fallMidY = Math.round(fallY * STOP_RATIO)
   const fallTotalSec = speedSec + PAUSE_SEC
   const fallT1 = (speedSec / 2) / fallTotalSec
