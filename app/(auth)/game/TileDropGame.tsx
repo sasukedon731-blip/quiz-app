@@ -19,8 +19,30 @@ import { getTileDropPool } from "./pools/tileDropPools"
 
 type Phase = "ready" | "playing" | "over"
 
+type BurstPiece = { ch: string; x: number; y: number; r: number; d: number }
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
+}
+
+function hashSeed(s: string) {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+function seededRand(seed: number) {
+  // xorshift32
+  let x = seed || 123456789
+  return () => {
+    x ^= x << 13
+    x ^= x >>> 17
+    x ^= x << 5
+    return ((x >>> 0) / 4294967296)
+  }
 }
 
 const GAME_LABEL: Record<"tile-drop" | "flash-judge" | "memory-burst", string> = {
@@ -161,6 +183,9 @@ useEffect(() => {
 
   // ✅ 正解時の「弾ける」演出（対象プレートのみ）
   const [plateFx, setPlateFx] = useState<"none" | "success">("none")
+  // ✅ 正解時の文字爆散（promptを文字単位で飛ばす）
+  const [burstPieces, setBurstPieces] = useState<BurstPiece[] | null>(null)
+
 
   // ✅ コンボポップ
   const [comboPop, setComboPop] = useState<number | null>(null)
@@ -525,6 +550,26 @@ function startGame() {
 
     setToast(`+${gained}`)
 
+    // ✅ 正解演出：プレート文字爆散（既存ロジックは維持）
+    const burstText = (current.answer?.join?.("") || current.prompt || "").trim()
+    if (burstText) {
+      const seed = hashSeed(String(activeKeyRef.current) + "|" + burstText)
+      const rnd = seededRand(seed)
+      const chars = Array.from(burstText)
+      const pieces: BurstPiece[] = chars.map((ch, i) => {
+        const ang = rnd() * Math.PI * 2
+        const dist = 70 + rnd() * 120
+        const x = Math.cos(ang) * dist
+        const y = Math.sin(ang) * dist - (20 + rnd() * 40)
+        const r = (rnd() * 2 - 1) * 28
+        const d = rnd() * 0.06
+        return { ch, x, y, r, d }
+      })
+      setBurstPieces(pieces)
+    } else {
+      setBurstPieces(null)
+    }
+
     // ✅ 正解演出：scale 1 → 1.08 → 0.95 → fade
     setPlateFx("success")
 
@@ -558,7 +603,8 @@ function startGame() {
   const fallY = 420
   // ✅ 外国人ユーザー向け：真ん中で約1秒止める
   const PAUSE_SEC = 1
-  const fallMidY = Math.round(fallY * 0.5)
+  const STOP_RATIO = 0.42
+  const fallMidY = Math.round(fallY * STOP_RATIO)
   const fallTotalSec = speedSec + PAUSE_SEC
   const fallT1 = (speedSec / 2) / fallTotalSec
   const fallT2 = (speedSec / 2 + PAUSE_SEC) / fallTotalSec
@@ -929,7 +975,26 @@ function startGame() {
                         style={styles.plate}
                       >
                         <div style={styles.plateBadge}>{current.type.toUpperCase()}</div>
-                        <div style={styles.prompt}>{current.prompt}</div>
+                        <div style={{ ...styles.prompt, position: "relative" }}>
+                          <span style={{ display: "inline-block", opacity: plateFx === "success" ? 0 : 1 }}>
+                            {current.prompt}
+                          </span>
+                          {plateFx === "success" && burstPieces ? (
+                            <div style={styles.burstLayer} aria-hidden>
+                              {burstPieces.map((p, i) => (
+                                <motion.span
+                                  key={`${p.ch}-${i}`}
+                                  initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+                                  animate={{ x: p.x, y: p.y, opacity: 0, scale: 0.92, rotate: p.r }}
+                                  transition={{ duration: 0.56, ease: "easeOut", delay: p.d }}
+                                  style={styles.burstChar}
+                                >
+                                  {p.ch}
+                                </motion.span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                         <div style={styles.progress}>
                           {current.answer.map((a, i) => (
                             <span key={`${a}-${i}`} style={{ ...styles.dot, opacity: i < inputIndex ? 1 : 0.25 }} />
