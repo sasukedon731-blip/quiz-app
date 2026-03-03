@@ -10,9 +10,11 @@ import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
 
-const ATTACK_LEVELS: QuizType[] = ["japanese-n4","japanese-n3","japanese-n2"]
+const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
-function levelLabel(i: number): "N4"|"N3"|"N2" { return i===2 ? "N2" : i===1 ? "N3" : "N4" }
+function levelLabel(i: number): "N4" | "N3" | "N2" {
+  return i === 2 ? "N2" : i === 1 ? "N3" : "N4"
+}
 
 type Phase = "ready" | "show" | "question" | "over"
 
@@ -32,29 +34,32 @@ export default function MemoryBurstGame({
   const autostart = params.get("autostart") === "1"
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
   const isAttack = mode === "attack" && quizType.startsWith("japanese-")
+
   const [attackLevelIndex, setAttackLevelIndex] = useState(0)
   const [stageCorrect, setStageCorrect] = useState(0)
   const [maxLevelReached, setMaxLevelReached] = useState(0)
   const [bestStageAtMax, setBestStageAtMax] = useState(0)
+
   const activeQuizType: QuizType = isAttack ? ATTACK_LEVELS[attackLevelIndex] : quizType
-  const section = params.get("section") // いまは未使用（将来拡張用）
+  const section = params.get("section") // 将来拡張用
 
   const pool = useMemo(() => {
     let list = getMemoryBurstPool(activeQuizType)
-    // 将来：sectionで絞るならここ
     void section
     return list.filter((q) => q.enabled)
-  }, [quizType, section])
+  }, [activeQuizType, section])
 
   const [phase, setPhase] = useState<Phase>("ready")
 
-// ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
-useEffect(() => {
-  if (phase === "ready" && !autostart) {
-    router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [phase, autostart])
+  // ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
+  useEffect(() => {
+    if (phase === "ready" && !autostart) {
+      router.replace(
+        `/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, autostart])
 
   const [life, setLife] = useState(3)
 
@@ -64,9 +69,11 @@ useEffect(() => {
       setPhase("over")
     }
   }, [life, phase])
+
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
   const [toast, setToast] = useState<string>("")
+
   const [score, setScore] = useState(0)
   const [current, setCurrent] = useState<MemoryBurstQuestion | null>(null)
   const [feedback, setFeedback] = useState<string>("")
@@ -80,15 +87,6 @@ useEffect(() => {
     return () => unsub()
   }, [])
 
-
- 
-
-  useEffect(() => {
-    if (phase === "ready") return
-    if (life > 0) return
-    setPhase("over")
-  }, [life, phase])
-
   useEffect(() => {
     if (!isAttack) return
     if (phase !== "over") return
@@ -100,14 +98,18 @@ useEffect(() => {
       score,
       bestLevel: levelLabel(maxLevelReached),
       bestStage: bestStageAtMax,
-    }).catch((e:any)=>{console.error(e); setToast(String(e?.message||e).includes('PERMISSION_DENIED') ? '⚠️ 記録保存に失敗（Firestoreルール）' : '⚠️ 記録保存に失敗')})
+    }).catch((e: any) => {
+      console.error(e)
+      setToast(
+        String(e?.message || e).includes("PERMISSION_DENIED")
+          ? "⚠️ 記録保存に失敗（Firestoreルール）"
+          : "⚠️ 記録保存に失敗"
+      )
+    })
   }, [isAttack, phase, uid, displayName, score, maxLevelReached, bestStageAtMax])
- // タイマー（playing中のみ）
 
   useEffect(() => {
-    if (autostart) {
-      start()
-    }
+    if (autostart) start()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autostart])
 
@@ -124,7 +126,6 @@ useEffect(() => {
     const q = pickRandom(pool)
     setCurrent(q || null)
     setPhase("show")
-    // show → question
     window.setTimeout(() => {
       setPhase("question")
     }, showMs)
@@ -148,25 +149,27 @@ useEffect(() => {
       setFeedback("✅ 正解！")
       if (isAttack) {
         setStageCorrect((prev) => {
-          const next = prev + 1
-          setBestStageAtMax((bs) => (attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs))
-          if (next >= 30) {
-            setAttackLevelIndex((i) => {
-              const ni = (i + 1) % 3
+          const nextC = prev + 1
+          setBestStageAtMax((bs) =>
+            attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(nextC, 30)) : bs
+          )
+          if (nextC >= 30) {
+            setAttackLevelIndex((idx) => {
+              const ni = (idx + 1) % 3
               setMaxLevelReached((m) => Math.max(m, ni))
               return ni
             })
             return 0
           }
-          return next
+          return nextC
         })
       }
     } else {
       setScore((s) => Math.max(0, s - 5))
       setFeedback("❌ ちがう")
       setLife((prev) => {
-        const next = prev - 1
-        return next < 0 ? 0 : next
+        const nextL = prev - 1
+        return nextL < 0 ? 0 : nextL
       })
     }
     window.setTimeout(() => {
@@ -189,11 +192,13 @@ useEffect(() => {
   }
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
+    <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <button
           type="button"
-          onClick={() => router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)}
+          onClick={() =>
+            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)
+          }
           style={{ background: "transparent", border: "none", cursor: "pointer" }}
         >
           ← 戻る
@@ -202,6 +207,7 @@ useEffect(() => {
         <div />
       </div>
 
+      {/* readyは基本ハブへ飛ぶが、念のため残す */}
       {phase === "ready" && !autostart && (
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>一瞬表示 → 記憶で答える</div>
@@ -211,12 +217,22 @@ useEffect(() => {
             消えたあとに質問に答えてください。
           </div>
           <div style={{ marginTop: 12, opacity: 0.85 }}>問題数：{pool.length}問</div>
+
+          {/* PC用（スマホは固定CTAに） */}
           <button
             onClick={start}
+            className="hideOnMobile"
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 900 }}
           >
             ゲーム開始
           </button>
+
+          {/* スマホ用：下部固定CTA */}
+          <div className="mobileFixedBar">
+            <button type="button" onClick={start} className="mobileFixedBtn">
+              ゲーム開始
+            </button>
+          </div>
         </div>
       )}
 
@@ -248,6 +264,13 @@ useEffect(() => {
               </div>
             )}
           </div>
+
+          {toast && <div style={{ marginTop: 10, fontWeight: 900 }}>{toast}</div>}
+          {isAttack && (
+            <div style={{ marginTop: 8, opacity: 0.9 }}>
+              Lv: {levelLabel(attackLevelIndex)} / Stage: {stageCorrect}/30
+            </div>
+          )}
         </div>
       )}
 

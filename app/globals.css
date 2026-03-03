@@ -589,3 +589,39 @@ body {
   background: var(--border);
   margin: 4px 0;
 }
+/* ---- Mobile app-like CTA bar ---- */
+:root{
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.withFixedCta{
+  padding-bottom: calc(92px + var(--safe-bottom));
+}
+
+.mobileFixedBar{
+  display: none;
+}
+
+@media (max-width: 640px){
+  .mobileFixedBar{
+    display: block;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 12px 14px calc(12px + var(--safe-bottom));
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    z-index: 60;
+  }
+
+  .mobileFixedBtn{
+    width: 100%;
+    padding: 14px 14px;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 18px;
+    min-height: 52px;
+  }
+
+  .hideOnMobile{ display: none !important; }
+}

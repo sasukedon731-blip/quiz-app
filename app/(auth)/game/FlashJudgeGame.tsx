@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/app/lib/firebase"
@@ -11,9 +10,11 @@ import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
 import { getFlashJudgePool } from "./pools/flashJudgePools"
 
-const ATTACK_LEVELS: QuizType[] = ["japanese-n4","japanese-n3","japanese-n2"]
+const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
-function levelLabel(i: number): "N4"|"N3"|"N2" { return i===2 ? "N2" : i===1 ? "N3" : "N4" }
+function levelLabel(i: number): "N4" | "N3" | "N2" {
+  return i === 2 ? "N2" : i === 1 ? "N3" : "N4"
+}
 
 type Phase = "ready" | "playing" | "over"
 
@@ -33,21 +34,20 @@ export default function FlashJudgeGame({
   const autostart = params.get("autostart") === "1"
 
   const phaseSection = params.get("section")
-
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
 
   const [phase, setPhase] = useState<Phase>("ready")
 
-  // ✅ autostart=1 のときだけこの画面で開始。
-  // それ以外（/game?kind=flash-judge 直アクセス等）は共通ハブへ戻す。
+  // ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
   useEffect(() => {
-    if (!autostart) {
-      router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
+    if (phase === "ready" && !autostart) {
+      router.replace(
+        `/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`
+      )
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autostart])
+  }, [phase, autostart])
 
-  const [lbOpen, setLbOpen] = useState(false)
   const [lbLoading, setLbLoading] = useState(false)
   const [lbItems, setLbItems] = useState<{ displayName: string; bestScore: number }[]>([])
   const [myRank, setMyRank] = useState<number | null>(null)
@@ -62,6 +62,7 @@ export default function FlashJudgeGame({
       setPhase("over")
     }
   }, [life, phase])
+
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
   const [toast, setToast] = useState<string>("")
@@ -70,7 +71,6 @@ export default function FlashJudgeGame({
   const [attackLevelIndex, setAttackLevelIndex] = useState(0)
   const [stageCorrect, setStageCorrect] = useState(0)
   const activeQuizType: QuizType = isAttack ? ATTACK_LEVELS[attackLevelIndex] : quizType
-
 
   const pool = useMemo(() => {
     let list = getFlashJudgePool(activeQuizType)
@@ -81,10 +81,10 @@ export default function FlashJudgeGame({
       }
     }
     return list
-  }, [activeQuizType, phaseSection])
+  }, [activeQuizType, phaseSection, quizType])
+
   const [maxLevelReached, setMaxLevelReached] = useState(0)
   const [bestStageAtMax, setBestStageAtMax] = useState(0)
-
 
   const [combo, setCombo] = useState<number>(0)
   const [current, setCurrent] = useState<FlashJudgeQuestion | null>(null)
@@ -128,19 +128,23 @@ export default function FlashJudgeGame({
           uid,
           displayName: displayName || "匿名",
           score,
-          bestLevel: maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4",
+          bestLevel:
+            maxLevelReached === 2 ? "N2" : maxLevelReached === 1 ? "N3" : "N4",
           bestStage: bestStageAtMax,
         })
       } catch (e: any) {
         console.error(e)
         const msg = String(e?.message || e)
-        setToast(msg.includes("PERMISSION_DENIED") ? "⚠️ 記録保存に失敗（Firestoreルール）" : "⚠️ 記録保存に失敗")
+        setToast(
+          msg.includes("PERMISSION_DENIED")
+            ? "⚠️ 記録保存に失敗（Firestoreルール）"
+            : "⚠️ 記録保存に失敗"
+        )
       }
 
       try {
         const my = await fetchMyAttackRank({ gameId: "flash-judge", uid })
         const lb = await fetchAttackLeaderboard({ gameId: "flash-judge", take: 30 })
-
         if (!cancelled) {
           setMyRank(my.rank)
           setMyBestScore(my.bestScore)
@@ -159,9 +163,7 @@ export default function FlashJudgeGame({
   }, [isAttack, uid, phase, displayName, score, maxLevelReached, bestStageAtMax])
 
   useEffect(() => {
-    if (autostart) {
-      start()
-    }
+    if (autostart) start()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autostart])
 
@@ -202,8 +204,9 @@ export default function FlashJudgeGame({
       if (isAttack) {
         setStageCorrect((prev) => {
           const next = prev + 1
-          // best stage at max level
-          setBestStageAtMax((bs) => (attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs))
+          setBestStageAtMax((bs) =>
+            attackLevelIndex === maxLevelReached ? Math.max(bs, Math.min(next, 30)) : bs
+          )
           if (next >= 30) {
             setAttackLevelIndex((i) => {
               const ni = (i + 1) % 3
@@ -229,16 +232,22 @@ export default function FlashJudgeGame({
   }
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
+    <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <button type="button" onClick={() => {
-          // ✅ 常に共通ハブへ戻す（旧スタート画面に戻らない）
-          router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
-        }} style={{ background: "transparent", border: "none", cursor: "pointer" }}>← 戻る</button>
+        <button
+          type="button"
+          onClick={() => {
+            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
+          }}
+          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+        >
+          ← 戻る
+        </button>
         <div style={{ fontWeight: 700 }}>瞬判ジャッジ</div>
         <div />
       </div>
 
+      {/* readyは基本ハブへ飛ぶが、念のため残す（autostart時や将来拡張） */}
       {phase === "ready" && (
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>瞬判ジャッジ（○ / ×）</div>
@@ -250,13 +259,28 @@ export default function FlashJudgeGame({
           <div style={{ marginTop: 12, opacity: 0.85 }}>
             問題数：{pool.length}問（この画面はサンプル同梱。増やしてOK）
           </div>
+
+          {/* PC用（スマホは固定CTAに） */}
           <button
             onClick={start}
             disabled={!pool.length}
+            className="hideOnMobile"
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
           >
             {pool.length ? "スタート" : "問題がありません（テンプレから追加してね）"}
           </button>
+
+          {/* スマホ用：下部固定CTA */}
+          <div className="mobileFixedBar">
+            <button
+              type="button"
+              onClick={start}
+              disabled={!pool.length}
+              className="mobileFixedBtn"
+            >
+              {pool.length ? "スタート" : "問題がありません"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -294,6 +318,18 @@ export default function FlashJudgeGame({
             </div>
             {lastMsg && <div style={{ marginTop: 10, fontWeight: 800 }}>{lastMsg}</div>}
           </div>
+
+          {toast && <div style={{ marginTop: 10, fontWeight: 900 }}>{toast}</div>}
+          {isAttack && (
+            <div style={{ marginTop: 8, opacity: 0.9 }}>
+              Lv: {levelLabel(attackLevelIndex)} / Stage: {stageCorrect}/30
+              {myRank != null && (
+                <span style={{ marginLeft: 10 }}>
+                  あなた：#{myRank}（best {myBestScore}）
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -301,10 +337,38 @@ export default function FlashJudgeGame({
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 22, fontWeight: 900 }}>終了！</div>
           <div style={{ marginTop: 8, fontSize: 18, fontWeight: 800 }}>score: {score}</div>
+
+          {isAttack && (
+            <div style={{ marginTop: 10, opacity: 0.9 }}>
+              {lbLoading ? (
+                <div>ランキング更新中…</div>
+              ) : (
+                <>
+                  {myRank != null && (
+                    <div style={{ fontWeight: 900 }}>
+                      あなた：#{myRank} / best {myBestScore}
+                    </div>
+                  )}
+                  {lbItems.length > 0 && (
+                    <div style={{ marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 8 }}>
+                      <div style={{ fontWeight: 900, marginBottom: 6 }}>上位</div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {lbItems.slice(0, 10).map((x, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <div style={{ opacity: 0.95 }}>{i + 1}. {x.displayName}</div>
+                            <div style={{ fontWeight: 900 }}>{x.bestScore}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <button
-            onClick={() => {
-              setPhase("ready")
-}}
+            onClick={() => setPhase("ready")}
             style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
           >
             もう一回
