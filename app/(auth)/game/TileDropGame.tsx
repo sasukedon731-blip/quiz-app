@@ -968,8 +968,10 @@ function startGame() {
                     >
                       <motion.div
                         initial={{ y: -120, opacity: 1 }}
-                        animate={{ y: [fallMidY, fallMidY, fallY], opacity: 1 }}
-                        transition={{ duration: fallTotalSec, ease: "linear", times: [fallT1, fallT2, 1] }}
+                        // ✅ 上から落ちてきて → 途中で停止 → 再落下
+                        // 先頭に -120 を入れないと「真ん中から出現」に見えるので必ず入れる
+                        animate={{ y: [-120, fallMidY, fallMidY, fallY], opacity: 1 }}
+                        transition={{ duration: fallTotalSec, ease: "linear", times: [0, fallT1, fallT2, 1] }}
                         onAnimationComplete={() => {
                           if (resolvedRef.current) return
                           miss("timeout")
