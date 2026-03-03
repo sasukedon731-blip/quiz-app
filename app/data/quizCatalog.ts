@@ -3,15 +3,15 @@
 export type QuizMode = "normal" | "exam" | "review"
 
 export type QuizSectionDef = {
-  id: string // all / grammar / sign など
-  title: string // 表示名
+  id: string
+  title: string
   description?: string
   enabled: boolean
   order: number
 }
 
 export type QuizDef = {
-  id: string // quizType（URLやFirestoreで使う）
+  id: string
   title: string
   description?: string
 
@@ -24,8 +24,6 @@ export type QuizDef = {
 
 /**
  * 🎯 全教材共通のカタログ
- * - 今は全て section = all のみ
- * - 将来ここに section を足すだけ
  */
 export const quizCatalog: QuizDef[] = [
   {
@@ -35,17 +33,7 @@ export const quizCatalog: QuizDef[] = [
     enabled: true,
     order: 1,
     modes: ["normal", "exam", "review"],
-    sections: [
-      {
-        id: "all",
-        title: "総合",
-        enabled: true,
-        order: 1,
-      },
-      // 将来用（まだ非公開）
-      // { id: "sign", title: "標識", enabled: false, order: 2 },
-      // { id: "rule", title: "交通ルール", enabled: false, order: 3 },
-    ],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
   {
@@ -56,16 +44,11 @@ export const quizCatalog: QuizDef[] = [
     order: 2,
     modes: ["normal", "exam", "review"],
     sections: [
-      {
-        id: "all",
-        title: "総合",
-        enabled: true,
-        order: 1,
-      },
-      // 将来用
-      // { id: "grammar", title: "文法", enabled: false, order: 2 },
-      // { id: "vocab", title: "語彙", enabled: false, order: 3 },
-      // { id: "reading", title: "読解", enabled: false, order: 4 },
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "vocab", title: "文字・語彙", enabled: true, order: 2 },
+      { id: "grammar", title: "文法", enabled: true, order: 3 },
+      { id: "reading", title: "読解", enabled: true, order: 4 },
+      { id: "listening", title: "聴解", enabled: true, order: 5 },
     ],
   },
 
@@ -76,17 +59,7 @@ export const quizCatalog: QuizDef[] = [
     enabled: true,
     order: 3,
     modes: ["normal", "review"],
-    sections: [
-      {
-        id: "all",
-        title: "総合",
-        enabled: true,
-        order: 1,
-      },
-      // 将来用
-      // { id: "basic", title: "基本用語", enabled: false, order: 2 },
-      // { id: "safety", title: "安全指示", enabled: false, order: 3 },
-    ],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
   // -------------------------------
@@ -100,25 +73,25 @@ export const quizCatalog: QuizDef[] = [
     enabled: true,
     order: 4,
     modes: ["normal", "exam", "review"],
-    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "vocab", title: "文字・語彙", enabled: true, order: 2 },
+      { id: "grammar", title: "文法", enabled: true, order: 3 },
+      { id: "reading", title: "読解", enabled: true, order: 4 },
+      { id: "listening", title: "聴解", enabled: true, order: 5 },
+    ],
   },
+
   {
-  id: "road-signs",
-  title: "道路標識マスター",
-  description: "道路標識だけを集中的に学ぶ（画像つき）",
-  enabled: true,
-  order: 999,
+    id: "road-signs",
+    title: "道路標識マスター",
+    description: "道路標識だけを集中的に学ぶ（画像つき）",
+    enabled: true,
+    order: 999,
+    modes: ["normal"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
 
-  modes: ["normal"],
-
-  sections: [
-    { id: "all", title: "すべて", enabled: true, order: 1 },
-    // ここは後で増やせる（例）
-    // { id: "regulation", title: "規制標識", enabled: true, order: 2 },
-    // { id: "warning", title: "警戒標識", enabled: true, order: 3 },
-    // { id: "instruction", title: "指示標識", enabled: true, order: 4 },
-  ],
-},
   {
     id: "japanese-n2",
     title: "日本語検定 N2",
@@ -126,7 +99,13 @@ export const quizCatalog: QuizDef[] = [
     enabled: true,
     order: 5,
     modes: ["normal", "exam", "review"],
-    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "vocab", title: "文字・語彙", enabled: true, order: 2 },
+      { id: "grammar", title: "文法", enabled: true, order: 3 },
+      { id: "reading", title: "読解", enabled: true, order: 4 },
+      { id: "listening", title: "聴解", enabled: true, order: 5 },
+    ],
   },
 
   {
@@ -138,6 +117,7 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+
   {
     id: "doboku-sekou-2kyu-1ji",
     title: "2級土木施工管理技士 1次",
@@ -147,6 +127,7 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+
   {
     id: "denki-sekou-2kyu-1ji",
     title: "2級電気施工管理技士 1次",
@@ -156,6 +137,7 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+
   {
     id: "kanko-sekou-2kyu-1ji",
     title: "2級管工事施工管理技士 1次",
@@ -175,6 +157,7 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+
   {
     id: "genba-phrasebook",
     title: "現場で使える用語集（ヒアリング・スピーキング）",
@@ -185,6 +168,7 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
+  // ✅ 建設用語（分野タブ）
   {
     id: "construction-terms",
     title: "建設・現場 用語（分野別）",
@@ -216,13 +200,16 @@ export function getQuizDef(quizType: string): QuizDef | undefined {
  * util: sectionId を解決（無ければ all）
  * ✅ sections が空でも落ちないよう安全化
  */
-export function resolveSection(quiz: QuizDef, sectionId?: string | null): QuizSectionDef {
-  const enabledSections = (quiz.sections ?? []).filter((s) => s.enabled).sort((a, b) => a.order - b.order)
+export function resolveSection(
+  quiz: QuizDef,
+  sectionId?: string | null,
+): QuizSectionDef {
+  const enabledSections = (quiz.sections ?? [])
+    .filter((s) => s.enabled)
+    .sort((a, b) => a.order - b.order)
 
-  // 最低1つは必要。もし空なら「all」を仮で返す（保険）
   const fallback: QuizSectionDef =
-    enabledSections[0] ??
-    {
+    enabledSections[0] ?? {
       id: "all",
       title: "総合",
       enabled: true,

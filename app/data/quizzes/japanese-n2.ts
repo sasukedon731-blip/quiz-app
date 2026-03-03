@@ -13,7 +13,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["提携", "締結", "抵抗", "提示"],
       correctIndex: 0,
       explanation: "正解は「提携」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 2,
@@ -23,7 +23,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["真相", "深層", "心身", "真走"],
       correctIndex: 0,
       explanation: "正解は「真相」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 3,
@@ -33,7 +33,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["さくげん", "けずげん", "しょうげん", "さっげん"],
       correctIndex: 0,
       explanation: "正解は「さくげん」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 4,
@@ -43,7 +43,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["けんきょ", "けんこ", "かねきょ", "げんきょ"],
       correctIndex: 0,
       explanation: "正解は「けんきょ」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 5,
@@ -53,7 +53,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["おおむね", "あくまで", "せめて", "まさか"],
       correctIndex: 0,
       explanation: "正解は「おおむね」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 6,
@@ -63,7 +63,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["着々と", "続々と", "刻々と", "転々と"],
       correctIndex: 0,
       explanation: "正解は「着々と」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 7,
@@ -73,7 +73,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["転嫁", "転換", "転送", "転落"],
       correctIndex: 0,
       explanation: "正解は「転嫁」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 8,
@@ -83,7 +83,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["普遍", "不変", "不偏", "不法"],
       correctIndex: 0,
       explanation: "正解は「普遍」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 9,
@@ -93,7 +93,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["たゆまぬ", "はしたない", "もどかしい", "なだらかな"],
       correctIndex: 0,
       explanation: "正解は「たゆまぬ」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 10,
@@ -103,7 +103,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["的確", "適当", "適切", "適宜"],
       correctIndex: 0,
       explanation: "正解は「的確」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 11,
@@ -113,7 +113,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["迅速に", "性急に", "早急に", "急速に"],
       correctIndex: 0,
       explanation: "正解は「迅速に」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 12,
@@ -123,7 +123,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["やたらと", "めったに", "まったく", "ろくに"],
       correctIndex: 0,
       explanation: "正解は「やたらと」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 13,
@@ -133,7 +133,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["舌", "首", "腕", "肩"],
       correctIndex: 0,
       explanation: "正解は「舌」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 14,
@@ -143,7 +143,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["低迷", "停電", "停止", "停滞"],
       correctIndex: 0,
       explanation: "正解は「低迷」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 15,
@@ -153,7 +153,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["認める", "諦める", "諌める", "慰める"],
       correctIndex: 0,
       explanation: "正解は「認める」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 16,
@@ -163,7 +163,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["継承", "継続", "中継", "形態"],
       correctIndex: 0,
       explanation: "正解は「継承」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 17,
@@ -173,7 +173,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["抽象的", "本格的", "積極的", "消極的"],
       correctIndex: 0,
       explanation: "正解は「抽象的」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 18,
@@ -183,7 +183,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["目処", "目印", "目安", "目標"],
       correctIndex: 0,
       explanation: "正解は「目処」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 19,
@@ -193,7 +193,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["系統的", "意図的", "基本的", "個性的"],
       correctIndex: 0,
       explanation: "正解は「系統的」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 20,
@@ -203,7 +203,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["頻繁に", "律儀に", "まともに", "無難に"],
       correctIndex: 0,
       explanation: "正解は「頻繁に」です。",
-      sectionId: "all",
+      sectionId: "vocab",
     },
     {
       id: 21,
@@ -213,7 +213,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["話そうにも", "話すまいと", "話しがてら", "話しつつも"],
       correctIndex: 0,
       explanation: "正解は「話そうにも」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 22,
@@ -223,7 +223,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["はだし", "まがい", "めいた", "じみた"],
       correctIndex: 0,
       explanation: "正解は「はだし」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 23,
@@ -233,7 +233,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ざる", "ず", "ない", "ぬ"],
       correctIndex: 0,
       explanation: "正解は「ざる」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 24,
@@ -243,7 +243,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["にほかならない", "にすぎない", "にこしたことはない", "に相違ない"],
       correctIndex: 0,
       explanation: "正解は「にほかならない」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 25,
@@ -253,7 +253,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["のために", "のわりに", "をきっかけに", "をこめて"],
       correctIndex: 0,
       explanation: "正解は「のために」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 26,
@@ -263,7 +263,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ばかりの", "ついでに", "がてら", "なりに"],
       correctIndex: 0,
       explanation: "正解は「ばかりの」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 27,
@@ -273,7 +273,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["飲まねば", "飲まずに", "飲まざる", "飲むべく"],
       correctIndex: 0,
       explanation: "正解は「飲まねば」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 28,
@@ -283,7 +283,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["に至った", "に足る", "に沿った", "を抜きにして"],
       correctIndex: 0,
       explanation: "正解は「に至った」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 29,
@@ -293,7 +293,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["だけに", "わりに", "どころか", "ほど"],
       correctIndex: 0,
       explanation: "正解は「だけに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 30,
@@ -303,7 +303,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["くせに", "かわりに", "おかげで", "せいで"],
       correctIndex: 0,
       explanation: "正解は「くせに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 31,
@@ -313,7 +313,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ともあろう者が", "に際して", "からといって", "といえば"],
       correctIndex: 0,
       explanation: "正解は「ともあろう者が」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 32,
@@ -323,7 +323,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["に際して", "につれて", "にしたがって", "に伴って"],
       correctIndex: 0,
       explanation: "正解は「に際して」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 33,
@@ -333,7 +333,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["こそ", "さえ", "まで", "ほど"],
       correctIndex: 0,
       explanation: "正解は「こそ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 34,
@@ -343,7 +343,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["まじき", "めいた", "じみた", "むき出しに"],
       correctIndex: 3,
       explanation: "正解は「むき出しに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 35,
@@ -353,7 +353,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["次第の", "ゆえの", "抜きの", "限定の"],
       correctIndex: 1,
       explanation: "正解は「ゆえの」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 36,
@@ -363,7 +363,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ず", "ない", "ぬ", "ざる"],
       correctIndex: 0,
       explanation: "正解は「ず」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 37,
@@ -373,7 +373,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ながらも", "とはいえ", "だけに", "なりに"],
       correctIndex: 0,
       explanation: "正解は「ながらも」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 38,
@@ -383,7 +383,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ある", "する", "して", "し"],
       correctIndex: 0,
       explanation: "正解は「ある」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 39,
@@ -393,7 +393,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["しきれて", "しきって", "しすぎて", "しかねて"],
       correctIndex: 0,
       explanation: "正解は「しきれて」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 40,
@@ -403,7 +403,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["つ", "か", "ぬ", "ず"],
       correctIndex: 0,
       explanation: "正解は「つ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 41,
@@ -413,7 +413,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["極まりない", "限りだ", "この上ない", "といった"],
       correctIndex: 0,
       explanation: "正解は「極まりない」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 42,
@@ -423,7 +423,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ゆえ", "はず", "わけ", "もの"],
       correctIndex: 0,
       explanation: "正解は「ゆえ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 43,
@@ -433,7 +433,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["まで", "ほど", "くらい", "ばかり"],
       correctIndex: 0,
       explanation: "正解は「まで」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 44,
@@ -443,7 +443,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["抜き", "通し", "限り", "止め"],
       correctIndex: 0,
       explanation: "正解は「抜き」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 45,
@@ -453,7 +453,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["反する", "基づく", "沿う", "伴う"],
       correctIndex: 0,
       explanation: "正解は「反する」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 46,
@@ -463,7 +463,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["を込めて", "に際して", "に伴って", "を通じて"],
       correctIndex: 0,
       explanation: "正解は「を込めて」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 47,
@@ -473,7 +473,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["に足る", "に沿う", "に基づく", "に際する"],
       correctIndex: 0,
       explanation: "正解は「に足る」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 48,
@@ -483,7 +483,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ついで", "折り", "際", "弾み"],
       correctIndex: 0,
       explanation: "正解は「ついで」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 49,
@@ -493,7 +493,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["一方", "ばかり", "ほど", "くらい"],
       correctIndex: 0,
       explanation: "正解は「一方」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 50,
@@ -503,7 +503,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["かい", "わけ", "はず", "こと"],
       correctIndex: 0,
       explanation: "正解は「かい」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 51,
@@ -513,7 +513,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["並み", "まがい", "めいた", "じみた"],
       correctIndex: 0,
       explanation: "正解は「並み」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 52,
@@ -523,7 +523,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["次第で", "次第に", "次第は", "次第だ"],
       correctIndex: 0,
       explanation: "正解は「次第で」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 53,
@@ -533,7 +533,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["なりに", "なりに", "は", "こそ"],
       correctIndex: 0,
       explanation: "正解は「なりに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 54,
@@ -543,7 +543,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["まで", "ほど", "くらい", "ばかり"],
       correctIndex: 0,
       explanation: "正解は「まで」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 55,
@@ -553,7 +553,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["に強い", "に弱い", "に伴う", "に際する"],
       correctIndex: 0,
       explanation: "正解は「に強い」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 56,
@@ -563,7 +563,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ところ", "ばかり", "ほど", "くらい"],
       correctIndex: 0,
       explanation: "正解は「ところ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 57,
@@ -573,7 +573,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["さえ", "まで", "ほど", "こそ"],
       correctIndex: 0,
       explanation: "正解は「さえ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 58,
@@ -583,7 +583,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ながらも", "とはいえ", "だけに", "なりに"],
       correctIndex: 0,
       explanation: "正解は「ながらも」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 59,
@@ -593,7 +593,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["以外に", "ほかに", "までに", "ために"],
       correctIndex: 0,
       explanation: "正解は「以外に」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 60,
@@ -603,7 +603,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ほど", "くらい", "まで", "ばかり"],
       correctIndex: 0,
       explanation: "正解は「ほど」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 61,
@@ -613,7 +613,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["だろう", "らしい", "よう", "そう"],
       correctIndex: 0,
       explanation: "正解は「だろう」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 62,
@@ -623,7 +623,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["では", "には", "を", "も"],
       correctIndex: 0,
       explanation: "正解は「では」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 63,
@@ -633,7 +633,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["で", "に", "を", "も"],
       correctIndex: 0,
       explanation: "正解は「で」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 64,
@@ -643,7 +643,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["笑い", "笑う", "笑って", "笑った"],
       correctIndex: 0,
       explanation: "正解は「笑い」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 65,
@@ -653,7 +653,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["開いた", "開く", "開いて", "開け"],
       correctIndex: 0,
       explanation: "正解は「開いた」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 66,
@@ -663,7 +663,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["仕事の", "忙しさ", "ゆえに", "連絡が遅れた"],
       correctIndex: 2,
       explanation: "正解は「ゆえに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 67,
@@ -673,7 +673,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["彼を", "抜きにしては", "この計画は", "語れない"],
       correctIndex: 1,
       explanation: "正解は「抜きにしては」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 68,
@@ -683,7 +683,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["やる", "べき", "ことは", "やった"],
       correctIndex: 1,
       explanation: "正解は「べき」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 69,
@@ -693,7 +693,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["雨が", "降ろうが", "槍が", "降ろうが"],
       correctIndex: 2,
       explanation: "正解は「槍が」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 70,
@@ -703,7 +703,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["もっと", "早く", "来れば", "よかった"],
       correctIndex: 2,
       explanation: "正解は「来れば」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 71,
@@ -713,7 +713,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["先生に", "教えて", "いただいた", "本を読む"],
       correctIndex: 1,
       explanation: "正解は「教えて」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 72,
@@ -723,7 +723,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["やる", "からには", "最後まで", "やりなさい"],
       correctIndex: 2,
       explanation: "正解は「最後まで」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 73,
@@ -733,7 +733,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["あきらめ", "ない", "こと", "が大切だ"],
       correctIndex: 1,
       explanation: "正解は「ない」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 74,
@@ -743,7 +743,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["そんなに", "食べたら", "お腹が", "痛くなる"],
       correctIndex: 2,
       explanation: "正解は「お腹が」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 75,
@@ -753,7 +753,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["昨日", "買った", "ばかりの", "靴"],
       correctIndex: 2,
       explanation: "正解は「ばかりの」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 76,
@@ -763,7 +763,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["に伴って", "に際して", "を通じて", "により"],
       correctIndex: 0,
       explanation: "正解は「に伴って」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 77,
@@ -773,7 +773,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["だけに", "わりに", "ほど", "どころか"],
       correctIndex: 0,
       explanation: "正解は「だけに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 78,
@@ -783,7 +783,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["のせいで", "により", "おかげで", "次第で"],
       correctIndex: 0,
       explanation: "正解は「のせいで」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 79,
@@ -793,7 +793,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["うえに", "反面", "わりに", "ほど"],
       correctIndex: 0,
       explanation: "正解は「うえに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 80,
@@ -803,7 +803,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["泣き出しそうな", "泣き出す", "泣き出した", "泣き出しそう"],
       correctIndex: 0,
       explanation: "正解は「泣き出しそうな」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 81,
@@ -813,7 +813,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["なんて", "まで", "さえ", "ほど"],
       correctIndex: 0,
       explanation: "正解は「なんて」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 82,
@@ -823,7 +823,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["とともに", "に際して", "に伴い", "により"],
       correctIndex: 0,
       explanation: "正解は「とともに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 83,
@@ -833,7 +833,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["かいあって", "わりに", "たびに", "ついでに"],
       correctIndex: 0,
       explanation: "正解は「かいあって」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 84,
@@ -843,7 +843,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ばかりに", "ほどに", "くらいに", "までに"],
       correctIndex: 0,
       explanation: "正解は「ばかりに」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 85,
@@ -853,7 +853,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["こそ", "さえ", "まで", "ほど"],
       correctIndex: 0,
       explanation: "正解は「こそ」です。",
-      sectionId: "all",
+      sectionId: "grammar",
     },
     {
       id: 86,
@@ -863,7 +863,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["二度と繰り返さない誓い", "丁寧な言葉遣い", "早く謝ること", "相手を許すこと"],
       correctIndex: 0,
       explanation: "正解は「二度と繰り返さない誓い」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 87,
@@ -873,7 +873,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["情報の量", "質を見極める力", "情報の速さ", "情報の発信力"],
       correctIndex: 1,
       explanation: "正解は「質を見極める力」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 88,
@@ -883,7 +883,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["専門スキル", "人間力", "給料", "運"],
       correctIndex: 1,
       explanation: "正解は「人間力」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 89,
@@ -893,7 +893,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["SNSの操作", "言葉の重みの喪失", "ネットの速度", "友達の数"],
       correctIndex: 1,
       explanation: "正解は「言葉の重みの喪失」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 90,
@@ -903,7 +903,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["厳しい練習", "楽しんで取り組む", "長時間労働", "高い月謝"],
       correctIndex: 1,
       explanation: "正解は「楽しんで取り組む」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 91,
@@ -913,7 +913,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["都会での仕事", "田舎でのリフレッシュ", "便利な道具", "節約"],
       correctIndex: 1,
       explanation: "正解は「田舎でのリフレッシュ」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 92,
@@ -923,7 +923,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["良いことしかない", "便利だが問題も出た", "発展は不要だ", "昔の方が良かった"],
       correctIndex: 1,
       explanation: "正解は「便利だが問題も出た」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 93,
@@ -933,7 +933,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["変化は悪いことだ", "意味が変わる場合がある", "昔の言葉が正しい", "変化は止まった"],
       correctIndex: 1,
       explanation: "正解は「意味が変わる場合がある」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 94,
@@ -943,7 +943,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["失敗しないから", "経験が将来に役立つ", "褒められるから", "楽だから"],
       correctIndex: 1,
       explanation: "正解は「経験が将来に役立つ」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 95,
@@ -953,7 +953,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["無駄な時間だ", "働くのと同様に重要だ", "寝すぎてはいけない", "効率に関係ない"],
       correctIndex: 1,
       explanation: "正解は「働くのと同様に重要だ」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 96,
@@ -963,7 +963,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["字が上手くなる", "他者の人生を体験できる", "安上がりな趣味だ", "運動になる"],
       correctIndex: 1,
       explanation: "正解は「他者の人生を体験できる」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 97,
@@ -973,7 +973,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["形だけを守る", "時代に合わせた変化", "変化を拒むこと", "寄付を集めること"],
       correctIndex: 1,
       explanation: "正解は「時代に合わせた変化」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 98,
@@ -983,7 +983,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["難しい言葉", "相手の目を見ること", "声の大きさ", "服装"],
       correctIndex: 1,
       explanation: "正解は「相手の目を見ること」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 99,
@@ -993,7 +993,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["休憩なしで続ける", "適度な休憩を挟む", "3時間一気にやる", "毎日違う時間にやる"],
       correctIndex: 1,
       explanation: "正解は「適度な休憩を挟む」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 100,
@@ -1003,7 +1003,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["面倒な作業", "未来への贈り物", "秘密の暴露", "漢字の練習"],
       correctIndex: 1,
       explanation: "正解は「未来への贈り物」です。",
-      sectionId: "all",
+      sectionId: "reading",
     },
     {
       id: 101,
@@ -1013,7 +1013,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["まだできていない", "確認も終わっている", "田中さんが作っている", "これから作る"],
       correctIndex: 1,
       explanation: "正解は「確認も終わっている」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 102,
@@ -1023,7 +1023,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["予算不足", "上司が厳しい", "コミュニケーション不足", "時間不足"],
       correctIndex: 2,
       explanation: "正解は「コミュニケーション不足」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 103,
@@ -1033,7 +1033,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["動いている", "止まっている", "遅れて動いている", "事故で壊れた"],
       correctIndex: 1,
       explanation: "正解は「止まっている」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 104,
@@ -1043,7 +1043,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["映画館", "美術館", "家", "チケット売り場"],
       correctIndex: 1,
       explanation: "正解は「美術館」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 105,
@@ -1053,7 +1053,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["文法を直す", "教科書を写す", "自分の経験を書く", "早く出す"],
       correctIndex: 2,
       explanation: "正解は「自分の経験を書く」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 106,
@@ -1063,7 +1063,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["掃除をする", "修理を呼ぶ", "窓を開ける", "新しいのを買う"],
       correctIndex: 1,
       explanation: "正解は「修理を呼ぶ」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 107,
@@ -1073,7 +1073,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["10時", "9:45", "10:15", "9時"],
       correctIndex: 1,
       explanation: "正解は「9:45」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 108,
@@ -1083,7 +1083,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ミルクコーヒー", "レモンティー", "ミルクティー", "ブラックコーヒー"],
       correctIndex: 1,
       explanation: "正解は「レモンティー」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 109,
@@ -1093,7 +1093,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["10時", "11時", "12時", "9時"],
       correctIndex: 1,
       explanation: "正解は「11時」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 110,
@@ -1103,7 +1103,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["似合わない", "派手すぎる", "パーティーに合う", "安っぽい"],
       correctIndex: 1,
       explanation: "正解は「派手すぎる」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 111,
@@ -1113,7 +1113,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["赤いシャツ", "青いシャツに白ズボン", "白いシャツに青ズボン", "黄色いシャツ"],
       correctIndex: 1,
       explanation: "正解は「青いシャツに白ズボン」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 112,
@@ -1123,7 +1123,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["ラーメン", "和食（定食）", "イタリアン", "中華"],
       correctIndex: 1,
       explanation: "正解は「和食（定食）」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 113,
@@ -1133,7 +1133,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["20部", "25部", "1部", "24部"],
       correctIndex: 1,
       explanation: "正解は「25部」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 114,
@@ -1143,7 +1143,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["手紙を書く", "ポストに出す", "会議に出る", "残業をする"],
       correctIndex: 1,
       explanation: "正解は「ポストに出す」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 115,
@@ -1153,7 +1153,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["4章まで", "1章から3章まで", "全部", "辞書の内容"],
       correctIndex: 1,
       explanation: "正解は「1章から3章まで」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 116,
@@ -1163,7 +1163,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["車に戻る", "1つの傘に入る", "傘を買う", "雨の中を走る"],
       correctIndex: 1,
       explanation: "正解は「1つの傘に入る」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 117,
@@ -1173,7 +1173,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["行列に並んだ", "ネットで予約した", "友達にもらった", "自分で作った"],
       correctIndex: 1,
       explanation: "正解は「ネットで予約した」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 118,
@@ -1183,7 +1183,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["中止する", "午前中に下りる", "午後から登る", "頂上で泊まる"],
       correctIndex: 1,
       explanation: "正解は「午前中に下りる」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 119,
@@ -1193,7 +1193,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["画面のきれいさ", "電池の持ち", "大きさ", "値段"],
       correctIndex: 1,
       explanation: "正解は「電池の持ち」です。",
-      sectionId: "all",
+      sectionId: "listening",
     },
     {
       id: 120,
@@ -1203,7 +1203,7 @@ export const japaneseN2Quiz: Quiz = {
       choices: ["1つ目の角", "郵便局の隣", "左に曲がった所", "駅の中"],
       correctIndex: 1,
       explanation: "正解は「郵便局の隣」です。",
-      sectionId: "all",
-    }
+      sectionId: "listening",
+    },
   ],
 }
