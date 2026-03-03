@@ -604,7 +604,7 @@ function startGame() {
   const speedSec = useMemo(() => speedFor(mode, level), [mode, level])
   const fallY = 420
   // ✅ 外国人ユーザー向け：真ん中で約1秒止める
-  const PAUSE_SEC = 1.1
+  const PAUSE_SEC = 1.5
   const STOP_RATIO = 0.35
   const fallMidY = Math.round(fallY * STOP_RATIO)
   const fallTotalSec = speedSec + PAUSE_SEC
