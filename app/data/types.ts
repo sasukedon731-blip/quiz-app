@@ -12,6 +12,7 @@ export type QuizType =
   | "kanko-sekou-2kyu-1ji"
   | "speaking-practice"
   | "genba-phrasebook"
+  | "construction-terms"
   | "road-signs" 
 
 // ✅ 分野（セクション）定義
