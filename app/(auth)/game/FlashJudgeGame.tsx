@@ -9,6 +9,7 @@ import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
 import { getFlashJudgePool } from "./pools/flashJudgePools"
+import AppHeader from "@/app/components/AppHeader"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
@@ -233,19 +234,7 @@ export default function FlashJudgeGame({
 
   return (
     <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <button
-          type="button"
-          onClick={() => {
-            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
-          }}
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
-        >
-          ← 戻る
-        </button>
-        <div style={{ fontWeight: 700 }}>瞬判ジャッジ</div>
-        <div />
-      </div>
+      <AppHeader title="瞬判ジャッジ" />
 
       {/* readyは基本ハブへ飛ぶが、念のため残す（autostart時や将来拡張） */}
       {phase === "ready" && (

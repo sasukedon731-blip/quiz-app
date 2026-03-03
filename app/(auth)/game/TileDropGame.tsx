@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore"
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion"
 
 import { auth, db } from "@/app/lib/firebase"
+import AppHeader from "@/app/components/AppHeader"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 import type { GameDifficulty, GameMode, GameQuestion } from "./types"
@@ -555,6 +556,12 @@ function startGame() {
 
   const speedSec = useMemo(() => speedFor(mode, level), [mode, level])
   const fallY = 420
+  // ✅ 外国人ユーザー向け：真ん中で約1秒止める
+  const PAUSE_SEC = 1
+  const fallMidY = Math.round(fallY * 0.5)
+  const fallTotalSec = speedSec + PAUSE_SEC
+  const fallT1 = (speedSec / 2) / fallTotalSec
+  const fallT2 = (speedSec / 2 + PAUSE_SEC) / fallTotalSec
   const plateKey = current ? activeKeyRef.current : "none"
 
   const shuffledChoices = useMemo(() => {
@@ -574,34 +581,13 @@ function startGame() {
   const quizTitle = (quizzes as any)[quizType]?.title || quizType
 
   // ✅ 下の中断を消した分、広く
-  const playAreaHeight = "calc(100svh - 128px)"
+  const playAreaHeight = "calc(100svh - 96px)"
 
   return (
     <main style={styles.page} className="game-root mainPad">
       <div style={styles.shell}>
-        {/* Compact bar */}
-        <div style={styles.compactBar}>
-          <button
-            type="button"
-            onClick={() => {
-                if (phase === "ready") {
-                  router.push("/select-mode")
-                  return
-                }
-                setPhase("ready")
-                setCurrent(null)
-                setToast("")
-              }}
-            style={{ ...styles.compactBack, background: "transparent", border: "none", cursor: "pointer" }}
-          >
-            ←
-          </button>
-
-          <div style={styles.compactCenter}>
-            <div style={styles.compactTitle}>日本語バトル（ゲーム）</div>
-            <div style={styles.compactSub}>{quizTitle}</div>
-          </div>
-        </div>
+        {/* Header */}
+        <AppHeader title="ゲーム" />
 
         <section style={styles.panel}>
 {/* Ready */}
@@ -934,8 +920,8 @@ function startGame() {
                     >
                       <motion.div
                         initial={{ y: -120, opacity: 1 }}
-                        animate={{ y: fallY, opacity: 1 }}
-                        transition={{ duration: speedSec, ease: "linear" }}
+                        animate={{ y: [fallMidY, fallMidY, fallY], opacity: 1 }}
+                        transition={{ duration: fallTotalSec, ease: "linear", times: [fallT1, fallT2, 1] }}
                         onAnimationComplete={() => {
                           if (resolvedRef.current) return
                           miss("timeout")

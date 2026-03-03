@@ -9,6 +9,7 @@ import { submitAttackScore } from "./firestore"
 import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
+import AppHeader from "@/app/components/AppHeader"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
@@ -193,19 +194,7 @@ export default function MemoryBurstGame({
 
   return (
     <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <button
-          type="button"
-          onClick={() =>
-            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`)
-          }
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
-        >
-          ← 戻る
-        </button>
-        <div style={{ fontWeight: 700 }}>フラッシュ記憶</div>
-        <div />
-      </div>
+      <AppHeader title="フラッシュ記憶" />
 
       {/* readyは基本ハブへ飛ぶが、念のため残す */}
       {phase === "ready" && !autostart && (
