@@ -476,10 +476,6 @@ const [drawerOpen, setDrawerOpen] = useState(false)
             ].map((g) => (
               <div key={g.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)", background: "white" }}>
                 <div style={{ fontWeight: 900, fontSize: 12 }}>{g.label}</div>
-                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, lineHeight: 1.4 }}>
-                  アタックで記録更新<br />
-                  ゲーム画面右上🏆で順位
-                </div>
                 <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
                   ベスト：<b>{attackRanks[g.id]?.bestScore ?? 0}</b>{" "}
                   ／ 順位：<b>{attackRanks[g.id]?.rank ?? "-"}</b>
@@ -504,15 +500,6 @@ const [drawerOpen, setDrawerOpen] = useState(false)
               >
                 教材を変更 →
               </button>
-
-              <button
-                style={S.linkBtn}
-                onClick={() => router.push("/select-industry")}
-                title="業種選択へ"
-              >
-                業種を変更 →
-              </button>
-
 
               {/* ✅ 業種で絞る/全部表示 */}
               <button

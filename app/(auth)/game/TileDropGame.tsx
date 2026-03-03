@@ -213,7 +213,8 @@ useEffect(() => {
     fetchMyAttackRank({ gameId: selectedKind, uid })
       .then((r) => {
         setMyRank(r.rank)
-        setBestScore(r.bestScore)
+        // ✅ hub上の「あなたのベスト」を更新
+        setMyBestScore(r.bestScore)
       })
       .catch(() => null)
   }, [mode, uid, phase, selectedKind])

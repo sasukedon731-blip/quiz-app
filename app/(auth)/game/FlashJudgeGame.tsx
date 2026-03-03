@@ -38,13 +38,14 @@ export default function FlashJudgeGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
 
-// ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
-useEffect(() => {
-  if (phase === "ready" && !autostart) {
-    router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [phase, autostart])
+  // ✅ autostart=1 のときだけこの画面で開始。
+  // それ以外（/game?kind=flash-judge 直アクセス等）は共通ハブへ戻す。
+  useEffect(() => {
+    if (!autostart) {
+      router.replace(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart])
 
   const [lbOpen, setLbOpen] = useState(false)
   const [lbLoading, setLbLoading] = useState(false)
@@ -231,11 +232,8 @@ useEffect(() => {
     <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <button type="button" onClick={() => {
-          if (phase === "ready") {
-            router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
-            return
-          }
-          setPhase("ready")
+          // ✅ 常に共通ハブへ戻す（旧スタート画面に戻らない）
+          router.push(`/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`)
         }} style={{ background: "transparent", border: "none", cursor: "pointer" }}>← 戻る</button>
         <div style={{ fontWeight: 700 }}>瞬判ジャッジ</div>
         <div />
