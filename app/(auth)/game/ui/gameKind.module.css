@@ -1,0 +1,100 @@
+.wrap {
+  width: 100%;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.back {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 900;
+  opacity: 0.9;
+  text-decoration: none;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.desc {
+  margin-top: 6px;
+  opacity: 0.85;
+  line-height: 1.7;
+}
+
+.card {
+  margin-top: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.8;
+}
+
+.seg {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.segBtn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.segBtnActive {
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.help {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btnMain {
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ruleList {
+  margin-top: 10px;
+  padding-left: 16px;
+  opacity: 0.9;
+  line-height: 1.7;
+}

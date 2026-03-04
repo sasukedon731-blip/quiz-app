@@ -43,9 +43,7 @@ export default function FlashJudgeGame({
   // ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
   useEffect(() => {
     if (phase === "ready" && !autostart) {
-      router.replace(
-        `/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=flash-judge`
-      )
+      router.replace(`/game/flash-judge?type=${quizType}&mode=${modeParam ?? "normal"}`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, autostart])

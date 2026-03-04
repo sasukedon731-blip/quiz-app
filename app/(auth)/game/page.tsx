@@ -1,14 +1,11 @@
-import { Suspense } from "react"
-import GameClient from "./GameClient"
 import styles from "./page.module.css"
+import GameTopClient from "./ui/GameTopClient"
 
-export default function GamePage() {
+export default function GameTopPage() {
   return (
     <div className={styles.gamePageOuter}>
       <div className={styles.gamePageInner}>
-        <Suspense fallback={null}>
-          <GameClient />
-        </Suspense>
+        <GameTopClient />
       </div>
     </div>
   )

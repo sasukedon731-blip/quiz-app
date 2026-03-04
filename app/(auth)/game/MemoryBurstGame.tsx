@@ -56,9 +56,7 @@ export default function MemoryBurstGame({
   // ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
   useEffect(() => {
     if (phase === "ready" && !autostart) {
-      router.replace(
-        `/game?type=${quizType}&mode=${modeParam}&kind=tile-drop&hubKind=memory-burst`
-      )
+      router.replace(`/game/memory-burst?type=${quizType}&mode=${modeParam ?? "normal"}`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, autostart])

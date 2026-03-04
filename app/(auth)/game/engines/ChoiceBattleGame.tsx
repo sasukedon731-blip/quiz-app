@@ -148,7 +148,7 @@ export default function ChoiceBattleGame({ quizType, mode }: Props) {
       <main style={styles.page}>
         <div style={styles.shell}>
           <div style={styles.topRow}>
-            <Link href={`/game?type=${quizType}&kind=speed-choice`} style={styles.link}>
+            <Link href={`/game/play?type=${quizType}&kind=speed-choice&mode=normal&autostart=1`} style={styles.link}>
               ← もどる
             </Link>
           </div>
@@ -166,7 +166,7 @@ export default function ChoiceBattleGame({ quizType, mode }: Props) {
       <div style={styles.shell}>
         {/* Top nav */}
         <div style={styles.topRow}>
-          <Link href={`/game?type=${quizType}&kind=speed-choice`} style={styles.link}>
+          <Link href={`/game/play?type=${quizType}&kind=speed-choice&mode=normal&autostart=1`} style={styles.link}>
               ← もどる
             </Link>
           <div style={{ fontSize: 12, opacity: 0.7 }}>

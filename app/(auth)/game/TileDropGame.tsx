@@ -104,6 +104,7 @@ export default function TileDropGame({
   const router = useRouter()
   const params = useSearchParams()
   const hubKindParam = params.get("hubKind")
+  const autostart = params.get("autostart") === "1"
 const [plateMountKey, setPlateMountKey] = useState(0)
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
@@ -159,6 +160,18 @@ const [plateMountKey, setPlateMountKey] = useState(0)
     setDifficulty(activeDifficulty)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQuizType, activeDifficulty])
+
+  // ✅ 新導線：/game/play?autostart=1 で直接スタート
+  const [autoStarted, setAutoStarted] = useState(false)
+  useEffect(() => {
+    if (!autostart) return
+    if (autoStarted) return
+    if (phase !== "ready") return
+    if (!filteredPool.length) return
+    setAutoStarted(true)
+    startGame()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart, autoStarted, phase, filteredPool.length])
 
 useEffect(() => {
     if (phase !== "ready") return
@@ -754,7 +767,7 @@ function activateTimeStop() {
                         key={lv}
                         type="button"
                         className={`mobilePill ${quizType === lv ? "isActive" : ""}`}
-                        onClick={() => router.replace(`/game?type=${lv}&kind=tile-drop&mode=normal`)}
+                        onClick={() => router.replace(`/game/tile-drop?type=${lv}&mode=normal`)}
                       >
                         {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
                       </button>
@@ -781,7 +794,7 @@ function activateTimeStop() {
                   if (selectedKind === "tile-drop") {
                     startGame()
                   } else {
-                    router.push(`/game?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
+                    router.push(`/game/play?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
                   }
                 }}
                 disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
@@ -871,7 +884,7 @@ function activateTimeStop() {
                           style={{ ...styles.segBtn, ...(quizType === lv ? styles.segActive : {}) }}
                           onClick={() => {
                             // クイズ級だけ切り替え（画面はそのまま）
-                            router.replace(`/game?type=${lv}&kind=tile-drop&mode=normal`)
+                            router.replace(`/game/tile-drop?type=${lv}&mode=normal`)
                           }}
                         >
                           {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
@@ -911,7 +924,7 @@ function activateTimeStop() {
                   if (selectedKind === "tile-drop") {
                     startGame()
                   } else {
-                    router.push(`/game?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
+                    router.push(`/game/play?type=${launchQuizType}&kind=${selectedKind}&mode=${mode}&autostart=1`)
                   }
                 }}
                 disabled={selectedKind === "tile-drop" && filteredPool.length === 0}
