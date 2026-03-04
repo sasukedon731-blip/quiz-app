@@ -2,139 +2,168 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import styles from "./gameTop.module.css"
+import { collection, getDocs, limit, orderBy, query } from "firebase/firestore"
 
 import AppHeader from "@/app/components/AppHeader"
 import { db } from "@/app/lib/firebase"
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore"
+
+import styles from "./gameTop.module.css"
+
+type Kind = "tile-drop" | "flash-judge" | "memory-burst"
+
+type LeaderRow = {
+  displayName: string
+  bestScore: number
+}
 
 type GameCard = {
-  kind: "tile-drop" | "flash-judge" | "memory-burst"
+  kind: Kind
   title: string
   desc: string
   tags: string[]
 }
 
-export default function GameTopClient() {
-  
-const [rankings, setRankings] = useState<Record<string, { displayName: string; bestScore: number }[]>>({})
+const GAMES: GameCard[] = [
+  {
+    kind: "tile-drop",
+    title: "文字ブレイク",
+    desc: "落ちてくる問題を、正しい順番でタップして破壊。読み・穴埋め・助詞に強い。",
+    tags: ["3ミスで終了", "コンボ", "テンポ"],
+  },
+  {
+    kind: "flash-judge",
+    title: "瞬判ジャッジ",
+    desc: "文が正しいなら○、間違いなら×。テンポ良く直感で鍛える。",
+    tags: ["○×", "反射", "コンボ加点"],
+  },
+  {
+    kind: "memory-burst",
+    title: "フラッシュ記憶",
+    desc: "一瞬だけ表示 → 記憶して4択。短時間で記憶力を鍛える。",
+    tags: ["4択", "短期記憶", "テンポ"],
+  },
+]
 
-useEffect(() => {
-  let cancelled = false
-  async function run() {
-    try {
-      const kinds = ["tile-drop", "flash-judge", "memory-burst"] as const
-      const pairs = await Promise.all(
-        kinds.map(async (k) => {
-          try {
-            const col = collection(db, "attackLeaderboards", k, "entries")
-            const q = query(col, orderBy("bestScore", "desc"), limit(3))
-            const snap = await getDocs(q)
-            const list = snap.docs.map((d) => {
-              const v: any = d.data()
-              return {
-                displayName: String(v.displayName ?? "Anonymous"),
-                bestScore: Number(v.bestScore ?? 0),
-              }
-            })
-            return [k, list] as const
-          } catch {
-            return [k, []] as const
-          }
-        })
-      )
-      if (cancelled) return
-      const next: any = {}
-      for (const [k, list] of pairs) next[k] = list
-      setRankings(next)
-    } catch {
-      // ignore
+export default function GameTopClient() {
+  const [lb, setLb] = useState<Record<Kind, LeaderRow[]>>({
+    "tile-drop": [],
+    "flash-judge": [],
+    "memory-burst": [],
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadOne(kind: Kind): Promise<LeaderRow[]> {
+      const col = collection(db, "attackLeaderboards", kind, "entries")
+      const q = query(col, orderBy("bestScore", "desc"), limit(3))
+      const snap = await getDocs(q)
+      return snap.docs.map((d) => {
+        const v: any = d.data()
+        return {
+          displayName: String(v.displayName ?? "Anonymous"),
+          bestScore: Number(v.bestScore ?? 0),
+        }
+      })
     }
-  }
-  run()
-  return () => {
-    cancelled = true
-  }
-}, [])
-const cards: GameCard[] = useMemo(
-    () => [
-      {
-        kind: "tile-drop",
-        title: "文字ブレイク",
-        desc: "落ちてくる問題を、正しい順番でタップして破壊。読み・穴埋め・助詞に強い。",
-        tags: ["3ミスで終了", "コンボ", "タイムストップ"],
-      },
-      {
-        kind: "flash-judge",
-        title: "瞬判ジャッジ",
-        desc: "文が正しいなら○、間違いなら×。テンポ良く直感で鍛える。",
-        tags: ["○×", "反射神経", "コンボ加点"],
-      },
-      {
-        kind: "memory-burst",
-        title: "フラッシュ記憶",
-        desc: "一瞬だけ表示 → 記憶して4択。短時間で記憶力を鍛える。",
-        tags: ["4択", "短期記憶", "テンポ"],
-      },
-    ],
-    []
-  )
+
+    async function run() {
+      try {
+        setLoading(true)
+
+        // ✅ ここで型を確定させて readonly を発生させない
+        const results: Array<[Kind, LeaderRow[]]> = await Promise.all(
+          (GAMES.map((g) => g.kind) as Kind[]).map(async (k) => {
+            try {
+              const rows = await loadOne(k)
+              return [k, rows] as [Kind, LeaderRow[]]
+            } catch {
+              return [k, [] as LeaderRow[]] as [Kind, LeaderRow[]]
+            }
+          })
+        )
+
+        if (cancelled) return
+
+        const next: Record<Kind, LeaderRow[]> = {
+          "tile-drop": [],
+          "flash-judge": [],
+          "memory-burst": [],
+        }
+
+        for (const [k, rows] of results) {
+          next[k] = rows
+        }
+
+        setLb(next)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const cards = useMemo(() => GAMES, [])
 
   return (
     <main className={styles.wrap}>
-      <AppHeader title="ゲーム" />
-      <div className={styles.header}>
-        <div>
-          <div className={styles.title}>ゲーム</div>
-          <div className={styles.sub}>
-            まずは遊びたいゲームを選ぶ → 説明ページでモード/級を選ぶ → プレイ開始。
-          </div>
-        </div>
-      </div>
+      <AppHeader />
 
-      <section className={styles.grid}>
-        {cards.map((c) => (
-          <div key={c.kind} className={styles.card}>
-            <div className={styles.cardTitle}>{c.title}</div>
-            <div className={styles.cardDesc}>{c.desc}</div>
+      <section className={styles.head}>
+        <h1 className={styles.h1}>ゲーム</h1>
+        <p className={styles.lead}>遊びたいゲームを選ぶ → 説明ページでモード/級を選ぶ → プレイ開始。</p>
+      </section>
 
-            <div className={styles.meta}>
-              {c.tags.map((t) => (
-                <span key={t} className={styles.pill}>
-                  {t}
-                </span>
-              ))}
+      <section className={styles.cards}>
+        {cards.map((c) => {
+          const ranks = lb[c.kind] ?? []
+          return (
+            <div key={c.kind} className={styles.card}>
+              <div className={styles.cardTop}>
+                <div className={styles.cardTitle}>{c.title}</div>
+                <div className={styles.cardDesc}>{c.desc}</div>
+
+                <div className={styles.tags}>
+                  {c.tags.map((t) => (
+                    <span key={t} className={styles.tag}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+
+                <div className={styles.rankBox}>
+                  <div className={styles.rankHead}>ランキング（アタック）</div>
+                  {loading ? (
+                    <div className={styles.rankEmpty}>読み込み中…</div>
+                  ) : ranks.length === 0 ? (
+                    <div className={styles.rankEmpty}>まだ記録がありません</div>
+                  ) : (
+                    <ol className={styles.rankList}>
+                      {ranks.map((r, i) => (
+                        <li key={`${c.kind}-${i}`} className={styles.rankRow}>
+                          <span className={styles.rankNo}>{i + 1}</span>
+                          <span className={styles.rankName}>{r.displayName}</span>
+                          <span className={styles.rankScore}>{r.bestScore}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.actions}>
+                <Link className={`${styles.btn} ${styles.btnMain}`} href={`/game/${c.kind}`}>
+                  チャレンジ
+                </Link>
+              </div>
             </div>
-
-            
-<div className={styles.rankBox}>
-  <div className={styles.rankTitle}>ランキング（アタック）</div>
-  {((rankings[c.kind] ?? []).length === 0) ? (
-    <div className={styles.rankEmpty}>まだ記録がありません</div>
-  ) : (
-    <ol className={styles.rankList}>
-      {(rankings[c.kind] ?? []).map((r, i) => (
-        <li key={i} className={styles.rankRow}>
-          <span className={styles.rankNo}>{i + 1}</span>
-          <span className={styles.rankName}>{r.displayName}</span>
-          <span className={styles.rankScore}>{r.bestScore}</span>
-        </li>
-      ))}
-    </ol>
-  )}
-</div>
-
-<div className={styles.actions}>
-
-              <Link className={styles.btn} href={`/game/${c.kind}`}>
-                説明を見る
-              </Link>
-              <Link className={`${styles.btn} ${styles.btnMain}`} href={`/game/${c.kind}?quick=1`}>
-                チャレンジ
-              </Link>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </section>
     </main>
   )
