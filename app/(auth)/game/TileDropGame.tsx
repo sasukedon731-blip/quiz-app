@@ -667,6 +667,8 @@ function activateTimeStop() {
         <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
 
           <div className="mobileOnly">
+            <div className="hubGrid">
+              <div className="hubMain">
             <div className="mobileSection">
               <div className="mobileTitle">ゲーム</div>
               <div className="mobileScroll">
@@ -765,7 +767,9 @@ function activateTimeStop() {
               ) : null}
             </div>
 
-            <div className="mobileMeta">
+            </div>
+              <div className="hubSide">
+                <div className="mobileMeta">
               問題数：<b>{filteredPool.length}</b>
             </div>
 
@@ -785,6 +789,9 @@ function activateTimeStop() {
                 ゲーム開始
               </button>
             </div>
+              </div>
+            </div>
+
           </div>
 
           <div className="desktopOnly">
@@ -813,17 +820,11 @@ function activateTimeStop() {
               </div>
               <div style={styles.help}>※ ここで3つのゲームを切り替えできます</div>
               <div style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.6 }}>
-                <b><>
-                          <span className="labelLong">文字ブレイク</span>
-                          <span className="labelShort">🔨</span>
-                        </></b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
+                <b><span className="labelLong">文字ブレイク</span><span className="labelShort">🔨</span></b>：下のタイルを正しい順でタップして壊します（穴埋め/漢字読み）。
                 <br />
                 <b>○×</b>：文が正しいなら○、間違いなら×。
                 <br />
-                <b><>
-                          <span className="labelLong">フラッシュ記憶</span>
-                          <span className="labelShort">🧠</span>
-                        </></b>：一瞬表示→消えたあとに答える。
+                <b><span className="labelLong">フラッシュ記憶</span><span className="labelShort">🧠</span></b>：一瞬表示→消えたあとに答える。
               </div>
             </div>
           </div>
@@ -1113,7 +1114,21 @@ function activateTimeStop() {
       </div>
     
       <style jsx>{`
-        .readyWrap { max-width: 720px; margin: 0 auto; }
+        .readyWrap { width: 100%; max-width: 520px; margin: 0 auto; }
+        @media (min-width: 1024px) {
+          .readyWrap { max-width: 1100px; padding: 24px; }
+          .hubGrid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            align-items: start;
+          }
+          .hubSide {
+            position: sticky;
+            top: 16px;
+          }
+        }
+
         @media (max-width: 640px) {
           .mainPad { padding-bottom: 92px; }
           .row2 { flex-direction: column !important; gap: 12px !important; }
