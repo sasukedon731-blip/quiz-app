@@ -157,7 +157,12 @@ export default function GameTopClient() {
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnMain}`}
-                  onClick={() => router.push(`/game/${c.kind}`)}
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("lastGameKind", c.kind)
+                    } catch {}
+                    router.push(`/game/${c.kind}`)
+                  }}
                 >
                   チャレンジ
                 </button>

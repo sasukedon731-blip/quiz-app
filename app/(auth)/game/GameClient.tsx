@@ -37,6 +37,16 @@ function isGameKind(v: any): v is GameKind {
   )
 }
 
+function readStoredKind(): GameKind | null {
+  try {
+    if (typeof window === "undefined") return null
+    const v = window.sessionStorage.getItem("lastGameKind")
+    return isGameKind(v) ? v : null
+  } catch {
+    return null
+  }
+}
+
 function GuestBlocked({ onLogin }: { onLogin: () => void }) {
   return (
     <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
@@ -132,8 +142,19 @@ export default function GameClient() {
   const modeParam = rawMode === "attack" ? "attack" : "normal"
 
   const kind: GameKind = useMemo(() => {
-    return isGameKind(rawKind) ? rawKind : "tile-drop"
+    // ✅ 何らかの導線で kind がクエリに乗ってこないケースがある。
+    // その場合でも直前に選んだゲームへ確実に戻すため sessionStorage をフォールバックに使う。
+    if (isGameKind(rawKind)) return rawKind
+    const stored = readStoredKind()
+    return stored ?? "tile-drop"
   }, [rawKind])
+
+  // ✅ どこから来ても「最後に選んだゲーム」を維持する
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("lastGameKind", kind)
+    } catch {}
+  }, [kind])
 
   // ===== Guest: 1/day (normal only) =====
   const [guestOk, setGuestOk] = useState(true)

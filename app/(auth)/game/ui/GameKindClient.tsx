@@ -104,6 +104,11 @@ export default function GameKindClient({ kind }: { kind: string }) {
   }, [rawType, rawMode])
 
   function goPlay(isQuick?: boolean) {
+    // ✅ kind がクエリに乗らない/消える事故に備えて保存
+    try {
+      sessionStorage.setItem("lastGameKind", safeKind)
+    } catch {}
+
     const wantMode = mode
     if (wantMode === "attack" && !user) {
       setToast("アタック（ランキング）はログインが必要です。ノーマルで開始します。")
