@@ -210,31 +210,6 @@ useEffect(() => {
   const activeKeyRef = useRef<string>("")
   const resolvedRef = useRef<boolean>(false)
 
-  // ✅ unmount後の setState / setTimeout を防ぐ（画面遷移・リロード対策）
-  const mountedRef = useRef<boolean>(true)
-  const timeoutsRef = useRef<number[]>([])
-  const schedule = (fn: () => void, ms: number) => {
-    const id = window.setTimeout(() => {
-      if (!mountedRef.current) return
-      fn()
-    }, ms)
-    timeoutsRef.current.push(id)
-    return id
-  }
-
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      // pending timeouts
-      for (const id of timeoutsRef.current) window.clearTimeout(id)
-      timeoutsRef.current = []
-      // existing timers
-      if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
-      if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
-    }
-  }, [])
-
   // ===== Auth（ゲストOK）=====
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -389,11 +364,9 @@ useEffect(() => {
     setLbLoading(true)
     try {
       const list = await fetchAttackLeaderboard({ gameId: kind, take: 50 })
-      if (!mountedRef.current) return
       setLbItems(list)
       if (uid) {
         const me = await fetchMyAttackRank({ gameId: kind, uid })
-        if (!mountedRef.current) return
         setMyRank(me.rank)
         setMyBestScore(me.bestScore)
       } else {
@@ -401,7 +374,6 @@ useEffect(() => {
         setMyBestScore(0)
       }
     } catch (e) {
-      if (!mountedRef.current) return
       setLbItems([])
       setMyRank(null)
       setMyBestScore(0)
@@ -414,7 +386,7 @@ function startGame() {
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")
-      schedule(() => startGameAs("normal"), 0)
+      setTimeout(() => startGameAs("normal"), 0)
       return
     }
     startGameAs(mode)
@@ -440,7 +412,7 @@ function startGame() {
     setComboPop(null)
 
     setPhase("playing")
-    schedule(() => {
+    setTimeout(() => {
       resetRound(nextMode, difficulty, 1)
     }, 0)
   }
@@ -453,7 +425,6 @@ function startGame() {
     let currentBest = 0
     try {
       const snap = await getDoc(doc(db, "attackLeaderboard", uid))
-      if (!mountedRef.current) return
       if (snap.exists()) {
         const v = snap.data() as any
         currentBest = Number(v?.bestScore ?? 0)
@@ -464,8 +435,6 @@ function startGame() {
 
     try {
       const res = await submitAttackScore({
-        // NOTE: submitAttackScore はネットワーク待ちがある
-      
         gameId: selectedKind,
         uid,
         displayName: displayName || "匿名",
@@ -485,7 +454,6 @@ function startGame() {
 
     try {
       const lb = await fetchAttackLeaderboard({ gameId: selectedKind, take: 30 })
-      if (!mountedRef.current) return
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
     } catch (e: any) {
       console.error(e)
@@ -524,10 +492,10 @@ function startGame() {
     setLife((prev) => {
       const next = prev - 1
       if (next <= 0) {
-        schedule(() => endGame(), 50)
+        setTimeout(() => endGame(), 50)
         return 0
       }
-      schedule(() => {
+      setTimeout(() => {
         const nextLevel = mode === "attack" ? level + 1 : level
         if (mode === "attack") setLevel(nextLevel)
         resetRound(mode, difficulty, nextLevel)
@@ -632,7 +600,7 @@ function activateTimeStop() {
     setPlateFx("success")
 
     // ✅ 爆散演出が見えるように、次の問題へ進むまで少し待つ
-    schedule(() => {
+    setTimeout(() => {
       const nextLevel = mode === "attack" ? level + 1 : level
       if (mode === "attack") setLevel(nextLevel)
       resetRound(mode, difficulty, nextLevel)
@@ -696,7 +664,7 @@ function activateTimeStop() {
 
         <section style={styles.panel}>
 {/* Ready */}
-        <div style={{ display: phase === "ready" ? "block" : "none" }} className="readyWrap hubOuter">
+        <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
 
           <div className="mobileOnly">
             <div className="mobileSection">
@@ -820,8 +788,6 @@ function activateTimeStop() {
           </div>
 
           <div className="desktopOnly">
-          <div className="readyDesktopGrid">
-            <div className="readyMain">
           <div style={styles.row} className="row2">
             <div style={styles.field}>
               <div style={styles.label}>ゲーム</div>
@@ -926,7 +892,16 @@ function activateTimeStop() {
                   </div>
                 ) : null}
               </div>
-            </div>
+
+              <div style={styles.field} className="difficultyCard">
+                <div style={styles.label}>難易度</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
+                    {pool[0]?.difficulty ?? difficulty}
+                  </span>
+                </div>
+                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
+              </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
@@ -952,19 +927,6 @@ function activateTimeStop() {
             {toast ? (
               <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "#b91c1c" }}>{toast}</div>
             ) : null}
-            </div>
-            <div className="readySide">
-              <div style={styles.field} className="difficultyCard">
-                <div style={styles.label}>難易度</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
-                    {pool[0]?.difficulty ?? difficulty}
-                  </span>
-                </div>
-                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
-              </div>
-            </div>
-          </div>
           </div>
 
           {/* Playing */}
@@ -1151,19 +1113,22 @@ function activateTimeStop() {
       </div>
     
       <style jsx>{`
-        .readyWrap { width: 100%; }
-        .hubOuter { width: 100%; max-width: 520px; margin: 0 auto; padding: 16px; }
-        @media (min-width: 1024px) {
-          .hubOuter { max-width: 1100px; padding: 24px; }
-          .readyDesktopGrid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
-          .readySide { position: sticky; top: 16px; }
-        }
+        .readyWrap {
+  width: 100%;
+  max-width: 520px; /* スマホ幅は維持 */
+  margin: 0 auto;
+}
+@media (min-width: 1024px) {
+  .readyWrap {
+    max-width: 1100px; /* PCで広げる */
+  }
+}
         @media (max-width: 640px) {
           .mainPad { padding-bottom: 92px; }
           .row2 { flex-direction: column !important; gap: 12px !important; }
           .difficultyCard { display: none !important; }
           .modeCard { width: 100% !important; }
-          .hubOuter { padding: 12px !important; }
+          .readyWrap { padding: 12px !important; }
           /* stack fields */
           .readyWrap :global(div[style*="styles.row"]) { }
           /* game buttons */
