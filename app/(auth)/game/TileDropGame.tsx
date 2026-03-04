@@ -696,7 +696,7 @@ function activateTimeStop() {
 
         <section style={styles.panel}>
 {/* Ready */}
-        <div style={{ display: phase === "ready" ? "block" : "none", padding: 16 }} className="readyWrap">
+        <div style={{ display: phase === "ready" ? "block" : "none" }} className="readyWrap hubOuter">
 
           <div className="mobileOnly">
             <div className="mobileSection">
@@ -820,6 +820,8 @@ function activateTimeStop() {
           </div>
 
           <div className="desktopOnly">
+          <div className="readyDesktopGrid">
+            <div className="readyMain">
           <div style={styles.row} className="row2">
             <div style={styles.field}>
               <div style={styles.label}>ゲーム</div>
@@ -924,16 +926,7 @@ function activateTimeStop() {
                   </div>
                 ) : null}
               </div>
-
-              <div style={styles.field} className="difficultyCard">
-                <div style={styles.label}>難易度</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
-                    {pool[0]?.difficulty ?? difficulty}
-                  </span>
-                </div>
-                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
-              </div>
+            </div>
             </div>
 
             <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
@@ -959,6 +952,19 @@ function activateTimeStop() {
             {toast ? (
               <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "#b91c1c" }}>{toast}</div>
             ) : null}
+            </div>
+            <div className="readySide">
+              <div style={styles.field} className="difficultyCard">
+                <div style={styles.label}>難易度</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...styles.pill, ...styles.pillActive, cursor: "default" }}>
+                    {pool[0]?.difficulty ?? difficulty}
+                  </span>
+                </div>
+                <div style={styles.help}>※ 教材ごとに難易度は固定。アタックは速度UPで難しくなります。</div>
+              </div>
+            </div>
+          </div>
           </div>
 
           {/* Playing */}
@@ -1145,13 +1151,19 @@ function activateTimeStop() {
       </div>
     
       <style jsx>{`
-        .readyWrap { max-width: 720px; margin: 0 auto; }
+        .readyWrap { width: 100%; }
+        .hubOuter { width: 100%; max-width: 520px; margin: 0 auto; padding: 16px; }
+        @media (min-width: 1024px) {
+          .hubOuter { max-width: 1100px; padding: 24px; }
+          .readyDesktopGrid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+          .readySide { position: sticky; top: 16px; }
+        }
         @media (max-width: 640px) {
           .mainPad { padding-bottom: 92px; }
           .row2 { flex-direction: column !important; gap: 12px !important; }
           .difficultyCard { display: none !important; }
           .modeCard { width: 100% !important; }
-          .readyWrap { padding: 12px !important; }
+          .hubOuter { padding: 12px !important; }
           /* stack fields */
           .readyWrap :global(div[style*="styles.row"]) { }
           /* game buttons */
