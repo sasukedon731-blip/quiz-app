@@ -1,20 +1,16 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore"
+import { useRouter } from "next/navigation"
+import { doc, getDoc } from "firebase/firestore"
 
 import AppHeader from "@/app/components/AppHeader"
 import { db } from "@/app/lib/firebase"
+import { useAuth } from "@/app/lib/useAuth"
 
 import styles from "./gameTop.module.css"
 
 type Kind = "tile-drop" | "flash-judge" | "memory-burst"
-
-type LeaderRow = {
-  displayName: string
-  bestScore: number
-}
 
 type GameCard = {
   kind: Kind
@@ -45,60 +41,61 @@ const GAMES: GameCard[] = [
 ]
 
 export default function GameTopClient() {
-  const [lb, setLb] = useState<Record<Kind, LeaderRow[]>>({
-    "tile-drop": [],
-    "flash-judge": [],
-    "memory-burst": [],
+  const router = useRouter()
+  const { user } = useAuth()
+
+  // ✅ TOPでは「ランキングは出さない」方針（3ゲームが分かりにくくなるため）
+  // 代わりにログイン済みなら「自分のベスト」だけ表示する
+  const [myBest, setMyBest] = useState<Record<Kind, number | null>>({
+    "tile-drop": null,
+    "flash-judge": null,
+    "memory-burst": null,
   })
-  const [loading, setLoading] = useState(true)
+  const [loadingBest, setLoadingBest] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    async function loadOne(kind: Kind): Promise<LeaderRow[]> {
-      const col = collection(db, "attackLeaderboards", kind, "entries")
-      const q = query(col, orderBy("bestScore", "desc"), limit(3))
-      const snap = await getDocs(q)
-      return snap.docs.map((d) => {
-        const v: any = d.data()
-        return {
-          displayName: String(v.displayName ?? "Anonymous"),
-          bestScore: Number(v.bestScore ?? 0),
-        }
-      })
+    async function loadMyBest(kind: Kind): Promise<number | null> {
+      if (!user) return null
+      const ref = doc(db, "attackLeaderboards", kind, "entries", user.uid)
+      const snap = await getDoc(ref)
+      if (!snap.exists()) return 0
+      const v: any = snap.data()
+      return Number(v?.bestScore ?? 0) || 0
     }
 
     async function run() {
       try {
-        setLoading(true)
+        setLoadingBest(true)
 
-        // ✅ ここで型を確定させて readonly を発生させない
-        const results: Array<[Kind, LeaderRow[]]> = await Promise.all(
+        if (!user) {
+          setMyBest({ "tile-drop": null, "flash-judge": null, "memory-burst": null })
+          return
+        }
+
+        const results: Array<[Kind, number | null]> = await Promise.all(
           (GAMES.map((g) => g.kind) as Kind[]).map(async (k) => {
             try {
-              const rows = await loadOne(k)
-              return [k, rows] as [Kind, LeaderRow[]]
+              const s = await loadMyBest(k)
+              return [k, s] as [Kind, number | null]
             } catch {
-              return [k, [] as LeaderRow[]] as [Kind, LeaderRow[]]
+              return [k, null] as [Kind, number | null]
             }
           })
         )
 
         if (cancelled) return
 
-        const next: Record<Kind, LeaderRow[]> = {
-          "tile-drop": [],
-          "flash-judge": [],
-          "memory-burst": [],
+        const next: Record<Kind, number | null> = {
+          "tile-drop": null,
+          "flash-judge": null,
+          "memory-burst": null,
         }
-
-        for (const [k, rows] of results) {
-          next[k] = rows
-        }
-
-        setLb(next)
+        for (const [k, s] of results) next[k] = s
+        setMyBest(next)
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setLoadingBest(false)
       }
     }
 
@@ -106,7 +103,7 @@ export default function GameTopClient() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [user])
 
   const cards = useMemo(() => GAMES, [])
 
@@ -121,7 +118,7 @@ export default function GameTopClient() {
 
       <section className={styles.cards}>
         {cards.map((c) => {
-          const ranks = lb[c.kind] ?? []
+          const best = myBest[c.kind]
           return (
             <div key={c.kind} className={styles.card}>
               <div className={styles.cardTop}>
@@ -137,29 +134,33 @@ export default function GameTopClient() {
                 </div>
 
                 <div className={styles.rankBox}>
-                  <div className={styles.rankHead}>ランキング（アタック）</div>
-                  {loading ? (
+                  <div className={styles.rankHead}>あなたのベスト（アタック）</div>
+                  {!user ? (
+                    <div className={styles.rankEmpty}>ログインすると表示されます</div>
+                  ) : loadingBest ? (
                     <div className={styles.rankEmpty}>読み込み中…</div>
-                  ) : ranks.length === 0 ? (
+                  ) : best === null ? (
+                    <div className={styles.rankEmpty}>取得できませんでした</div>
+                  ) : best === 0 ? (
                     <div className={styles.rankEmpty}>まだ記録がありません</div>
                   ) : (
-                    <ol className={styles.rankList}>
-                      {ranks.map((r, i) => (
-                        <li key={`${c.kind}-${i}`} className={styles.rankRow}>
-                          <span className={styles.rankNo}>{i + 1}</span>
-                          <span className={styles.rankName}>{r.displayName}</span>
-                          <span className={styles.rankScore}>{r.bestScore}</span>
-                        </li>
-                      ))}
-                    </ol>
+                    <div className={styles.myBestRow}>
+                      <span className={styles.myBestLabel}>ベスト</span>
+                      <span className={styles.myBestScore}>{best}</span>
+                    </div>
                   )}
                 </div>
               </div>
 
               <div className={styles.actions}>
-                <Link className={`${styles.btn} ${styles.btnMain}`} href={`/game/${c.kind}`}>
+                {/* ✅ iOSでのタップ判定のズレ回避：Linkではなく router.push で確実に遷移 */}
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnMain}`}
+                  onClick={() => router.push(`/game/${c.kind}`)}
+                >
                   チャレンジ
-                </Link>
+                </button>
               </div>
             </div>
           )

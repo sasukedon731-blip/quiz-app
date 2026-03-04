@@ -224,9 +224,6 @@ export default function GameKindClient({ kind }: { kind: string }) {
           <button type="button" className={`${styles.btn} ${styles.btnMain}`} onClick={() => goPlay()}>
             プレイ開始
           </button>
-          <Link className={styles.btn} href="/mypage">
-            マイページ
-          </Link>
         </div>
 
         {toast ? (

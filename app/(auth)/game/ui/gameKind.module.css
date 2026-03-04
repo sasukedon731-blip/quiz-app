@@ -54,14 +54,16 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.7);
   font-weight: 900;
   cursor: pointer;
 }
 
 .segBtnActive {
   border: none;
-  background: rgba(0, 0, 0, 0.06);
+  background: #2563eb;
+  color: white;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
 }
 
 .help {
@@ -82,14 +84,16 @@
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.7);
   font-weight: 900;
   cursor: pointer;
 }
 
 .btnMain {
   border: none;
-  background: rgba(0, 0, 0, 0.06);
+  background: #2563eb;
+  color: white;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
 }
 
 .ruleList {
@@ -109,10 +113,10 @@
   position:absolute;
   inset:-140px;
   background:
-    radial-gradient(circle at 15% 20%, rgba(0,0,0,0.06), transparent 45%),
-    radial-gradient(circle at 95% 25%, rgba(0,0,0,0.05), transparent 55%),
-    radial-gradient(circle at 70% 95%, rgba(0,0,0,0.04), transparent 55%),
-    radial-gradient(circle at 15% 90%, rgba(0,0,0,0.04), transparent 55%);
+    radial-gradient(circle at 10% 10%, rgba(120, 190, 255, 0.24), transparent 45%),
+    radial-gradient(circle at 95% 10%, rgba(255, 190, 120, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 95%, rgba(160, 220, 255, 0.14), transparent 55%),
+    radial-gradient(circle at 15% 90%, rgba(255, 210, 160, 0.12), transparent 55%);
   pointer-events:none;
   z-index:0;
 }
