@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useMemo, useState, useEffect } from "react"
+import { db } from "@/app/lib/firebase"
+import { collection, getDocs, limit, orderBy, query } from "firebase/firestore"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
@@ -55,6 +57,28 @@ function kindMeta(kind: Kind) {
 
 export default function GameKindClient({ kind }: { kind: string }) {
   const router = useRouter()
+
+const [lb, setLb] = useState<{ displayName: string; bestScore: number }[]>([])
+
+useEffect(() => {
+  let cancelled = false
+  async function run() {
+    try {
+      const col = collection(db, "attackLeaderboards", safeKind, "entries")
+      const q = query(col, orderBy("bestScore", "desc"), limit(10))
+      const snap = await getDocs(q)
+      const list = snap.docs.map((d) => {
+        const v: any = d.data()
+        return { displayName: String(v.displayName ?? "Anonymous"), bestScore: Number(v.bestScore ?? 0) }
+      })
+      if (!cancelled) setLb(list)
+    } catch {
+      if (!cancelled) setLb([])
+    }
+  }
+  run()
+  return () => { cancelled = true }
+}, [safeKind])
   const params = useSearchParams()
   const { user } = useAuth()
 
@@ -130,6 +154,27 @@ export default function GameKindClient({ kind }: { kind: string }) {
           <li key={r}>{r}</li>
         ))}
       </ul>
+
+
+<section className={styles.rankCard}>
+  <div className={styles.rankHead}>
+    <div className={styles.rankLabel}>ランキング（アタック）</div>
+    <div className={styles.rankHint}>※ アタックのベストスコア上位</div>
+  </div>
+  {lb.length === 0 ? (
+    <div className={styles.rankEmpty}>まだ記録がありません</div>
+  ) : (
+    <ol className={styles.rankList}>
+      {lb.slice(0, 5).map((r, i) => (
+        <li key={i} className={styles.rankRow}>
+          <span className={styles.rankNo}>{i + 1}</span>
+          <span className={styles.rankName}>{r.displayName}</span>
+          <span className={styles.rankScore}>{r.bestScore}</span>
+        </li>
+      ))}
+    </ol>
+  )}
+</section>
 
       <section className={styles.card}>
         <div className={styles.label}>モード</div>

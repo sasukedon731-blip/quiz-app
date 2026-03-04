@@ -96,3 +96,88 @@
 .btn:hover {
   filter: brightness(0.98);
 }
+
+
+.wrap{
+  position: relative;
+  overflow: hidden;
+}
+
+/* さみしさ解消：ふんわり背景 */
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:-120px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0,0,0,0.06), transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(0,0,0,0.05), transparent 55%),
+    radial-gradient(circle at 80% 90%, rgba(0,0,0,0.04), transparent 55%),
+    radial-gradient(circle at 20% 80%, rgba(0,0,0,0.04), transparent 55%);
+  pointer-events:none;
+  z-index:0;
+}
+
+.header, .grid { position: relative; z-index: 1; }
+
+.rankBox{
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(6px);
+}
+
+.rankTitle{
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+
+.rankEmpty{
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.rankList{
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rankRow{
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.rankNo{
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.10);
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  background: rgba(255,255,255,0.65);
+}
+
+.rankName{
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+
+.rankScore{
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  opacity: 0.9;
+}
