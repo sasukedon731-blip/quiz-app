@@ -1114,9 +1114,9 @@ function activateTimeStop() {
       </div>
     
       <style jsx>{`
-        .readyWrap { width: 100%; max-width: 520px; margin: 0 auto; }
+        .readyWrap { width: 100%; max-width: 520px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
         @media (min-width: 1024px) {
-          .readyWrap { max-width: 1100px; padding: 24px; }
+          .readyWrap { max-width: 1100px; padding: 28px; }
           .hubGrid {
             display: grid;
             grid-template-columns: 1fr 360px;
@@ -1142,7 +1142,23 @@ function activateTimeStop() {
             display: grid !important;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px !important;
+          
+          /* game pills: show 3 tabs without horizontal scroll */
+          .mobileScroll{
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            overflow: visible !important;
+            padding-bottom: 0 !important;
           }
+          .mobilePill{
+            padding: 10px 6px !important;
+            font-size: 13px !important;
+            gap: 0 !important;
+          }
+          .mobilePill .ic{ display: none !important; }
+
+        }
           .modeSeg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           /* make buttons finger-friendly */
           .gameSeg :global(button), .modeSeg :global(button), .levelSeg :global(button) {
