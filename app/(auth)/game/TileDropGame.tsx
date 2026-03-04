@@ -210,6 +210,31 @@ useEffect(() => {
   const activeKeyRef = useRef<string>("")
   const resolvedRef = useRef<boolean>(false)
 
+  // ✅ unmount後の setState / setTimeout を防ぐ（画面遷移・リロード対策）
+  const mountedRef = useRef<boolean>(true)
+  const timeoutsRef = useRef<number[]>([])
+  const schedule = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => {
+      if (!mountedRef.current) return
+      fn()
+    }, ms)
+    timeoutsRef.current.push(id)
+    return id
+  }
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      // pending timeouts
+      for (const id of timeoutsRef.current) window.clearTimeout(id)
+      timeoutsRef.current = []
+      // existing timers
+      if (comboPopTimer.current) window.clearTimeout(comboPopTimer.current)
+      if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
+    }
+  }, [])
+
   // ===== Auth（ゲストOK）=====
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -364,9 +389,11 @@ useEffect(() => {
     setLbLoading(true)
     try {
       const list = await fetchAttackLeaderboard({ gameId: kind, take: 50 })
+      if (!mountedRef.current) return
       setLbItems(list)
       if (uid) {
         const me = await fetchMyAttackRank({ gameId: kind, uid })
+        if (!mountedRef.current) return
         setMyRank(me.rank)
         setMyBestScore(me.bestScore)
       } else {
@@ -374,6 +401,7 @@ useEffect(() => {
         setMyBestScore(0)
       }
     } catch (e) {
+      if (!mountedRef.current) return
       setLbItems([])
       setMyRank(null)
       setMyBestScore(0)
@@ -386,7 +414,7 @@ function startGame() {
     if (mode === "attack" && !uid) {
       setToast("ランキングはログインが必要です（ノーマルで開始します）")
       setMode("normal")
-      setTimeout(() => startGameAs("normal"), 0)
+      schedule(() => startGameAs("normal"), 0)
       return
     }
     startGameAs(mode)
@@ -412,7 +440,7 @@ function startGame() {
     setComboPop(null)
 
     setPhase("playing")
-    setTimeout(() => {
+    schedule(() => {
       resetRound(nextMode, difficulty, 1)
     }, 0)
   }
@@ -425,6 +453,7 @@ function startGame() {
     let currentBest = 0
     try {
       const snap = await getDoc(doc(db, "attackLeaderboard", uid))
+      if (!mountedRef.current) return
       if (snap.exists()) {
         const v = snap.data() as any
         currentBest = Number(v?.bestScore ?? 0)
@@ -435,6 +464,8 @@ function startGame() {
 
     try {
       const res = await submitAttackScore({
+        // NOTE: submitAttackScore はネットワーク待ちがある
+      
         gameId: selectedKind,
         uid,
         displayName: displayName || "匿名",
@@ -454,6 +485,7 @@ function startGame() {
 
     try {
       const lb = await fetchAttackLeaderboard({ gameId: selectedKind, take: 30 })
+      if (!mountedRef.current) return
       setLeaderboard(lb.map((x) => ({ displayName: x.displayName, bestScore: x.bestScore })))
     } catch (e: any) {
       console.error(e)
@@ -492,10 +524,10 @@ function startGame() {
     setLife((prev) => {
       const next = prev - 1
       if (next <= 0) {
-        setTimeout(() => endGame(), 50)
+        schedule(() => endGame(), 50)
         return 0
       }
-      setTimeout(() => {
+      schedule(() => {
         const nextLevel = mode === "attack" ? level + 1 : level
         if (mode === "attack") setLevel(nextLevel)
         resetRound(mode, difficulty, nextLevel)
@@ -600,7 +632,7 @@ function activateTimeStop() {
     setPlateFx("success")
 
     // ✅ 爆散演出が見えるように、次の問題へ進むまで少し待つ
-    setTimeout(() => {
+    schedule(() => {
       const nextLevel = mode === "attack" ? level + 1 : level
       if (mode === "attack") setLevel(nextLevel)
       resetRound(mode, difficulty, nextLevel)
