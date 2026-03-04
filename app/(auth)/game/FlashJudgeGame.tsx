@@ -9,7 +9,6 @@ import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
 import { getFlashJudgePool } from "./pools/flashJudgePools"
-import AppHeader from "@/app/components/AppHeader"
 import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
@@ -233,7 +232,7 @@ export default function FlashJudgeGame({
 
   return (
     <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <AppHeader title="瞬判ジャッジ" />
+      {/* ✅ /game/play 側で AppHeader を表示しているため二重を防ぐ */}
 
       {/* readyは基本ハブへ飛ぶが、念のため残す（autostart時や将来拡張） */}
       {phase === "ready" && (

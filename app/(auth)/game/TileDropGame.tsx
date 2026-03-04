@@ -8,7 +8,6 @@ import { doc, getDoc } from "firebase/firestore"
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion"
 
 import { auth, db } from "@/app/lib/firebase"
-import AppHeader from "@/app/components/AppHeader"
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 import type { GameDifficulty, GameMode, GameQuestion } from "./types"
@@ -673,7 +672,7 @@ function activateTimeStop() {
     <main style={styles.page} className="game-root mainPad">
       <div style={styles.shell}>
         {/* Header */}
-        <AppHeader title="ゲーム" />
+        {/* ✅ /game/play 側で AppHeader を表示しているため二重を防ぐ */}
 
         <section style={styles.panel}>
 {/* Ready */}

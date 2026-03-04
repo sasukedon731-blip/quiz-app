@@ -9,7 +9,6 @@ import { submitAttackScore } from "./firestore"
 import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
-import AppHeader from "@/app/components/AppHeader"
 import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
@@ -205,7 +204,7 @@ useEffect(() => {
 
   return (
     <div className="withFixedCta" style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <AppHeader title="フラッシュ記憶" />
+      {/* ✅ /game/play 側で AppHeader を表示しているため二重を防ぐ */}
 
       {/* readyは基本ハブへ飛ぶが、念のため残す */}
       {phase === "ready" && !autostart && (
