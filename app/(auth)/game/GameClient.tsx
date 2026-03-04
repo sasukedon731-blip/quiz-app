@@ -12,6 +12,9 @@ import type { GameKind } from "./types"
 
 import { useAuth } from "@/app/lib/useAuth"
 import { canGuestPlayToday, markGuestPlayedToday } from "./guestLimit"
+import { canUserPlayToday, markUserPlayedToday } from "./userLimit"
+import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
+import type { PlanId } from "@/app/lib/plan"
 
 function isQuizType(v: any): v is QuizType {
   return (
@@ -42,7 +45,7 @@ function GuestBlocked({ onLogin }: { onLogin: () => void }) {
         <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.6 }}>
           ゲストは <b>1日1回（ノーマルのみ）</b> まで。
           <br />
-          ログインすると制限なしで遊べて、アタックのランキング保存も解放されるぜ。
+          ログインするとプレイ履歴が保存されるぜ。
         </div>
         <button
           onClick={onLogin}
@@ -56,11 +59,61 @@ function GuestBlocked({ onLogin }: { onLogin: () => void }) {
             cursor: "pointer",
           }}
         >
-          ログインして続ける
+          ログインする
         </button>
       </div>
     </main>
   )
+}
+
+function UserBlocked({ onGoPlans, onGoHome }: { onGoPlans: () => void; onGoHome: () => void }) {
+  return (
+    <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 16 }}>
+        <div style={{ fontWeight: 900, fontSize: 16 }}>今日はもうプレイ済み！</div>
+        <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.6 }}>
+          無料プランは <b>1日1回</b> まで。
+          <br />
+          プラン変更すると <b>無制限</b> で遊べるぜ。
+        </div>
+
+        <button
+          onClick={onGoPlans}
+          style={{
+            marginTop: 12,
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "none",
+            fontWeight: 900,
+            cursor: "pointer",
+          }}
+        >
+          プランを見る
+        </button>
+
+        <button
+          onClick={onGoHome}
+          style={{
+            marginTop: 10,
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid #ddd",
+            background: "transparent",
+            fontWeight: 900,
+            cursor: "pointer",
+          }}
+        >
+          ホームへ戻る
+        </button>
+      </div>
+    </main>
+  )
+}
+
+function isPaidPlan(plan: PlanId) {
+  return plan === "3" || plan === "5" || plan === "all"
 }
 
 export default function GameClient() {
@@ -79,10 +132,10 @@ export default function GameClient() {
   const modeParam = rawMode === "attack" ? "attack" : "normal"
 
   const kind: GameKind = useMemo(() => {
-    return isGameKind(rawKind) ? rawKind : "tile-drop" // ✅ デフォは落ちゲー
+    return isGameKind(rawKind) ? rawKind : "tile-drop"
   }, [rawKind])
 
-  // ✅ ゲスト1日1回（ノーマルのみ）
+  // ===== Guest: 1/day (normal only) =====
   const [guestOk, setGuestOk] = useState(true)
 
   useEffect(() => {
@@ -91,7 +144,6 @@ export default function GameClient() {
     setGuestOk(canGuestPlayToday())
   }, [modeParam, user])
 
-  // ✅ ページ到達時点で今日プレイ済みにする（リロード抜け防止）
   useEffect(() => {
     if (modeParam !== "normal") return
     if (user) return
@@ -99,8 +151,65 @@ export default function GameClient() {
     markGuestPlayedToday()
   }, [modeParam, user, guestOk])
 
+  // ===== Logged-in Free/Trial: 1/day (all game modes) =====
+  const [checkingUserLimit, setCheckingUserLimit] = useState(false)
+  const [userOk, setUserOk] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function run() {
+      if (!user) return
+      setCheckingUserLimit(true)
+
+      try {
+        const planState = await loadAndRepairUserPlanState(user.uid)
+        if (cancelled) return
+
+        if (isPaidPlan(planState.plan)) {
+          setUserOk(true)
+          return
+        }
+
+        const ok = await canUserPlayToday(user.uid)
+        if (cancelled) return
+        setUserOk(ok)
+
+        // Mark immediately to prevent reload-bypass, only when allowed
+        if (ok) {
+          await markUserPlayedToday(user.uid)
+        }
+      } finally {
+        if (!cancelled) setCheckingUserLimit(false)
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
   if (modeParam === "normal" && !user && !guestOk) {
     return <GuestBlocked onLogin={() => router.push("/login")} />
+  }
+
+  // While we check plan/limit, avoid flashing the game for blocked users
+  if (user && checkingUserLimit) {
+    return (
+      <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 16 }}>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>読み込み中…</div>
+          <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.6 }}>
+            プレイ制限を確認しているぜ。
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (user && !userOk) {
+    return <UserBlocked onGoPlans={() => router.push("/plans")} onGoHome={() => router.push("/")} />
   }
 
   if (kind === "speed-choice") {

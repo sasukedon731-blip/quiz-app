@@ -16,6 +16,7 @@ import { fallbackQuestions } from "./questions"
 import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./firestore"
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 import { getTileDropPool } from "./pools/tileDropPools"
+import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -103,7 +104,7 @@ export default function TileDropGame({
   const router = useRouter()
   const params = useSearchParams()
   const hubKindParam = params.get("hubKind")
-
+const [plateMountKey, setPlateMountKey] = useState(0)
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
 
@@ -171,6 +172,11 @@ useEffect(() => {
   const [life, setLife] = useState(3)
   const [level, setLevel] = useState(1)
   const [combo, setCombo] = useState(0)
+
+  // ✅ 必殺：時間停止（TileDrop専用）
+  const [timeStopUsed, setTimeStopUsed] = useState(false)
+  const [timeStopActive, setTimeStopActive] = useState(false)
+  const timeStopTimer = useRef<number | null>(null)
 
   const [current, setCurrent] = useState<GameQuestion | null>(null)
   const [inputIndex, setInputIndex] = useState(0)
@@ -392,6 +398,8 @@ function startGame() {
     setCombo(0)
     setLife(3)
     setLevel(1)
+    setTimeStopUsed(false)
+    setTimeStopActive(false)
 
     if (nextMode === "attack" && quizType.startsWith("japanese-")) {
       setAttackLevelIndex(0)
@@ -509,6 +517,22 @@ function startGame() {
     comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
   }
 
+function activateTimeStop() {
+  if (phase !== "playing") return
+  if (timeStopUsed) return
+  if (combo < 5) return
+  setTimeStopUsed(true)
+  setTimeStopActive(true)
+
+  // ✅ いまのプレートを「時間停止で延命」：落下アニメをリスタートして+3秒ぶん猶予を作る
+  setPlateMountKey((k) => k + 1)
+
+  if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
+  timeStopTimer.current = window.setTimeout(() => {
+    setTimeStopActive(false)
+  }, 3000)
+}
+
   function success() {
     if (phase !== "playing") return
     if (!current) return
@@ -516,8 +540,10 @@ function startGame() {
 
     resolvedRef.current = true
 
+    const nextCombo = combo + 1
+
     const base = 10 * current.answer.length
-    const comboBonus = Math.min(combo, 20)
+    const comboBonus = Math.min(nextCombo, 20)
     const gained = base + comboBonus
 
     setScore((s) => s + gained)
@@ -545,7 +571,6 @@ function startGame() {
     // ✅ 正解音（軽く）
     playSfx("hit")
 
-    const nextCombo = combo + 1
     setCombo(nextCombo)
     fireComboPop(nextCombo)
 
@@ -917,6 +942,17 @@ function startGame() {
                 <span style={styles.chip}>Lv {level}</span>
                 <span style={styles.chip}>Combo {combo}</span>
                 {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
+                <button
+                  onClick={activateTimeStop}
+                  disabled={phase !== "playing" || timeStopUsed || combo < 5}
+                  style={{
+                    ...styles.chipButton,
+                    opacity: phase !== "playing" || timeStopUsed || combo < 5 ? 0.5 : 1,
+                    borderColor: timeStopActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)",
+                  }}
+                >
+                  {timeStopActive ? "TIME STOP ⏸" : timeStopUsed ? "TIME STOP ✓" : "TIME STOP"}
+                </button>
               </div>
 
               {/* Combo Pop */}
@@ -956,7 +992,7 @@ function startGame() {
                 <AnimatePresence>
                   {current ? (
                     <motion.div
-                      key={plateKey}
+                      key={`${plateKey}:${plateMountKey}`}
                       initial={{ opacity: 1, scale: 1 }}
                       animate={
                         plateFx === "success"
@@ -971,7 +1007,7 @@ function startGame() {
                         // ✅ 上から落ちてきて → 途中で停止 → 再落下
                         // 先頭に -120 を入れないと「真ん中から出現」に見えるので必ず入れる
                         animate={{ y: [-120, fallMidY, fallMidY, fallY], opacity: 1 }}
-                        transition={{ duration: fallTotalSec, ease: "linear", times: [0, fallT1, fallT2, 1] }}
+                        transition={{ duration: fallTotalSec + (timeStopActive ? 3 : 0), ease: "linear", times: [0, fallT1, fallT2, 1] }}
                         onAnimationComplete={() => {
                           if (resolvedRef.current) return
                           miss("timeout")

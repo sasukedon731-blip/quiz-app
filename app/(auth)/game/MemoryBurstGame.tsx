@@ -10,6 +10,7 @@ import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
 import { getMemoryBurstPool } from "./pools/memoryBurstPools"
 import AppHeader from "@/app/components/AppHeader"
+import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
@@ -61,6 +62,7 @@ export default function MemoryBurstGame({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, autostart])
+  const [combo, setCombo] = useState(0)
 
   const [life, setLife] = useState(3)
 
@@ -79,6 +81,13 @@ export default function MemoryBurstGame({
   const [current, setCurrent] = useState<MemoryBurstQuestion | null>(null)
   const [feedback, setFeedback] = useState<string>("")
   const [showMs] = useState<number>(2500)
+  // ✅ バトルXP（JLPTのみ）
+useEffect(() => {
+  if (phase !== "over") return
+  if (!uid) return
+  if (!quizType.startsWith("japanese-")) return
+  addJlptBattleXp(uid, Math.floor(score / 10)).catch(() => null)
+}, [phase, uid, quizType, score])
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -146,8 +155,11 @@ export default function MemoryBurstGame({
     if (!current) return
     const ok = i === current.correctIndex
     if (ok) {
-      setScore((s) => s + 15)
-      setFeedback("✅ 正解！")
+      const newCombo = combo + 1
+      setCombo(newCombo)
+      const mult = comboMultiplier(newCombo)
+      setScore((s) => s + Math.round(15 * mult))
+      setFeedback(mult > 1 ? `✅ 正解！(x${mult.toFixed(1)})` : "✅ 正解！")
       if (isAttack) {
         setStageCorrect((prev) => {
           const nextC = prev + 1
@@ -166,6 +178,7 @@ export default function MemoryBurstGame({
         })
       }
     } else {
+      setCombo(0)
       setScore((s) => Math.max(0, s - 5))
       setFeedback("❌ ちがう")
       setLife((prev) => {

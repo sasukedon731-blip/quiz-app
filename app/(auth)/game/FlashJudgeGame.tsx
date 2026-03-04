@@ -10,6 +10,7 @@ import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
 import { getFlashJudgePool } from "./pools/flashJudgePools"
 import AppHeader from "@/app/components/AppHeader"
+import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
 
 const ATTACK_LEVELS: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2"]
 
