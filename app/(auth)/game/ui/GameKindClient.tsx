@@ -34,11 +34,7 @@ function kindMeta(kind: Kind) {
     return {
       title: "文字ブレイク",
       desc: "落ちてくる問題を、正しい順番でタップして破壊。読み・穴埋め・助詞をテンポ良く反復する。",
-      rules: [
-        "3ミスで終了",
-        "コンボで加点",
-        "ノーマル：級固定 / アタック：速度UP＋自動昇格",
-      ],
+      rules: ["3ミスで終了", "コンボで加点", "ノーマル：級固定 / アタック：速度UP＋自動昇格"],
     }
   }
   if (kind === "flash-judge") {
@@ -57,31 +53,10 @@ function kindMeta(kind: Kind) {
 
 export default function GameKindClient({ kind }: { kind: string }) {
   const router = useRouter()
-
-const [lb, setLb] = useState<{ displayName: string; bestScore: number }[]>([])
-
-useEffect(() => {
-  let cancelled = false
-  async function run() {
-    try {
-      const col = collection(db, "attackLeaderboards", safeKind, "entries")
-      const q = query(col, orderBy("bestScore", "desc"), limit(10))
-      const snap = await getDocs(q)
-      const list = snap.docs.map((d) => {
-        const v: any = d.data()
-        return { displayName: String(v.displayName ?? "Anonymous"), bestScore: Number(v.bestScore ?? 0) }
-      })
-      if (!cancelled) setLb(list)
-    } catch {
-      if (!cancelled) setLb([])
-    }
-  }
-  run()
-  return () => { cancelled = true }
-}, [safeKind])
   const params = useSearchParams()
   const { user } = useAuth()
 
+  // ✅ 先に safeKind を決める（useEffect より上！）
   const safeKind: Kind = useMemo(() => (isKind(kind) ? kind : "tile-drop"), [kind])
   const meta = useMemo(() => kindMeta(safeKind), [safeKind])
 
@@ -93,22 +68,40 @@ useEffect(() => {
   const [mode, setMode] = useState<Mode>(() => (rawMode === "attack" ? "attack" : "normal"))
   const [toast, setToast] = useState<string>("")
 
+  const [lb, setLb] = useState<{ displayName: string; bestScore: number }[]>([])
+
+  // ✅ ランキング取得（safeKind 宣言後なのでOK）
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      try {
+        const col = collection(db, "attackLeaderboards", safeKind, "entries")
+        const q = query(col, orderBy("bestScore", "desc"), limit(10))
+        const snap = await getDocs(q)
+        const list = snap.docs.map((d) => {
+          const v: any = d.data()
+          return {
+            displayName: String(v.displayName ?? "Anonymous"),
+            bestScore: Number(v.bestScore ?? 0),
+          }
+        })
+        if (!cancelled) setLb(list)
+      } catch {
+        if (!cancelled) setLb([])
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [safeKind])
+
   // クエリが変わったら同期（戻る/進むやリンク直打ち対応）
   useEffect(() => {
     if (isQuizType(rawType)) setQuizType(rawType)
     setMode(rawMode === "attack" ? "attack" : "normal")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawType, rawMode])
-
-  // quick=1 は「即プレイ」導線（ただし attack はログイン必須）
-  useEffect(() => {
-    if (!quick) return
-    // 1回だけ
-    router.replace(`/game/${safeKind}`)
-    // 即プレイ
-    goPlay(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   function goPlay(isQuick?: boolean) {
     const wantMode = mode
@@ -138,6 +131,14 @@ useEffect(() => {
     router.push(`/game/play?${qs.toString()}`)
   }
 
+  // quick=1 は「即プレイ」導線（ただし attack はログイン必須）
+  useEffect(() => {
+    if (!quick) return
+    router.replace(`/game/${safeKind}`)
+    goPlay(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // safeKind/goPlay を依存に入れると意図せず再実行しやすいので固定
+
   return (
     <main className={styles.wrap}>
       <div className={styles.topRow}>
@@ -155,26 +156,25 @@ useEffect(() => {
         ))}
       </ul>
 
-
-<section className={styles.rankCard}>
-  <div className={styles.rankHead}>
-    <div className={styles.rankLabel}>ランキング（アタック）</div>
-    <div className={styles.rankHint}>※ アタックのベストスコア上位</div>
-  </div>
-  {lb.length === 0 ? (
-    <div className={styles.rankEmpty}>まだ記録がありません</div>
-  ) : (
-    <ol className={styles.rankList}>
-      {lb.slice(0, 5).map((r, i) => (
-        <li key={i} className={styles.rankRow}>
-          <span className={styles.rankNo}>{i + 1}</span>
-          <span className={styles.rankName}>{r.displayName}</span>
-          <span className={styles.rankScore}>{r.bestScore}</span>
-        </li>
-      ))}
-    </ol>
-  )}
-</section>
+      <section className={styles.rankCard}>
+        <div className={styles.rankHead}>
+          <div className={styles.rankLabel}>ランキング（アタック）</div>
+          <div className={styles.rankHint}>※ アタックのベストスコア上位</div>
+        </div>
+        {lb.length === 0 ? (
+          <div className={styles.rankEmpty}>まだ記録がありません</div>
+        ) : (
+          <ol className={styles.rankList}>
+            {lb.slice(0, 5).map((r, i) => (
+              <li key={i} className={styles.rankRow}>
+                <span className={styles.rankNo}>{i + 1}</span>
+                <span className={styles.rankName}>{r.displayName}</span>
+                <span className={styles.rankScore}>{r.bestScore}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
       <section className={styles.card}>
         <div className={styles.label}>モード</div>
@@ -229,7 +229,11 @@ useEffect(() => {
           </Link>
         </div>
 
-        {toast ? <div className={styles.help} style={{ fontWeight: 900 }}>{toast}</div> : null}
+        {toast ? (
+          <div className={styles.help} style={{ fontWeight: 900 }}>
+            {toast}
+          </div>
+        ) : null}
       </section>
     </main>
   )
