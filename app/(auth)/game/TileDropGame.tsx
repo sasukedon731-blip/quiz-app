@@ -104,6 +104,11 @@ export default function TileDropGame({
   const params = useSearchParams()
   const hubKindParam = params.get("hubKind")
   const autostart = params.get("autostart") === "1"
+  // ✅ ローカルで quizType を切替できるようにする（UIのレベル切替用）
+  const [qt, setQt] = useState<QuizType>(quizType)
+  useEffect(() => {
+    setQt(quizType)
+  }, [quizType])
 const [plateMountKey, setPlateMountKey] = useState(0)
   const [uid, setUid] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>("")
@@ -118,7 +123,7 @@ const [plateMountKey, setPlateMountKey] = useState(0)
   const [maxLevelReached, setMaxLevelReached] = useState(0)
   const [bestStageAtMax, setBestStageAtMax] = useState(0)
   const isAttack = modeParam === "attack" || mode === "attack"
-  const activeQuizType: QuizType = (isAttack && quizType.startsWith("japanese-") ? attackLevels[attackLevelIndex] : quizType)
+  const activeQuizType: QuizType = (isAttack && qt.startsWith("japanese-") ? attackLevels[attackLevelIndex] : qt)
   const launchQuizType: QuizType = activeQuizType
   const activeDifficulty = difficultyLabelFromQuizType(activeQuizType)
   const [selectedKind, setSelectedKind] = useState<"tile-drop" | "flash-judge" | "memory-burst">(() => {
@@ -413,7 +418,7 @@ function startGame() {
     setTimeStopUsed(false)
     setTimeStopActive(false)
 
-    if (nextMode === "attack" && quizType.startsWith("japanese-")) {
+    if (nextMode === "attack" && qt.startsWith("japanese-")) {
       setAttackLevelIndex(0)
       setStageCorrect(0)
       setMaxLevelReached(0)
@@ -561,7 +566,7 @@ function activateTimeStop() {
     setScore((s) => s + gained)
     setCorrectCount((c) => c + 1)
 
-    if (mode === "attack" && quizType.startsWith("japanese-")) {
+    if (mode === "attack" && qt.startsWith("japanese-")) {
       setStageCorrect((prev) => {
         const next = prev + 1
         // update best stage at max level
@@ -663,7 +668,7 @@ function activateTimeStop() {
     return arr
   }, [current?.id, current?.choices])
 
-  const quizTitle = (quizzes as any)[quizType]?.title || quizType
+  const quizTitle = (quizzes as any)[qt]?.title || qt
 
   // ✅ 下の中断を消した分、広く
   const playAreaHeight = "calc(100svh - 96px)"
@@ -755,7 +760,7 @@ function activateTimeStop() {
                 </button>
               </div>
 
-              {mode === "normal" && quizType.startsWith("japanese-") ? (
+              {mode === "normal" && qt.startsWith("japanese-") ? (
                 <div style={{ marginTop: 12 }}>
                   <div className="mobileTitle" style={{ fontSize: 12, opacity: 0.8 }}>
                     レベル
@@ -765,8 +770,8 @@ function activateTimeStop() {
                       <button
                         key={lv}
                         type="button"
-                        className={`mobilePill ${quizType === lv ? "isActive" : ""}`}
-                        onClick={() => setQuizType(lv)}
+                        className={`mobilePill ${qt === lv ? "isActive" : ""}`}
+                        onClick={() => setQt(lv)}
                       >
                         {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
                       </button>
@@ -871,7 +876,7 @@ function activateTimeStop() {
                 </div>
 
                 
-                {mode === "normal" && quizType.startsWith("japanese-") ? (
+                {mode === "normal" && qt.startsWith("japanese-") ? (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
                       ノーマルの級（N4 / N3 / N2）
@@ -880,10 +885,10 @@ function activateTimeStop() {
                       {(["japanese-n4", "japanese-n3", "japanese-n2"] as QuizType[]).map((lv) => (
                         <button
                           key={lv}
-                          style={{ ...styles.segBtn, ...(quizType === lv ? styles.segActive : {}) }}
+                          style={{ ...styles.segBtn, ...(qt === lv ? styles.segActive : {}) }}
                           onClick={() => {
                             // クイズ級だけ切り替え（画面はそのまま）
-                            setQuizType(lv)
+                            setQt(lv)
                           }}
                         >
                           {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
