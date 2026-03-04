@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "firebase/auth"
@@ -8,6 +8,7 @@ import { signOut } from "firebase/auth"
 import Button from "@/app/components/Button"
 import { auth } from "@/app/lib/firebase"
 import { useAuth } from "@/app/lib/useAuth"
+import { APP_MENU } from "@/app/components/appMenu"
 
 type Props = {
   /** ページ上部に表示する小さめのタイトル（任意） */
@@ -22,17 +23,7 @@ export default function AppHeader({ title }: Props) {
   const [open, setOpen] = useState(false)
 
   const isTop = pathname === "/"
-
-  // ✅ 「学習を始める（/select-mode）」は industry を失って事故るので、メニューから削除
-  const items = useMemo(() => {
-    return [
-      { label: "TOPへ", href: "/" },
-      { label: "マイページ", href: "/mypage" },
-      { label: "教材選択", href: "/select-quizzes" },
-      { label: "プラン", href: "/plans" },
-      { label: "教材一覧", href: "/contents" },
-    ]
-  }, [])
+  const items = APP_MENU
 
   const close = () => setOpen(false)
 
@@ -95,7 +86,8 @@ export default function AppHeader({ title }: Props) {
                   className="drawerLink"
                   onClick={close}
                 >
-                  {it.label}
+                  <span className="drawerIcon" aria-hidden="true">{it.icon}</span>
+                  <span className="drawerLabel">{it.label}</span>
                 </Link>
               ))}
 

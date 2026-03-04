@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
@@ -145,6 +145,17 @@ export default function SelectModePage() {
     return selected.filter((q) => quizzes[q])
   }, [selected])
 
+  // ✅ 一覧を探しやすく：カードは「選択」、操作は下部バーに集約
+  const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null)
+
+  useEffect(() => {
+    // 選択が無い/変わった時は先頭を自動選択
+    if (!activeQuiz || (activeQuiz && !selectedCards.includes(activeQuiz))) {
+      setActiveQuiz(selectedCards[0] ?? null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCards.join(",")])
+
   if (!industryReady) {
     return (
       <main style={styles.page}>
@@ -279,7 +290,7 @@ export default function SelectModePage() {
               {selectedCards.map((id) => {
                 const q = quizzes[id]
                 return (
-                  <div key={id} style={styles.quizCard}>
+                  <div key={id} style={{...styles.quizCard, ...(activeQuiz === id ? styles.quizCardActive : {})}} role="button" tabIndex={0} onClick={() => setActiveQuiz(id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveQuiz(id) }}>
                     <div style={styles.quizTitle}>{q.title}</div>
 
                     {q.description ? (
@@ -289,23 +300,30 @@ export default function SelectModePage() {
                     )}
 
                     <div style={styles.quizMeta}>ID: {id}</div>
-
-                    <div style={quizActionsStyle}>
-                      <Link href={`/normal?type=${id}`} style={{ ...btnStyle, ...styles.btnBlue }}>
-                        通常
-                      </Link>
-                      <Link href={`/exam?type=${id}`} style={{ ...btnStyle, ...styles.btnGray }}>
-                        模擬試験
-                      </Link>
-                      <Link href={`/review?type=${id}`} style={{ ...btnStyle, ...styles.btnGreen }}>
-                        復習
-                      </Link>
-                    </div>
                   </div>
                 )
               })}
             </div>
 
+            {/* ✅ 下部固定：選んだ教材に対して操作する（探しやすい） */}
+            {activeQuiz ? (
+              <div style={styles.bottomBar}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>
+                  選択中：<span style={{ fontWeight: 900 }}>{quizzes[activeQuiz]?.title ?? activeQuiz}</span>
+                </div>
+                <div style={styles.bottomActions}>
+                  <Link href={`/normal?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnBlue }}>
+                    通常
+                  </Link>
+                  <Link href={`/exam?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnGray }}>
+                    模擬
+                  </Link>
+                  <Link href={`/review?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnGreen }}>
+                    復習
+                  </Link>
+                </div>
+              </div>
+            ) : null}
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
                 教材を変更する
@@ -330,11 +348,8 @@ export default function SelectModePage() {
             </div>
             <div style={styles.quizMeta}>ID: {GAME_FIXED_TYPE}</div>
             <div style={quizActionsStyle}>
-              <Link href={`/game?mode=normal`} style={{ ...btnStyle, ...styles.btnBlue }}>
-                ノーマル
-              </Link>
-              <Link href={`/game?mode=attack`} style={{ ...btnStyle, ...styles.btnGray }}>
-                アタック
+              <Link href={`/game`} style={{ ...btnStyle, ...styles.btnBlue }}>
+                日本語バトルへ
               </Link>
             </div>
           </div>
@@ -350,7 +365,7 @@ export default function SelectModePage() {
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: { minHeight: "100vh", background: "#f6f7fb", padding: 18 },
   shell: { maxWidth: 920, margin: "0 auto", padding: 0 },
 
@@ -404,8 +419,46 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
     display: "flex",
     flexDirection: "column",
-    minHeight: 240,
+    minHeight: 140,
   },
+  quizCardActive: {
+    border: "2px solid #93c5fd",
+    boxShadow: "0 10px 26px rgba(59,130,246,0.18)",
+  },
+
+  bottomBar: {
+    position: "sticky",
+    bottom: 12,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 18,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    zIndex: 20,
+  },
+  bottomActions: {
+    display: "flex",
+    gap: 10,
+  },
+
+  bottomBtnBlue: {
+    background: "#2563eb",
+    color: "#fff",
+  },
+  bottomBtnGray: {
+    background: "#111827",
+    color: "#fff",
+  },
+  bottomBtnGreen: {
+    background: "#16a34a",
+    color: "#fff",
+  },
+
   quizTitle: { fontWeight: 900, fontSize: 16 },
 
   quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5, minHeight: 48 },

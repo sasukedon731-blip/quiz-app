@@ -654,3 +654,19 @@ body {
   color: white;
   border-color: #111;
 }
+
+/* ===== Drawer menu (AppHeader) ===== */
+.drawerLink{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 14px;
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:16px;
+  background:rgba(255,255,255,.85);
+  text-decoration:none;
+  color:inherit;
+  font-weight:900;
+}
+.drawerIcon{font-size:20px; width:24px; text-align:center;}
+.drawerLabel{font-size:18px; letter-spacing:.02em;}

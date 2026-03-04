@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { APP_MENU } from "@/app/components/appMenu"
 import { onAuthStateChanged, signOut, User } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, limit, orderBy, query } from "firebase/firestore"
 
@@ -480,31 +481,20 @@ export default function MyPage() {
           </div>
 
           <nav style={S.nav}>
-            <Link style={S.navItem} href="/" onClick={() => setDrawerOpen(false)}>
-              🏠 TOPへ
-            </Link>
-
-            <Link style={S.navItem} href="/mypage" onClick={() => setDrawerOpen(false)}>
-              👤 マイページ
-            </Link>
-
-            <Link style={S.navItem} href={withIndustry("/select-mode")} onClick={() => setDrawerOpen(false)}>
-              🎮 学習を始める
-            </Link>
-
-            <Link style={S.navItem} href={withIndustry("/plans")} onClick={() => setDrawerOpen(false)}>
-              💳 プラン
-            </Link>
-
-            <Link style={S.navItem} href="/contents" onClick={() => setDrawerOpen(false)}>
-              📚 教材一覧
-            </Link>
-
-            <div style={S.divider} />
-
-            <button style={S.dangerBtn} onClick={handleLogout}>
-              ログアウト
-            </button>
+            {APP_MENU.map((it) => {
+              const href =
+                it.href === "/select-mode" ? withIndustry(it.href) : it.href
+              return (
+                <Link
+                  key={it.href}
+                  style={S.navItem}
+                  href={href}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  {it.icon} {it.label}
+                </Link>
+              )
+            })}
           </nav>
         </aside>
       ) : null}
