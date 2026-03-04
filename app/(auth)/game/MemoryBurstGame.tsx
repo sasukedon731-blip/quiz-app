@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/app/lib/firebase"
 import { submitAttackScore } from "./firestore"
@@ -30,7 +30,6 @@ export default function MemoryBurstGame({
   quizType: QuizType
   modeParam: string | null
 }) {
-  const router = useRouter()
   const params = useSearchParams()
   const autostart = params.get("autostart") === "1"
   const mode: GameMode = modeParam === "attack" ? "attack" : "normal"
@@ -52,13 +51,7 @@ export default function MemoryBurstGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
 
-  // ✅ スタート画面は共通ハブに統一（このゲーム単体の旧スタート画面を使わない）
-  useEffect(() => {
-    if (phase === "ready" && !autostart) {
-      router.replace(`/game/memory-burst?type=${quizType}&mode=${modeParam ?? "normal"}`)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, autostart])
+  // ✅ ready画面は /game/play 側でも表示できるようにする（URL強制書き換えはしない）
   const [combo, setCombo] = useState(0)
 
   const [life, setLife] = useState(3)

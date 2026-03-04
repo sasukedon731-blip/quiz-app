@@ -9,7 +9,7 @@ export default function GameKindPage({ params }: { params: { kind: string } }) {
       <div className={styles.gamePageInner}>
         <AppHeader title="ゲーム" />
         <Suspense fallback={null}>
-          <GameKindClient kind={params.kind} />
+          <GameKindClient key={params.kind} kind={params.kind} />
         </Suspense>
       </div>
     </div>
