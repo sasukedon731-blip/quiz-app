@@ -38,8 +38,6 @@ export default function FlashJudgeGame({
 
   const [phase, setPhase] = useState<Phase>("ready")
 
-  // ✅ ready画面は /game/play 側でも表示できるようにする（URL強制書き換えはしない）
-
   const [lbLoading, setLbLoading] = useState(false)
   const [lbItems, setLbItems] = useState<{ displayName: string; bestScore: number }[]>([])
   const [myRank, setMyRank] = useState<number | null>(null)

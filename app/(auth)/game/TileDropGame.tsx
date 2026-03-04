@@ -766,7 +766,7 @@ function activateTimeStop() {
                         key={lv}
                         type="button"
                         className={`mobilePill ${quizType === lv ? "isActive" : ""}`}
-                        onClick={() => router.replace(`/game/tile-drop?type=${lv}&mode=normal`)}
+                        onClick={() => setQuizType(lv)}
                       >
                         {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}
                       </button>
@@ -883,7 +883,7 @@ function activateTimeStop() {
                           style={{ ...styles.segBtn, ...(quizType === lv ? styles.segActive : {}) }}
                           onClick={() => {
                             // クイズ級だけ切り替え（画面はそのまま）
-                            router.replace(`/game/tile-drop?type=${lv}&mode=normal`)
+                            setQuizType(lv)
                           }}
                         >
                           {lv === "japanese-n4" ? "N4" : lv === "japanese-n3" ? "N3" : "N2"}

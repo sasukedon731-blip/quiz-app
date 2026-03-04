@@ -50,8 +50,6 @@ export default function MemoryBurstGame({
   }, [activeQuizType, section])
 
   const [phase, setPhase] = useState<Phase>("ready")
-
-  // ✅ ready画面は /game/play 側でも表示できるようにする（URL強制書き換えはしない）
   const [combo, setCombo] = useState(0)
 
   const [life, setLife] = useState(3)

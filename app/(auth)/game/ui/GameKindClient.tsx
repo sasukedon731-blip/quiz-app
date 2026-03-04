@@ -60,13 +60,6 @@ export default function GameKindClient({ kind }: { kind: string }) {
   const safeKind: Kind = useMemo(() => (isKind(kind) ? kind : "tile-drop"), [kind])
   const meta = useMemo(() => kindMeta(safeKind), [safeKind])
 
-  // ✅ URL直打ち/戻る進むでも「最後に選んだゲーム」を維持
-  useEffect(() => {
-    try {
-      sessionStorage.setItem("lastGameKind", safeKind)
-    } catch {}
-  }, [safeKind])
-
   const rawType = params.get("type")
   const rawMode = params.get("mode")
   const quick = params.get("quick") === "1"
