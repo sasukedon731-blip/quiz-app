@@ -84,6 +84,7 @@ export default function HomePage() {
           "doboku-sekou-2kyu-1ji",
           "denki-sekou-2kyu-1ji",
           "kanko-sekou-2kyu-1ji",
+          "construction-terms",
         ],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },

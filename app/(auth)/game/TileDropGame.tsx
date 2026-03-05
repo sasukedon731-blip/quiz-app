@@ -16,6 +16,7 @@ import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 import { getTileDropPool } from "./pools/tileDropPools"
 import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
+import GameEndActions from "./ui/GameEndActions"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -191,9 +192,20 @@ useEffect(() => {
   const [combo, setCombo] = useState(0)
 
   // ✅ 必殺：時間停止（TileDrop専用）
-  const [timeStopUsed, setTimeStopUsed] = useState(false)
   const [timeStopActive, setTimeStopActive] = useState(false)
   const timeStopTimer = useRef<number | null>(null)
+  // ✅ 使った後も復活させる（クールダウン制）
+  const [timeStopCooldownLeft, setTimeStopCooldownLeft] = useState(0)
+  const timeStopCooldownUntilRef = useRef<number>(0)
+  const timeStopCooldownTickRef = useRef<number | null>(null)
+
+  // ✅ TIME STOP のタイマー/インターバル掃除
+  useEffect(() => {
+    return () => {
+      if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
+      if (timeStopCooldownTickRef.current) window.clearInterval(timeStopCooldownTickRef.current)
+    }
+  }, [])
 
   const [current, setCurrent] = useState<GameQuestion | null>(null)
   const [inputIndex, setInputIndex] = useState(0)
@@ -415,8 +427,14 @@ function startGame() {
     setCombo(0)
     setLife(3)
     setLevel(1)
-    setTimeStopUsed(false)
+    // ✅ TIME STOP をリセット
     setTimeStopActive(false)
+    setTimeStopCooldownLeft(0)
+    timeStopCooldownUntilRef.current = 0
+    if (timeStopCooldownTickRef.current) {
+      window.clearInterval(timeStopCooldownTickRef.current)
+      timeStopCooldownTickRef.current = null
+    }
 
     if (nextMode === "attack" && qt.startsWith("japanese-")) {
       setAttackLevelIndex(0)
@@ -534,21 +552,40 @@ function startGame() {
     comboPopTimer.current = window.setTimeout(() => setComboPop(null), 450)
   }
 
-function activateTimeStop() {
-  if (phase !== "playing") return
-  if (timeStopUsed) return
-  if (combo < 5) return
-  setTimeStopUsed(true)
-  setTimeStopActive(true)
+  function activateTimeStop() {
+    if (phase !== "playing") return
+    if (combo < 5) return
+    if (timeStopActive) return
+    if (timeStopCooldownLeft > 0) return
 
-  // ✅ いまのプレートを「時間停止で延命」：落下アニメをリスタートして+3秒ぶん猶予を作る
-  setPlateMountKey((k) => k + 1)
+    // ✅ 発動
+    setTimeStopActive(true)
 
-  if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
-  timeStopTimer.current = window.setTimeout(() => {
-    setTimeStopActive(false)
-  }, 3000)
-}
+    // ✅ いまのプレートを「時間停止で延命」：落下アニメをリスタートして+3秒ぶん猶予を作る
+    setPlateMountKey((k) => k + 1)
+
+    // ✅ 3秒で解除
+    if (timeStopTimer.current) window.clearTimeout(timeStopTimer.current)
+    timeStopTimer.current = window.setTimeout(() => {
+      setTimeStopActive(false)
+    }, 3000)
+
+    // ✅ 15秒クールダウン開始（使った後も復活する）
+    const cdSec = 15
+    const until = Date.now() + cdSec * 1000
+    timeStopCooldownUntilRef.current = until
+    setTimeStopCooldownLeft(cdSec)
+
+    if (timeStopCooldownTickRef.current) window.clearInterval(timeStopCooldownTickRef.current)
+    timeStopCooldownTickRef.current = window.setInterval(() => {
+      const left = Math.max(0, Math.ceil((timeStopCooldownUntilRef.current - Date.now()) / 1000))
+      setTimeStopCooldownLeft(left)
+      if (left <= 0 && timeStopCooldownTickRef.current) {
+        window.clearInterval(timeStopCooldownTickRef.current)
+        timeStopCooldownTickRef.current = null
+      }
+    }, 250)
+  }
 
   function success() {
     if (phase !== "playing") return
@@ -955,6 +992,30 @@ function activateTimeStop() {
             >
               <div style={styles.dangerLine} />
 
+              <AnimatePresence>
+                {timeStopActive ? (
+                  <motion.div
+                    key="timestop-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={styles.timeStopOverlay}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 1.06, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      style={styles.timeStopBanner}
+                    >
+                      TIME STOP!!
+                    </motion.div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+
               {/* Overlay chips */}
               <div style={styles.overlayChips}>
                 <span style={styles.chip}>Lv {level}</span>
@@ -962,35 +1023,22 @@ function activateTimeStop() {
                 {mode === "attack" ? <span style={styles.chip}>Attack</span> : null}
                 <button
                   onClick={activateTimeStop}
-                  disabled={phase !== "playing" || timeStopUsed || combo < 5}
+                  disabled={phase !== "playing" || timeStopActive || timeStopCooldownLeft > 0 || combo < 5}
                   style={{
                     ...styles.chipButton,
-                    opacity: phase !== 'playing' || timeStopUsed || combo < 5 ? 0.5 : 1,
-                    borderColor: timeStopActive
-                      ? 'rgba(255,255,255,0.92)'
-                      : timeStopUsed
-                        ? 'rgba(148,163,184,0.35)'
-                        : combo >= 5
-                          ? 'rgba(56,189,248,0.75)'
-                          : 'rgba(255,255,255,0.22)',
-                    background: timeStopActive
-                      ? 'linear-gradient(135deg, rgba(14,165,233,0.95), rgba(37,99,235,0.95))'
-                      : timeStopUsed
-                        ? 'linear-gradient(135deg, rgba(148,163,184,0.30), rgba(100,116,139,0.22))'
-                        : combo >= 5
-                          ? 'linear-gradient(135deg, rgba(56,189,248,0.92), rgba(59,130,246,0.92))'
-                          : 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(14,165,233,0.18))',
-                    boxShadow: timeStopActive
-                      ? '0 0 0 3px rgba(56,189,248,0.22), 0 14px 28px rgba(0,0,0,0.18), 0 0 18px rgba(56,189,248,0.55)'
-                      : timeStopUsed
-                        ? '0 10px 22px rgba(0,0,0,0.10)'
-                        : combo >= 5
-                          ? '0 0 0 3px rgba(56,189,248,0.18), 0 14px 28px rgba(0,0,0,0.16), 0 0 14px rgba(56,189,248,0.45)'
-                          : '0 10px 22px rgba(0,0,0,0.10)',
-                    transform: timeStopActive ? 'translateY(-1px)' : 'none',
+                    opacity:
+                      phase !== "playing" || timeStopActive || timeStopCooldownLeft > 0 || combo < 5 ? 0.5 : 1,
+                    borderColor: timeStopActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)",
+                    boxShadow:
+                      !timeStopActive && timeStopCooldownLeft === 0 && combo >= 5 ? "0 0 18px rgba(56,189,248,0.55)" : undefined,
+                    transform: timeStopActive ? "scale(1.03)" : undefined,
                   }}
                 >
-                  {timeStopActive ? "TIME STOP ⏸" : timeStopUsed ? "TIME STOP ✓" : "TIME STOP"}
+                  {timeStopActive
+                    ? "TIME STOP!! ⏸"
+                    : timeStopCooldownLeft > 0
+                      ? `TIME STOP ${timeStopCooldownLeft}s`
+                      : "TIME STOP"}
                 </button>
               </div>
 
@@ -1132,21 +1180,17 @@ function activateTimeStop() {
               <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={() => {
-                  setPhase("ready")
-                  setCurrent(null)
-                  setToast("")
-                }}
-                style={{ ...styles.btn, ...styles.btnMain }}
-              >
-                もう一回
-              </button>
+            <GameEndActions
+              onRetry={() => {
+                setPhase("ready")
+                setCurrent(null)
+                setToast("")
+              }}
+            >
               <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
                 学習メニューへ
               </Link>
-            </div>
+            </GameEndActions>
           </div>
         </section>
       </div>
@@ -1444,21 +1488,41 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 20px rgba(0,0,0,0.06)",
   },
 
-  // ✅ アイテムっぽいTIME STOPボタン
   chipButton: {
-    padding: '8px 12px',
+    padding: "8px 12px",
     borderRadius: 999,
-    border: '1px solid rgba(255,255,255,0.22)',
-    background: 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(14,165,233,0.18))',
-    color: '#fff',
+    background: "radial-gradient(circle at 30% 30%, rgba(125,211,252,0.95), rgba(37,99,235,0.95))",
+    border: "1px solid rgba(255,255,255,0.25)",
+    color: "#fff",
     fontWeight: 1000 as any,
     fontSize: 12,
     letterSpacing: 0.4,
-    cursor: 'pointer',
-    boxShadow: '0 10px 22px rgba(0,0,0,0.10)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    whiteSpace: 'nowrap',
+    cursor: "pointer",
+    boxShadow: "0 12px 24px rgba(37,99,235,0.18)",
+    textShadow: "0 1px 0 rgba(0,0,0,0.18)",
+  },
+
+  timeStopOverlay: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 30,
+    pointerEvents: "none",
+    background: "radial-gradient(circle at 50% 45%, rgba(56,189,248,0.28), rgba(59,130,246,0.00) 65%)",
+  },
+  timeStopBanner: {
+    position: "absolute",
+    left: "50%",
+    top: "36%",
+    transform: "translate(-50%, -50%)",
+    padding: "10px 14px",
+    borderRadius: 999,
+    background: "linear-gradient(135deg, rgba(14,165,233,0.92), rgba(37,99,235,0.92))",
+    color: "#fff",
+    fontWeight: 1000 as any,
+    letterSpacing: 1.2,
+    boxShadow: "0 20px 45px rgba(37,99,235,0.28)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    whiteSpace: "nowrap",
   },
 
   comboPop: {

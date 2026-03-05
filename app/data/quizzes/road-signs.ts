@@ -6,11 +6,6 @@ export const roadSignsQuiz: Quiz = {
   title: "道路標識マスター",
   description: "日本の道路標識を画像で覚えよう（ひっかけ対策）",
 
-  sections: [
-    { id: "warning", label: "警戒" },
-    { id: "regulation", label: "規制" },
-  ],
-
   questions: [
     // =========================
     // 警戒標識（201〜215）
