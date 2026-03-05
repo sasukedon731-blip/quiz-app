@@ -57,7 +57,16 @@ export default function GameKindClient({ kind }: { kind: string }) {
   const { user } = useAuth()
 
   // ✅ 先に safeKind を決める（useEffect より上！）
-  const safeKind: Kind = useMemo(() => (isKind(kind) ? kind : "tile-drop"), [kind])
+  const normalizedKind = useMemo(() => {
+    const v = String(kind ?? "")
+    try {
+      return decodeURIComponent(v).trim().toLowerCase()
+    } catch {
+      return v.trim().toLowerCase()
+    }
+  }, [kind])
+
+  const safeKind: Kind = useMemo(() => (isKind(normalizedKind) ? normalizedKind : "tile-drop"), [normalizedKind])
   const meta = useMemo(() => kindMeta(safeKind), [safeKind])
 
   const rawType = params.get("type")
@@ -139,7 +148,6 @@ export default function GameKindClient({ kind }: { kind: string }) {
   // quick=1 は「即プレイ」導線（ただし attack はログイン必須）
   useEffect(() => {
     if (!quick) return
-    router.replace(`/game/${safeKind}`)
     goPlay(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // safeKind/goPlay を依存に入れると意図せず再実行しやすいので固定
