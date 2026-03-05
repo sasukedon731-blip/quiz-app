@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
+import { quizzes } from "@/app/data/quizzes"
 import TileDropGame from "./TileDropGame"
 import SpeedChoiceGame from "./SpeedChoiceGame"
 import FlashJudgeGame from "./FlashJudgeGame"
@@ -17,14 +18,9 @@ import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import type { PlanId } from "@/app/lib/plan"
 
 function isQuizType(v: any): v is QuizType {
-  return (
-    v === "japanese-n4" ||
-    v === "japanese-n3" ||
-    v === "japanese-n2" ||
-    v === "gaikoku-license" ||
-    v === "genba-listening" ||
-    v === "road-signs"
-  )
+  if (typeof v !== "string") return false
+  // quizzes は { [id]: Quiz } のオブジェクトなので keys で判定
+  return v in quizzes
 }
 
 function isGameKind(v: any): v is GameKind {
@@ -186,6 +182,11 @@ export default function GameClient() {
       try {
         const planState = await loadAndRepairUserPlanState(user.uid)
         if (cancelled) return
+
+        if ((planState as any)?.devUnlockAll === true) {
+          setUserOk(true)
+          return
+        }
 
         if (isPaidPlan(planState.plan)) {
           setUserOk(true)

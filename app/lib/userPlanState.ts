@@ -3,6 +3,7 @@
 
 import { db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
+import { quizzes } from "@/app/data/quizzes"
 import {
   buildEntitledQuizTypes,
   normalizeSelectedForPlan,
@@ -19,6 +20,7 @@ import {
 } from "firebase/firestore"
 
 export type UserPlanState = {
+  devUnlockAll?: boolean
   plan: PlanId
   entitledQuizTypes: QuizType[]
   selectedQuizTypes: QuizType[]
@@ -87,6 +89,24 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
   const ref = doc(db, "users", uid)
   const snap = await getDoc(ref)
   const data = snap.exists() ? (snap.data() as any) : {}
+
+  const devUnlockAll = data?.devUnlockAll === true
+
+
+// ✅ DEV: 全教材解放（テスト用）
+if (devUnlockAll) {
+  const displayName = typeof data?.displayName === "string" ? data.displayName : ""
+  const allQuizTypes = Object.keys(quizzes) as QuizType[]
+  return {
+    plan: "all",
+    entitledQuizTypes: allQuizTypes,
+    selectedQuizTypes: allQuizTypes,
+    nextChangeAllowedAt: null,
+    displayName,
+    schemaVersion: 3,
+    devUnlockAll: true,
+  }
+}
 
   const plan = inferPlanFromLegacy(data)
   const entitled = buildEntitledQuizTypes(plan)
@@ -163,6 +183,7 @@ export async function loadAndRepairUserPlanState(uid: string): Promise<UserPlanS
     nextChangeAllowedAt,
     displayName,
     schemaVersion: 3,
+    devUnlockAll: false,
   }
 }
 
@@ -273,5 +294,6 @@ export async function savePlanAndNormalizeSelected(params: {
     nextChangeAllowedAt: toDateOrNull(data?.nextChangeAllowedAt),
     displayName: typeof data?.displayName === "string" ? data.displayName : "",
     schemaVersion: 3,
+    devUnlockAll: false,
   }
 }

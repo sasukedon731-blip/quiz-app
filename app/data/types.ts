@@ -14,6 +14,9 @@ export type QuizType =
   | "genba-phrasebook"
   | "road-signs"
   | "construction-terms"
+  | "manufacturing-terms"
+  | "manufacturing-listening"
+  | "manufacturing-conversation"
 
 
 // ✅ 分野（セクション）定義

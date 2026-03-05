@@ -14,12 +14,16 @@ import { genbaPhrasebook } from "./genba-phrasebook"
 import { roadSignsQuiz } from "./road-signs"
 import { constructionTermsQuiz } from "./construction-terms"
 
+// ★ 製造教材
+import { manufacturingTermsQuiz } from "./manufacturing-terms"
+import { manufacturingListeningQuiz } from "./manufacturing-listening"
+import { manufacturingConversationQuiz } from "./manufacturing-conversation"
+
 export const quizzes = {
   "gaikoku-license": gaikokuQuiz,
   "japanese-n4": japaneseN4Quiz,
   "genba-listening": genbaListening,
 
-  // 追加（10+教材の箱）
   "japanese-n3": japaneseN3Quiz,
   "japanese-n2": japaneseN2Quiz,
   "kenchiku-sekou-2kyu-1ji": kenchikuSekou2kyu1ji,
@@ -30,4 +34,9 @@ export const quizzes = {
   "genba-phrasebook": genbaPhrasebook,
   "construction-terms": constructionTermsQuiz,
   "road-signs": roadSignsQuiz,
+
+  // ★ 製造
+  "manufacturing-terms": manufacturingTermsQuiz,
+  "manufacturing-listening": manufacturingListeningQuiz,
+  "manufacturing-conversation": manufacturingConversationQuiz,
 } as const

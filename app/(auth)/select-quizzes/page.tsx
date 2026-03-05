@@ -117,6 +117,7 @@ export default function SelectQuizzesPage() {
   const [entitled, setEntitled] = useState<QuizType[]>([])
   const [selected, setSelected] = useState<QuizType[]>([])
   const [nextAllowedAt, setNextAllowedAt] = useState<Date | null>(null)
+  const [devUnlockAll, setDevUnlockAll] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -140,6 +141,7 @@ export default function SelectQuizzesPage() {
         setEntitled(state.entitledQuizTypes)
         setSelected(state.selectedQuizTypes)
         setNextAllowedAt(state.nextChangeAllowedAt)
+        setDevUnlockAll((state as any)?.devUnlockAll === true)
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -150,9 +152,9 @@ export default function SelectQuizzesPage() {
   }, [uid])
 
   const now = new Date()
-  const changeOk = canChange(now, nextAllowedAt)
+  const changeOk = devUnlockAll ? true : canChange(now, nextAllowedAt)
 
-  const limit = useMemo(() => getSelectLimit(plan), [plan])
+  const limit = useMemo(() => (devUnlockAll ? "ALL" : getSelectLimit(plan)), [plan, devUnlockAll])
   const maxCount = limit === "ALL" ? entitled.length : limit
 
   const requiredCount = useMemo(() => {
@@ -208,10 +210,12 @@ export default function SelectQuizzesPage() {
     setSaving(true)
     setError("")
     try {
-      await saveSelectedQuizTypesWithLock({
-        uid,
-        selectedQuizTypes: selected,
-      })
+      if (!devUnlockAll) {
+        await saveSelectedQuizTypesWithLock({
+          uid,
+          selectedQuizTypes: selected,
+        })
+      }
       if (industryParam) router.replace(`/select-mode?industry=${industryParam}`)
       else router.replace("/select-mode")
     } catch (e) {
