@@ -245,5 +245,27 @@ export default function GameClient() {
     return <MemoryBurstGame quizType={quizType} modeParam={modeParam} />
   }
 
-  return <TileDropGame quizType={quizType} modeParam={modeParam} />
+ return (
+  <>
+    <div
+      style={{
+        position: "fixed",
+        top: 8,
+        right: 8,
+        zIndex: 99999,
+        padding: "6px 10px",
+        background: "#000",
+        color: "#fff",
+        fontSize: 12,
+        borderRadius: 8,
+      }}
+    >
+      kindProp={JSON.stringify(kind)}
+      <br />
+      safeKind={JSON.stringify(safeKind)}
+    </div>
+
+    <TileDropGame quizType={quizType} modeParam={modeParam} />
+  </>
+)
 }
