@@ -57,6 +57,7 @@ const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
   construction: [
     "genba-listening",
     "genba-phrasebook",
+    "construction-terms",
     "kenchiku-sekou-2kyu-1ji",
     "doboku-sekou-2kyu-1ji",
     "denki-sekou-2kyu-1ji",

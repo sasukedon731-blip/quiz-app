@@ -16,7 +16,6 @@ import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 import { getTileDropPool } from "./pools/tileDropPools"
 import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
-import GameEndActions from "./ui/GameEndActions"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -966,8 +965,29 @@ function activateTimeStop() {
                   disabled={phase !== "playing" || timeStopUsed || combo < 5}
                   style={{
                     ...styles.chipButton,
-                    opacity: phase !== "playing" || timeStopUsed || combo < 5 ? 0.5 : 1,
-                    borderColor: timeStopActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)",
+                    opacity: phase !== 'playing' || timeStopUsed || combo < 5 ? 0.5 : 1,
+                    borderColor: timeStopActive
+                      ? 'rgba(255,255,255,0.92)'
+                      : timeStopUsed
+                        ? 'rgba(148,163,184,0.35)'
+                        : combo >= 5
+                          ? 'rgba(56,189,248,0.75)'
+                          : 'rgba(255,255,255,0.22)',
+                    background: timeStopActive
+                      ? 'linear-gradient(135deg, rgba(14,165,233,0.95), rgba(37,99,235,0.95))'
+                      : timeStopUsed
+                        ? 'linear-gradient(135deg, rgba(148,163,184,0.30), rgba(100,116,139,0.22))'
+                        : combo >= 5
+                          ? 'linear-gradient(135deg, rgba(56,189,248,0.92), rgba(59,130,246,0.92))'
+                          : 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(14,165,233,0.18))',
+                    boxShadow: timeStopActive
+                      ? '0 0 0 3px rgba(56,189,248,0.22), 0 14px 28px rgba(0,0,0,0.18), 0 0 18px rgba(56,189,248,0.55)'
+                      : timeStopUsed
+                        ? '0 10px 22px rgba(0,0,0,0.10)'
+                        : combo >= 5
+                          ? '0 0 0 3px rgba(56,189,248,0.18), 0 14px 28px rgba(0,0,0,0.16), 0 0 14px rgba(56,189,248,0.45)'
+                          : '0 10px 22px rgba(0,0,0,0.10)',
+                    transform: timeStopActive ? 'translateY(-1px)' : 'none',
                   }}
                 >
                   {timeStopActive ? "TIME STOP ⏸" : timeStopUsed ? "TIME STOP ✓" : "TIME STOP"}
@@ -1112,17 +1132,21 @@ function activateTimeStop() {
               <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
-            <GameEndActions
-              onRetry={() => {
-                setPhase("ready")
-                setCurrent(null)
-                setToast("")
-              }}
-            >
+            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={() => {
+                  setPhase("ready")
+                  setCurrent(null)
+                  setToast("")
+                }}
+                style={{ ...styles.btn, ...styles.btnMain }}
+              >
+                もう一回
+              </button>
               <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
                 学習メニューへ
               </Link>
-            </GameEndActions>
+            </div>
           </div>
         </section>
       </div>
@@ -1418,6 +1442,23 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     fontSize: 12,
     boxShadow: "0 10px 20px rgba(0,0,0,0.06)",
+  },
+
+  // ✅ アイテムっぽいTIME STOPボタン
+  chipButton: {
+    padding: '8px 12px',
+    borderRadius: 999,
+    border: '1px solid rgba(255,255,255,0.22)',
+    background: 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(14,165,233,0.18))',
+    color: '#fff',
+    fontWeight: 1000 as any,
+    fontSize: 12,
+    letterSpacing: 0.4,
+    cursor: 'pointer',
+    boxShadow: '0 10px 22px rgba(0,0,0,0.10)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    whiteSpace: 'nowrap',
   },
 
   comboPop: {

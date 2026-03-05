@@ -6,12 +6,18 @@ export const roadSignsQuiz: Quiz = {
   title: "道路標識マスター",
   description: "日本の道路標識を画像で覚えよう（ひっかけ対策）",
 
+  sections: [
+    { id: "warning", label: "警戒" },
+    { id: "regulation", label: "規制" },
+  ],
+
   questions: [
     // =========================
     // 警戒標識（201〜215）
     // =========================
     {
       id: 1201,
+      sectionId: "warning",
       signId: "201A",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/201A.png",
@@ -21,6 +27,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1202,
+      sectionId: "warning",
       signId: "201C",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/201C.png",
@@ -30,6 +37,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1203,
+      sectionId: "warning",
       signId: "202",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/202.png",
@@ -39,6 +47,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1204,
+      sectionId: "warning",
       signId: "203L",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/203L.png",
@@ -48,6 +57,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1205,
+      sectionId: "warning",
       signId: "203R",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/203R.png",
@@ -57,6 +67,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1206,
+      sectionId: "warning",
       signId: "204L",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/204L.png",
@@ -66,6 +77,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1207,
+      sectionId: "warning",
       signId: "204R",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/204R.png",
@@ -75,6 +87,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1208,
+      sectionId: "warning",
       signId: "205L",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/205L.png",
@@ -84,6 +97,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1209,
+      sectionId: "warning",
       signId: "205R",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/205R.png",
@@ -93,6 +107,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1210,
+      sectionId: "warning",
       signId: "206L",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/206L.png",
@@ -102,6 +117,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1211,
+      sectionId: "warning",
       signId: "206R",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/206R.png",
@@ -111,6 +127,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1212,
+      sectionId: "warning",
       signId: "207",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/207.png",
@@ -120,6 +137,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1213,
+      sectionId: "warning",
       signId: "208",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/208.png",
@@ -129,6 +147,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1214,
+      sectionId: "warning",
       signId: "209",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/209.png",
@@ -138,6 +157,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1215,
+      sectionId: "warning",
       signId: "210",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/210.png",
@@ -147,6 +167,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1216,
+      sectionId: "warning",
       signId: "211",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/211.png",
@@ -156,6 +177,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1217,
+      sectionId: "warning",
       signId: "212",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/212.png",
@@ -165,6 +187,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1218,
+      sectionId: "warning",
       signId: "213",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/213.png",
@@ -174,6 +197,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1219,
+      sectionId: "warning",
       signId: "214",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/214.png",
@@ -183,6 +207,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1220,
+      sectionId: "warning",
       signId: "215",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/215.png",
@@ -196,6 +221,7 @@ export const roadSignsQuiz: Quiz = {
     // =========================
     {
       id: 1301,
+      sectionId: "regulation",
       signId: "301",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/301.png",
@@ -205,6 +231,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1302,
+      sectionId: "regulation",
       signId: "302",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/302.png",
@@ -214,6 +241,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1303,
+      sectionId: "regulation",
       signId: "303",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/303.png",
@@ -223,6 +251,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1304,
+      sectionId: "regulation",
       signId: "304",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/304.png",
@@ -232,6 +261,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1305,
+      sectionId: "regulation",
       signId: "305",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/305.png",
@@ -241,6 +271,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1306,
+      sectionId: "regulation",
       signId: "306",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/306.png",
@@ -250,6 +281,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1307,
+      sectionId: "regulation",
       signId: "307",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/307.png",
@@ -259,6 +291,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1308,
+      sectionId: "regulation",
       signId: "308",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/308.png",
@@ -268,6 +301,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1309,
+      sectionId: "regulation",
       signId: "309",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/309.png",
@@ -277,6 +311,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1310,
+      sectionId: "regulation",
       signId: "310",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/310.png",
@@ -286,6 +321,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1311,
+      sectionId: "regulation",
       signId: "311",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/311.png",
@@ -295,6 +331,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1312,
+      sectionId: "regulation",
       signId: "312",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/312.png",
@@ -304,6 +341,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1313,
+      sectionId: "regulation",
       signId: "313",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/313.png",
@@ -313,6 +351,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1314,
+      sectionId: "regulation",
       signId: "314",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/314.png",
@@ -322,6 +361,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1315,
+      sectionId: "regulation",
       signId: "315",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/315.png",
@@ -331,6 +371,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1316,
+      sectionId: "regulation",
       signId: "316",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/316.png",
@@ -340,6 +381,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1317,
+      sectionId: "regulation",
       signId: "317",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/317.png",
@@ -349,6 +391,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1318,
+      sectionId: "regulation",
       signId: "318",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/318.png",
@@ -358,6 +401,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1319,
+      sectionId: "regulation",
       signId: "319",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/319.png",
@@ -367,6 +411,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1320,
+      sectionId: "regulation",
       signId: "320",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/320.png",
@@ -376,6 +421,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1321,
+      sectionId: "regulation",
       signId: "321",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/321.png",
@@ -385,6 +431,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1322,
+      sectionId: "regulation",
       signId: "322",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/322.png",
@@ -394,6 +441,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1323,
+      sectionId: "regulation",
       signId: "325",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/325.png",
@@ -403,6 +451,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1324,
+      sectionId: "regulation",
       signId: "326",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/326.png",
@@ -412,6 +461,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1325,
+      sectionId: "regulation",
       signId: "327",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/327.png",
@@ -421,6 +471,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1326,
+      sectionId: "regulation",
       signId: "328",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/328.png",
@@ -430,6 +481,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1327,
+      sectionId: "regulation",
       signId: "329",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/329.png",
@@ -439,6 +491,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1328,
+      sectionId: "regulation",
       signId: "331",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/331.png",
@@ -448,6 +501,7 @@ export const roadSignsQuiz: Quiz = {
     },
     {
       id: 1329,
+      sectionId: "regulation",
       signId: "332",
       question: "この標識の意味は？",
       imageUrl: "/signs/512/332.png",

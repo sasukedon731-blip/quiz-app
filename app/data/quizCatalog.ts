@@ -89,7 +89,11 @@ export const quizCatalog: QuizDef[] = [
     enabled: true,
     order: 999,
     modes: ["normal"],
-    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "warning", title: "警戒", enabled: true, order: 2 },
+      { id: "regulation", title: "規制", enabled: true, order: 3 },
+    ],
   },
 
   {

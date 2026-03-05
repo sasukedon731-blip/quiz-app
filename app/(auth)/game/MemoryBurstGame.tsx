@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/app/lib/firebase"
 import { submitAttackScore } from "./firestore"
-import GameEndActions from "./ui/GameEndActions"
 
 import type { QuizType } from "@/app/data/types"
 import type { GameMode, MemoryBurstQuestion } from "./types"
@@ -269,7 +268,12 @@ useEffect(() => {
         <div style={{ marginTop: 18, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 22, fontWeight: 900 }}>終了！</div>
           <div style={{ marginTop: 8, fontSize: 18, fontWeight: 800 }}>score: {score}</div>
-          <GameEndActions onRetry={() => setPhase("ready")} />
+          <button
+            onClick={() => setPhase("ready")}
+            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 900 }}
+          >
+            もう一回
+          </button>
         </div>
       )}
     </div>

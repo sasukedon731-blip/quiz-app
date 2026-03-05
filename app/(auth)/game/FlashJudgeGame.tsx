@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/app/lib/firebase"
 import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./firestore"
-import GameEndActions from "./ui/GameEndActions"
 
 import type { QuizType } from "@/app/data/types"
 import type { FlashJudgeQuestion, GameMode } from "./types"
@@ -346,7 +345,12 @@ export default function FlashJudgeGame({
             </div>
           )}
 
-          <GameEndActions onRetry={() => setPhase("ready")} />
+          <button
+            onClick={() => setPhase("ready")}
+            style={{ marginTop: 14, width: "100%", padding: "12px 14px", borderRadius: 12, fontWeight: 800 }}
+          >
+            もう一回
+          </button>
         </div>
       )}
     </div>
