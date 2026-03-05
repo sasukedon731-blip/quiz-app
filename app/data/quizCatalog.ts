@@ -172,6 +172,36 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
+
+  // ✅ 製造（追加）
+  {
+    id: "manufacturing-terms",
+    title: "製造用語",
+    description: "やさしい日本語＋英語補助で製造の重要用語を覚える",
+    enabled: true,
+    order: 60,
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
+  {
+    id: "manufacturing-listening",
+    title: "製造リスニング",
+    description: "製造現場でよく聞く用語・指示を聞いて選ぶ",
+    enabled: true,
+    order: 61,
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
+  {
+    id: "manufacturing-conversation",
+    title: "製造現場会話",
+    description: "製造現場の指示・会話を聞いて対応を選ぶ",
+    enabled: true,
+    order: 62,
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
+
   // ✅ 建設用語（分野タブ）
   {
     id: "construction-terms",
