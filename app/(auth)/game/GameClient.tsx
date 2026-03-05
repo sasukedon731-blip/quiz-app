@@ -262,7 +262,7 @@ export default function GameClient() {
     >
       kindProp={JSON.stringify(kind)}
       <br />
-      safeKind={JSON.stringify(safeKind)}
+      safeKind={JSON.stringify(kind)}
     </div>
 
     <TileDropGame quizType={quizType} modeParam={modeParam} />
