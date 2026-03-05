@@ -9,7 +9,7 @@ export default function GameKindPage({ params }: { params: { kind: string } }) {
       <div className={styles.gamePageInner}>
         <AppHeader title="ゲーム" />
 
-        {/* DEBUG: 左上に出す */}
+        {/* DEBUG: ここが undefined ならルーティングがおかしい */}
         <div
           style={{
             position: "fixed",
