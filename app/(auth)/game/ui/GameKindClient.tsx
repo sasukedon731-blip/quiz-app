@@ -14,8 +14,23 @@ import styles from "./gameKind.module.css"
 type Kind = "tile-drop" | "flash-judge" | "memory-burst"
 type Mode = "normal" | "attack"
 
-function isKind(v: string): v is Kind {
-  return v === "tile-drop" || v === "flash-judge" || v === "memory-burst"
+// ✅ kind を「正規化」してから判定（ここが本丸）
+function normalizeKind(v: unknown): string {
+  const s = String(v ?? "")
+  let t = s
+  try {
+    t = decodeURIComponent(s)
+  } catch {
+    // ignore
+  }
+  // 念のため ? や # が混ざっても切り落とす（事故耐性）
+  t = t.split("?")[0].split("#")[0]
+  return t.trim().toLowerCase()
+}
+
+function isKind(v: unknown): v is Kind {
+  const k = normalizeKind(v)
+  return k === "tile-drop" || k === "flash-judge" || k === "memory-burst"
 }
 
 function isQuizType(v: any): v is QuizType {
@@ -56,18 +71,19 @@ export default function GameKindClient({ kind }: { kind: string }) {
   const params = useSearchParams()
   const { user } = useAuth()
 
-  // ✅ kind の揺れ（URLエンコード/空白/大文字小文字）を吸収してから判定する
-  const normalizedKind = useMemo(() => {
-    const s = String(kind ?? "")
-    try {
-      return decodeURIComponent(s).trim().toLowerCase()
-    } catch {
-      return s.trim().toLowerCase()
-    }
+  // ✅ 正規化 → 判定 → safeKind
+  const safeKind: Kind = useMemo(() => {
+    const k = normalizeKind(kind)
+
+    if (k === "tile-drop" || k === "flash-judge" || k === "memory-burst") return k
+
+    // 互換（昔の表記が来ても救う）
+    if (k === "flashjudge") return "flash-judge"
+    if (k === "memoryburst") return "memory-burst"
+
+    return "tile-drop"
   }, [kind])
 
-  // ✅ 先に safeKind を決める（useEffect より上！）
-  const safeKind: Kind = useMemo(() => (isKind(normalizedKind) ? normalizedKind : "tile-drop"), [normalizedKind])
   const meta = useMemo(() => kindMeta(safeKind), [safeKind])
 
   const rawType = params.get("type")
@@ -80,7 +96,7 @@ export default function GameKindClient({ kind }: { kind: string }) {
 
   const [lb, setLb] = useState<{ displayName: string; bestScore: number }[]>([])
 
-  // ✅ ランキング取得（safeKind 宣言後なのでOK）
+  // ✅ ランキング取得（safeKind 依存）
   useEffect(() => {
     let cancelled = false
     async function run() {
@@ -146,13 +162,13 @@ export default function GameKindClient({ kind }: { kind: string }) {
     router.push(`/game/play?${qs.toString()}`)
   }
 
-  // quick=1 は「即プレイ」導線（ただし attack はログイン必須）
+  // ✅ quick=1 は即プレイ導線
+  // ❌ router.replace(`/game/${safeKind}`) は事故るので削除（説明ページが tile-drop に固定される原因になり得る）
   useEffect(() => {
     if (!quick) return
-    router.replace(`/game/${safeKind}`)
     goPlay(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // safeKind/goPlay を依存に入れると意図せず再実行しやすいので固定
+  }, [quick]) // quick だけでOK（safeKindはprop由来で安定）
 
   return (
     <main className={styles.wrap}>
