@@ -16,6 +16,7 @@ import { fetchAttackLeaderboard, fetchMyAttackRank, submitAttackScore } from "./
 import { buildGamePoolFromQuizzes } from "./fromQuizzes"
 import { getTileDropPool } from "./pools/tileDropPools"
 import { addJlptBattleXp, comboMultiplier } from "./battleProgress"
+import GameEndActions from "./ui/GameEndActions"
 
 type Phase = "ready" | "playing" | "over"
 
@@ -1111,21 +1112,17 @@ function activateTimeStop() {
               <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>ノーマルはランキング保存しません（学習用）</div>
             )}
 
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={() => {
-                  setPhase("ready")
-                  setCurrent(null)
-                  setToast("")
-                }}
-                style={{ ...styles.btn, ...styles.btnMain }}
-              >
-                もう一回
-              </button>
+            <GameEndActions
+              onRetry={() => {
+                setPhase("ready")
+                setCurrent(null)
+                setToast("")
+              }}
+            >
               <Link href="/select-mode" style={{ ...styles.btn, ...styles.btnGhost, textDecoration: "none" }}>
                 学習メニューへ
               </Link>
-            </div>
+            </GameEndActions>
           </div>
         </section>
       </div>
