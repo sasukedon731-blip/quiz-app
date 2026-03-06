@@ -93,7 +93,7 @@ export default function HomePage() {
         icon: "🏭",
         title: "製造で働く方へ",
         subtitle: "工場の指示・安全用語を強化",
-        extraQuizIds: ["genba-listening", "genba-phrasebook"],
+        extraQuizIds: ["genba-listening", "genba-phrasebook", "manufacturing-terms", "manufacturing-listening", "manufacturing-conversation"],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
@@ -101,8 +101,8 @@ export default function HomePage() {
         icon: "👵",
         title: "介護で働く方へ",
         subtitle: "介護会話・現場日本語（準備中もOK）",
-        extraQuizIds: [],
-        note: "介護教材が増えたら、ここに追加していくだけ",
+        extraQuizIds: ["care-terms", "care-listening", "care-conversation"],
+        note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
         id: "driver",
