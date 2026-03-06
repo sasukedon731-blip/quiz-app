@@ -56,8 +56,20 @@ export default function QuizDetailPage() {
 
         {/* CTA */}
         <div style={styles.actions}>
-          <Button variant="main" onClick={() => router.push("/select-mode")}>
+          {/* ✅ /select-mode 経由だとプラン状態読み込み等で固まるケースがあるため、まず通常学習へ直行 */}
+          <Button
+            variant="main"
+            onClick={() => router.push(`/normal?type=${encodeURIComponent(quiz.id)}`)}
+          >
             この教材で学習を始める
+          </Button>
+
+          {/* ✅ もし通常が弾かれた時の逃げ道（教材のモード一覧へ） */}
+          <Button
+            variant="sub"
+            onClick={() => router.push(`/quiz?type=${encodeURIComponent(quiz.id)}`)}
+          >
+            モード一覧を見る
           </Button>
 
           <Button variant="sub" onClick={() => router.push("/contents")}>
