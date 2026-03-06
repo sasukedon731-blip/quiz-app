@@ -9,10 +9,11 @@ import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { arrayUnion, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 
 // ✅ 離脱/中断で読み上げ停止
 import { stopSpeak } from '@/app/lib/tts'
+import { getBadgeLabelFromBadgeId, getPerfectBadgeId } from '@/app/lib/badges'
 
 const EXAM_TIME_SEC = 20 * 60
 
@@ -110,6 +111,7 @@ export default function ExamClient({ quiz }: Props) {
 
   // ✅ answers だけを真実データにする（scoreはここから必ず算出）
   const [answers, setAnswers] = useState<ExamAnswer[]>([])
+  const [earnedBadgeLabel, setEarnedBadgeLabel] = useState<string | null>(null)
 
   // ✅ score は answers から常に算出（中断→復帰でもズレない）
   const score = useMemo(() => answers.filter(a => a?.isCorrect).length, [answers])
@@ -164,6 +166,18 @@ export default function ExamClient({ quiz }: Props) {
           },
           { merge: true }
         )
+
+        if (!byTimeout && questions.length > 0 && scoreRef.current === questions.length) {
+          const badgeId = getPerfectBadgeId(quizType)
+          await setDoc(
+            doc(db, 'users', user.uid),
+            {
+              badges: arrayUnion(badgeId),
+            },
+            { merge: true }
+          )
+          setEarnedBadgeLabel(getBadgeLabelFromBadgeId(badgeId))
+        }
       }
 
       try {
@@ -451,6 +465,21 @@ export default function ExamClient({ quiz }: Props) {
           </div>
           <div style={{ opacity: 0.8 }}>残り時間: {formatTime(timeLeft)}</div>
         </div>
+
+        {earnedBadgeLabel ? (
+          <div
+            className="panelSoft"
+            style={{
+              marginTop: 14,
+              background: "#fff7ed",
+              border: "1px solid #fdba74",
+            }}
+          >
+            <div style={{ fontWeight: 900, fontSize: 18 }}>🏅 満点バッジ獲得！</div>
+            <div style={{ marginTop: 6, fontWeight: 800 }}>{earnedBadgeLabel}</div>
+            <div style={{ marginTop: 6, opacity: 0.8 }}>マイページの実績に追加されます。</div>
+          </div>
+        ) : null}
 
         <div className="panelSoft" style={{ marginTop: 14 }}>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>弱点分析（分野別）</div>

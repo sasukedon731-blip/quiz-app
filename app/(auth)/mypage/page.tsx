@@ -11,6 +11,7 @@ import { auth, db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import { fetchMyAttackRank } from "../game/firestore"
+import { getBadgeMeta } from "@/app/lib/badges"
 
 type QuizResult = {
   score: number
@@ -224,6 +225,7 @@ export default function MyPage() {
   // ✅ ユーザーの業種（Firestore優先、無ければ localStorage）
   const [industry, setIndustry] = useState<IndustryId | null>(null)
   const [showAllCards, setShowAllCards] = useState(false)
+  const [badges, setBadges] = useState<string[]>([])
 
   const withIndustry = (path: string) => {
     if (!industry) return path
@@ -301,7 +303,10 @@ export default function MyPage() {
       try {
         const userRef = doc(db, "users", user.uid)
         const snap = await getDoc(userRef)
-        const v = snap.exists() ? (snap.data() as any)?.industry : null
+        const userData = snap.exists() ? ((snap.data() as any) ?? {}) : {}
+        const v = userData?.industry ?? null
+        const badgeList = Array.isArray(userData?.badges) ? userData.badges.filter((x: any) => typeof x === 'string') : []
+        setBadges(badgeList)
         if (isIndustryId(v)) {
           setIndustry(v)
           try {
@@ -430,6 +435,10 @@ export default function MyPage() {
     if (!industry || showAllCards) return enabled
     return enabled.filter((q) => allowedSet.has(q.id))
   }, [industry, showAllCards, allowedSet])
+
+  const badgeItems = useMemo(() => {
+    return badges.map((id) => getBadgeMeta(id))
+  }, [badges])
 
   // =======================
   // summaries
@@ -582,6 +591,38 @@ export default function MyPage() {
               <MiniStat label="最大streak" value={streakMax ? String(streakMax) : "—"} sub="教材別の最大streak" />
             </div>
           </div>
+        </section>
+
+        <section style={S.card}>
+          <div style={S.cardHeadRow}>
+            <div style={S.cardTitle}>実績バッジ</div>
+            <div style={S.miniNote}>模擬試験で100点を取ると追加されます</div>
+          </div>
+
+          {badgeItems.length === 0 ? (
+            <div style={{ marginTop: 10, opacity: 0.75 }}>まだバッジはありません。まずは模擬試験で100点を目指そう！</div>
+          ) : (
+            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {badgeItems.map((b) => (
+                <div
+                  key={b.id}
+                  style={{
+                    border: "1px solid #fde68a",
+                    background: "#fffbeb",
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    fontWeight: 900,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span>{b.icon}</span>
+                  <span>{b.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* 教材カード：業種で最適化（最強：行タップで詳細） */}
