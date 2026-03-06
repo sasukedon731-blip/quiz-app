@@ -18,6 +18,7 @@ import { constructionTermsQuiz } from "./construction-terms"
 import { manufacturingTermsQuiz } from "./manufacturing-terms"
 import { manufacturingListeningQuiz } from "./manufacturing-listening"
 import { manufacturingConversationQuiz } from "./manufacturing-conversation"
+import { skillTestMachiningQuiz } from "./skill-test-machining"
 
 // ★ 介護教材
 import { careTermsQuiz } from "./care-terms"
@@ -44,6 +45,7 @@ export const quizzes = {
   "manufacturing-terms": manufacturingTermsQuiz,
   "manufacturing-listening": manufacturingListeningQuiz,
   "manufacturing-conversation": manufacturingConversationQuiz,
+  "skill-test-machining": skillTestMachiningQuiz,
 
   // ★ 介護
   "care-terms": careTermsQuiz,

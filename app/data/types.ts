@@ -20,6 +20,7 @@ export type QuizType =
   | "care-listening"
   | "care-conversation"
   | "care-terms"
+  | "skill-test-machining"
 
 
 // ✅ 分野（セクション）定義
