@@ -19,6 +19,11 @@ import { manufacturingTermsQuiz } from "./manufacturing-terms"
 import { manufacturingListeningQuiz } from "./manufacturing-listening"
 import { manufacturingConversationQuiz } from "./manufacturing-conversation"
 
+// ★ 介護教材
+import { careTermsQuiz } from "./care-terms"
+import { careListeningQuiz } from "./care-listening"
+import { careConversationQuiz } from "./care-conversation"
+
 export const quizzes = {
   "gaikoku-license": gaikokuQuiz,
   "japanese-n4": japaneseN4Quiz,
@@ -39,4 +44,9 @@ export const quizzes = {
   "manufacturing-terms": manufacturingTermsQuiz,
   "manufacturing-listening": manufacturingListeningQuiz,
   "manufacturing-conversation": manufacturingConversationQuiz,
+
+  // ★ 介護
+  "care-terms": careTermsQuiz,
+  "care-listening": careListeningQuiz,
+  "care-conversation": careConversationQuiz,
 } as const

@@ -17,6 +17,9 @@ export type QuizType =
   | "manufacturing-terms"
   | "manufacturing-listening"
   | "manufacturing-conversation"
+  | "care-listening"
+  | "care-conversation"
+  | "care-terms"
 
 
 // ✅ 分野（セクション）定義

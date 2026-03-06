@@ -202,6 +202,67 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
   },
 
+  // ✅ 介護用語（追加）
+  {
+    id: "care-terms",
+    title: "介護用語（重要100）",
+    description: "介護現場で必須の用語を4択で覚える",
+    enabled: true,
+    order: 70,
+    modes: ["normal", "review"],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "adl", title: "身体介助・基本動作", enabled: true, order: 2 },
+      { id: "meal", title: "食事・水分", enabled: true, order: 3 },
+      { id: "vital", title: "健康状態・バイタル", enabled: true, order: 4 },
+      { id: "dementia", title: "認知症・メンタル", enabled: true, order: 5 },
+      { id: "equipment", title: "用具・設備", enabled: true, order: 6 },
+      { id: "record", title: "記録・事務", enabled: true, order: 7 },
+      { id: "facility", title: "施設・専門職", enabled: true, order: 8 },
+      { id: "risk", title: "リスク・緊急時", enabled: true, order: 9 },
+    ],
+  },
+  // ✅ 介護リスニング（追加）
+  {
+    id: "care-listening",
+    title: "介護リスニング（重要100）",
+    description: "介護現場でよく聞く用語を聞いて意味を選ぶ",
+    enabled: true,
+    order: 71,
+    modes: ["normal", "review"],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "adl", title: "身体介助・基本動作", enabled: true, order: 2 },
+      { id: "meal", title: "食事・水分", enabled: true, order: 3 },
+      { id: "vital", title: "健康状態・バイタル", enabled: true, order: 4 },
+      { id: "dementia", title: "認知症・メンタル", enabled: true, order: 5 },
+      { id: "equipment", title: "用具・設備", enabled: true, order: 6 },
+      { id: "record", title: "記録・事務", enabled: true, order: 7 },
+      { id: "facility", title: "施設・専門職", enabled: true, order: 8 },
+      { id: "risk", title: "リスク・緊急時", enabled: true, order: 9 },
+    ],
+  },
+  {
+    id: "care-conversation",
+    title: "介護現場会話（重要100）",
+    description: "介護現場の指示・会話を聞いて対応を選ぶ",
+    enabled: true,
+    order: 72,
+    modes: ["normal", "review"],
+    sections: [
+      { id: "all", title: "すべて", enabled: true, order: 1 },
+      { id: "adl", title: "身体介助・基本動作", enabled: true, order: 2 },
+      { id: "meal", title: "食事・水分", enabled: true, order: 3 },
+      { id: "vital", title: "健康状態・バイタル", enabled: true, order: 4 },
+      { id: "dementia", title: "認知症・メンタル", enabled: true, order: 5 },
+      { id: "equipment", title: "用具・設備", enabled: true, order: 6 },
+      { id: "record", title: "記録・事務", enabled: true, order: 7 },
+      { id: "facility", title: "施設・専門職", enabled: true, order: 8 },
+      { id: "risk", title: "リスク・緊急時", enabled: true, order: 9 },
+    ],
+  },
+
+
   // ✅ 建設用語（分野タブ）
   {
     id: "construction-terms",
