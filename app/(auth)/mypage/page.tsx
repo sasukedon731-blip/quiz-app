@@ -188,7 +188,7 @@ function isIndustryId(v: any): v is IndustryId {
 
 const LS_INDUSTRY_KEY = "selected-industry"
 
-const JAPANESE_BASE: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"]
+const JAPANESE_BASE: QuizType[] = ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "dialect-listening", "kansai-listening", "confusing-japanese"]
 
 const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
   construction: [
@@ -198,10 +198,11 @@ const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
     "doboku-sekou-2kyu-1ji",
     "denki-sekou-2kyu-1ji",
     "kanko-sekou-2kyu-1ji",
+    "construction-terms",
   ],
-  manufacturing: ["genba-listening", "genba-phrasebook"],
-  care: [],
-  driver: ["gaikoku-license"],
+  manufacturing: ["genba-listening", "genba-phrasebook", "manufacturing-terms", "manufacturing-listening", "manufacturing-conversation", "skill-test-machining"],
+  care: ["care-terms", "care-listening", "care-conversation"],
+  driver: ["gaikoku-license", "road-signs"],
   undecided: [],
 }
 

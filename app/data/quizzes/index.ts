@@ -24,6 +24,9 @@ import { skillTestMachiningQuiz } from "./skill-test-machining"
 import { careTermsQuiz } from "./care-terms"
 import { careListeningQuiz } from "./care-listening"
 import { careConversationQuiz } from "./care-conversation"
+import { dialectListeningQuiz } from "./dialect-listening"
+import { kansaiListeningQuiz } from "./kansai-listening"
+import { confusingJapaneseQuiz } from "./confusing-japanese"
 
 export const quizzes = {
   "gaikoku-license": gaikokuQuiz,
@@ -51,4 +54,7 @@ export const quizzes = {
   "care-terms": careTermsQuiz,
   "care-listening": careListeningQuiz,
   "care-conversation": careConversationQuiz,
+  "dialect-listening": dialectListeningQuiz,
+  "kansai-listening": kansaiListeningQuiz,
+  "confusing-japanese": confusingJapaneseQuiz,
 } as const

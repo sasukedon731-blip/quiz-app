@@ -21,6 +21,9 @@ export type QuizType =
   | "care-conversation"
   | "care-terms"
   | "skill-test-machining"
+  | "dialect-listening"
+  | "kansai-listening"
+  | "confusing-japanese"
 
 
 // ✅ 分野（セクション）定義
