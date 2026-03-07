@@ -18,7 +18,6 @@ function formatTime(sec: number) {
 export default function AudioPlayerButton({
   src,
   title = "音声を聞いて答えてください",
-  className = "",
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -39,16 +38,13 @@ export default function AudioPlayerButton({
       setIsReady(true)
       setDuration(audio.duration || 0)
     }
-
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime || 0)
     }
-
     const onEnded = () => {
       setIsPlaying(false)
       setCurrentTime(audio.duration || 0)
     }
-
     const onPause = () => setIsPlaying(false)
     const onPlay = () => setIsPlaying(true)
 
@@ -81,7 +77,6 @@ export default function AudioPlayerButton({
   async function togglePlay() {
     const audio = audioRef.current
     if (!audio) return
-
     try {
       if (audio.paused) {
         await audio.play()
@@ -104,52 +99,137 @@ export default function AudioPlayerButton({
 
   return (
     <div
-      className={`mb-4 rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-4 shadow-sm ${className}`}
+      style={{
+        margin: "12px 0 16px",
+        border: "1px solid #dbe3f4",
+        borderRadius: 24,
+        background: "linear-gradient(135deg, #eef2ff 0%, #ffffff 45%, #eef8ff 100%)",
+        boxShadow: "0 10px 28px rgba(37,99,235,0.10)",
+        padding: 16,
+      }}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
 
-      <div className="flex items-center gap-4">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+        }}
+      >
         <button
           type="button"
           onClick={togglePlay}
-          className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-lg transition hover:scale-105 active:scale-95"
           aria-label={isPlaying ? "音声を停止" : "音声を再生"}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: "9999px",
+            border: "none",
+            cursor: "pointer",
+            color: "#fff",
+            fontSize: 26,
+            fontWeight: 900,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)",
+            boxShadow: isPlaying
+              ? "0 0 0 8px rgba(14,165,233,0.15), 0 10px 20px rgba(37,99,235,0.22)"
+              : "0 10px 20px rgba(37,99,235,0.22)",
+            transform: isPlaying ? "scale(1.03)" : "scale(1)",
+            transition: "all .15s ease",
+            flexShrink: 0,
+          }}
         >
-          {isPlaying ? (
-            <span className="absolute inset-0 rounded-full animate-ping bg-sky-300/40" />
-          ) : null}
-
-          <span className="relative text-2xl leading-none">
-            {isPlaying ? "⏸" : "▶"}
-          </span>
+          {isPlaying ? "⏸" : "▶"}
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
             <div>
-              <div className="text-base font-bold text-slate-900">{title}</div>
-              <div className="mt-1 text-sm text-slate-500">
-                {isPlaying ? "再生中..." : isReady ? "タップで再生" : "読み込み中..."}
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  lineHeight: 1.35,
+                }}
+              >
+                {title}
+              </div>
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  color: "#64748b",
+                  fontWeight: 700,
+                }}
+              >
+                {isPlaying ? "再生中..." : isReady ? "ボタンを押して再生" : "読み込み中..."}
               </div>
             </div>
 
-            <div className="shrink-0 text-sm font-semibold text-slate-600">
+            <div
+              style={{
+                fontSize: 14,
+                color: "#475569",
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
 
-          <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
+          <div
+            style={{
+              marginTop: 12,
+              height: 10,
+              borderRadius: 9999,
+              background: "#dbeafe",
+              overflow: "hidden",
+            }}
+          >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 transition-all duration-150"
-              style={{ width: `${progress}%` }}
+              style={{
+                width: `${progress}%`,
+                height: "100%",
+                borderRadius: 9999,
+                background: "linear-gradient(90deg, #4f46e5 0%, #0ea5e9 100%)",
+                transition: "width .15s ease",
+              }}
             />
           </div>
 
-          <div className="mt-3 flex justify-end">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: 12,
+            }}
+          >
             <button
               type="button"
               onClick={replay}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95"
+              style={{
+                borderRadius: 9999,
+                border: "1px solid #cbd5e1",
+                background: "#fff",
+                color: "#334155",
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
             >
               もう一回
             </button>
