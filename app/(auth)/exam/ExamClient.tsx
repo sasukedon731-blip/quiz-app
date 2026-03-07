@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import ListeningControls from '@/app/components/ListeningControls'
+import AudioPlayerButton from '@/app/components/AudioPlayerButton'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
@@ -550,17 +551,21 @@ export default function ExamClient({ quiz }: Props) {
                   </div>
                 ) : null}
 
-                {q.audioUrl && (
+                {q.audioUrl ? (
                   <div style={{ marginTop: 10 }}>
-                    <audio controls src={q.audioUrl} preload="none" />
+                    <AudioPlayerButton
+                      src={q.audioUrl}
+                      title="この問題の音声"
+                    />
                   </div>
-                )}
-
-                <div style={{ marginTop: 10 }}>
-                  {q.listeningText && !q.audioUrl ? (
-                    <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam-result-${q.id}`} />
-                  ) : null}
-                </div>
+                ) : q.listeningText ? (
+                  <div style={{ marginTop: 10 }}>
+                    <ListeningControls
+                      text={q.listeningText}
+                      storageKeyPrefix={`${quizType}-exam-result-${q.id}`}
+                    />
+                  </div>
+                ) : null}
 
                 <div className="resultChoices">
                   {q.choices.map((c, idx) => {
@@ -608,21 +613,22 @@ export default function ExamClient({ quiz }: Props) {
         </div>
       ) : null}
 
-      {current.audioUrl && (
-        <div className="panelSoft" style={{ margin: '12px 0' }}>
-          <audio controls src={current.audioUrl} preload="none" />
+      {current.audioUrl ? (
+        <div style={{ margin: '12px 0' }}>
+          <AudioPlayerButton
+            src={current.audioUrl}
+            title="音声を聞いて答えてください"
+          />
         </div>
-      )}
-
-      {!current.audioUrl ? (
-      <ListeningControls
-        key={`${quizType}-${current.id}`}
-        text={current.listeningText}
-        storageKeyPrefix={`${quizType}-exam-${current.id}`}
-        allowAutoPlay={false}
-        maxPlays={2}
-        onSpeakingChange={setIsListeningSpeaking}
-      />
+      ) : current.listeningText ? (
+        <ListeningControls
+          key={`${quizType}-${current.id}`}
+          text={current.listeningText}
+          storageKeyPrefix={`${quizType}-exam-${current.id}`}
+          allowAutoPlay={false}
+          maxPlays={2}
+          onSpeakingChange={setIsListeningSpeaking}
+        />
       ) : null}
 
       <div className="choiceList">

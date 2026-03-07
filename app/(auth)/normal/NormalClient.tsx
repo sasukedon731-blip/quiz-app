@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import ListeningControls from '@/app/components/ListeningControls'
+import AudioPlayerButton from '@/app/components/AudioPlayerButton'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
@@ -645,23 +646,19 @@ export default function NormalClient({ quiz }: Props) {
         </div>
       ) : null}
 
-      {/* ✅ MP3がある場合 */}
-      {current.audioUrl && (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 12,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#f9fafb',
-          }}
-        >
-          <audio controls src={current.audioUrl} preload="none" />
+      {current.audioUrl ? (
+        <div style={{ margin: '12px 0' }}>
+          <AudioPlayerButton
+            src={current.audioUrl}
+            title="音声を聞いて答えてください"
+          />
         </div>
-      )}
-
-      {/* ✅ MP3がない場合：読み上げ（text がある時だけ） */}
-      {current.listeningText && !current.audioUrl ? <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} /> : null}
+      ) : current.listeningText ? (
+        <ListeningControls
+          text={current.listeningText}
+          storageKeyPrefix={quizType}
+        />
+      ) : null}
 
       {current.choices.map((c, i) => (
         <Button

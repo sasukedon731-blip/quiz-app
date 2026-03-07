@@ -1,6 +1,5 @@
 import { quizzes } from "@/app/data/quizzes"
 import type { Quiz, QuizType, QuizSection } from "@/app/data/types"
-import { attachAudioUrls } from "@/app/lib/audio"
 import { getQuizDef } from "@/app/data/quizCatalog"
 
 /**
@@ -13,7 +12,7 @@ export function getQuizByType(type: QuizType): Quiz | null {
 
   // 既に sections がある教材はそのまま
   if (Array.isArray((base as any).sections) && (base as any).sections.length > 0) {
-    return attachAudioUrls(base)
+    return base
   }
 
   const def = getQuizDef(type)
@@ -24,8 +23,8 @@ export function getQuizByType(type: QuizType): Quiz | null {
       ?.sort((a, b) => a.order - b.order)
       ?.map((s) => ({ id: s.id, label: s.title })) ?? []
 
-  return attachAudioUrls({
+  return {
     ...base,
     sections: injected.length ? injected : undefined,
-  })
+  }
 }
