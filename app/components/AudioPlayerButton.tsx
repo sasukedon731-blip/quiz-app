@@ -17,7 +17,7 @@ function formatTime(sec: number) {
 
 export default function AudioPlayerButton({
   src,
-  title = "音声を聞く",
+  title = "音声を聞いて答えてください",
   className = "",
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -49,13 +49,8 @@ export default function AudioPlayerButton({
       setCurrentTime(audio.duration || 0)
     }
 
-    const onPause = () => {
-      setIsPlaying(false)
-    }
-
-    const onPlay = () => {
-      setIsPlaying(true)
-    }
+    const onPause = () => setIsPlaying(false)
+    const onPlay = () => setIsPlaying(true)
 
     audio.addEventListener("loadedmetadata", onLoaded)
     audio.addEventListener("timeupdate", onTimeUpdate)
@@ -109,66 +104,52 @@ export default function AudioPlayerButton({
 
   return (
     <div
-      className={[
-        "rounded-[24px] border border-indigo-200 bg-white p-4 shadow-[0_10px_30px_rgba(99,102,241,0.15)]",
-        className,
-      ].join(" ")}
+      className={`mb-4 rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-4 shadow-sm ${className}`}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={togglePlay}
-          className={[
-            "relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full",
-            "bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-lg",
-            "transition duration-150 hover:scale-105 active:scale-95",
-            "focus:outline-none focus:ring-4 focus:ring-indigo-200",
-          ].join(" ")}
+          className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-lg transition hover:scale-105 active:scale-95"
           aria-label={isPlaying ? "音声を停止" : "音声を再生"}
         >
-          <span
-            className={[
-              "absolute inset-0 rounded-full",
-              isPlaying ? "animate-ping bg-indigo-300/40" : "",
-            ].join(" ")}
-          />
-          <span className="relative text-xl leading-none">
+          {isPlaying ? (
+            <span className="absolute inset-0 rounded-full animate-ping bg-sky-300/40" />
+          ) : null}
+
+          <span className="relative text-2xl leading-none">
             {isPlaying ? "⏸" : "▶"}
           </span>
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <div className="truncate text-sm font-bold text-slate-800">
-              {title}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-base font-bold text-slate-900">{title}</div>
+              <div className="mt-1 text-sm text-slate-500">
+                {isPlaying ? "再生中..." : isReady ? "タップで再生" : "読み込み中..."}
+              </div>
             </div>
-            <div className="shrink-0 text-xs font-medium text-slate-500">
+
+            <div className="shrink-0 text-sm font-semibold text-slate-600">
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
 
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 transition-all duration-150"
               style={{ width: `${progress}%` }}
             />
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="text-xs text-slate-500">
-              {isPlaying ? "再生中..." : isReady ? "タップで再生" : "読み込み中..."}
-            </div>
-
+          <div className="mt-3 flex justify-end">
             <button
               type="button"
               onClick={replay}
-              className={[
-                "rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700",
-                "transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
-                "active:scale-95",
-              ].join(" ")}
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95"
             >
               もう一回
             </button>
