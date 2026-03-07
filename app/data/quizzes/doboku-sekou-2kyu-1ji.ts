@@ -19,7 +19,8 @@ export const dobokuSekou2kyu1ji: Quiz = {
     "explanation": "モータグレーダは、土の敷均しは出来ますが、締固め作業はできません。"
   },
   {
-    "id": 2,
+    "id": 2,,
+    "imageUrl": "/quiz-images/image1.png"
     "sectionId": "all",
     "question": "ボーリングの土質柱状図に関する下記の文章中の（　　　）の（イ）、（ロ）、（ハ）に当てはまる語句及び数値の次の組合せのうち、適当なものはどれか。N値の測定は、深さ（　イ　）mごとに行われる。そのうち、はじめの貫入量（　ロ　）cmについて測定し、この（　ハ　）がN値である。",
     "choices": [
@@ -30,7 +31,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 2,
     "explanation": "ボーリング調査における土質柱状図の『Ｎ値』の定義です。設問の通りですので、そのまま覚えるようにしましょう。また数字の部分は土質柱状図の内容から答えを導き出すことも可能です。忘れてしまっても思い出せるよう、土質柱状図の表記と合わせて覚えておくとより安心です。",
-    "imageUrl": "/quiz-images/image2.jpeg"
+    "imageUrl": "/quiz-images/image1.jpeg"
   },
   {
     "id": 3,
@@ -316,7 +317,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "棒状バイブレータ1台で締め固められるコンクリートの容積は、一般的な構造物では1時間当たり4〜8m3である。"
     ],
     "correctIndex": 1,
-    "explanation": "水分が表面に移動してくる現象です。"
+    "explanation": "棒状バイブレータの締固め時間は一般に5〜15秒程度とする。長時間振動させると材料分離を生じるため不適当である。"
   },
   {
     "id": 25,
@@ -499,7 +500,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 3,
     "explanation": "（イ）は、掘削面の山留め壁から地盤の土圧を直接受ける部材であり、「腹おこし」と呼ばれます。\n（ロ）は、腹おこしと、その反対側の腹おこし、または支柱との間を斜めに連結する部材であり、「火打ち」と呼ばれます。",
-    "imageUrl": "/quiz-images/image3.jpeg"
+    "imageUrl": "/quiz-images/image2.jpeg"
   },
   {
     "id": 39,
@@ -512,7 +513,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "パイピングとは、砂質土の弱いところを通ってボイリングがパイプ状に生じる現象である。"
     ],
     "correctIndex": 2,
-    "explanation": "ボイリングとは、土留め前面と背面の水位差により、土留めが転倒する現象のことです。"
+    "explanation": "ボイリングとは、掘削底面に地下水圧が作用して砂が湧き上がる現象である。"
   },
   {
     "id": 40,
@@ -538,8 +539,8 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "擁壁高　H2、つま先版　B1"
     ],
     "correctIndex": 2,
-    "explanation": "土留めが転倒する現象のことです。",
-    "imageUrl": "/quiz-images/image4.jpeg"
+    "explanation": "もたれ式擁壁の高さはH1で表され、底版つま先側の幅はB2で表される。したがって正しい組合せはH1とB2である。",
+    "imageUrl": "/quiz-images/image3.jpeg"
   },
   {
     "id": 42,
@@ -553,7 +554,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 2,
     "explanation": "設問の通り、擁壁の直高L1、裏込めコンクリートN2です。",
-    "imageUrl": "/quiz-images/image5.jpeg"
+    "imageUrl": "/quiz-images/image4.jpeg"
   },
   {
     "id": 43,
@@ -567,7 +568,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 1,
     "explanation": "１　H2：擁壁の高さ　×　　B1：つま先版幅　×\n２　H1：擁壁の高さ　〇　 T1：たて壁厚　〇\n３　H2：擁壁の高さ　× 　　B：底版幅　〇\n４　H1：擁壁の高さ　〇 　 B：かかと版幅　×\nこのようになります。\nよって、2つとも適当なものは、2　となります。",
-    "imageUrl": "/quiz-images/image6.jpeg"
+    "imageUrl": "/quiz-images/image5.jpeg"
   },
   {
     "id": 44,
@@ -1062,7 +1063,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 0,
     "explanation": "基本式：HA+fA​=HB​+iB​+V\n高低差Vの計算斜距離L＝300.00ｍ、高低角α＝-30°、sin(-30°）＝-0.5より、\nＶ＝300.00×（-0.5）＝-150.00ｍ\n新点Ｂの標高ＨＢの計算式に値を代入します。\n20.00+1.40＝HB+1.20+（-150.00）\n21.40＝HB-148.80\nHB＝21.40+148.80\nHB＝170.20ｍ",
-    "imageUrl": "/quiz-images/image7.jpeg"
+    "imageUrl": "/quiz-images/image6.jpeg"
   },
   {
     "id": 82,
@@ -1076,7 +1077,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 2,
     "explanation": "測線BCの方位角を求める方法:測点Aから真南に向かって垂線を引きます。このとき、測線ABとの角度は(182°49′30″-180°00′00″)=2°49′30″となります。\nこの角度は、測点Bから真北に向けて伸ばした垂線の角度と等しくなります（錯角）。\n測点Bでの観測角100°5′34″に、上記で求めた2°49′30″を加えると、測線BCの方位角が求まります。\n100°5′34″ + 2°49′30″ = 102°55′4″",
-    "imageUrl": "/quiz-images/image8.jpeg"
+    "imageUrl": "/quiz-images/image7.jpeg"
   },
   {
     "id": 83,
@@ -1116,7 +1117,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
     ],
     "correctIndex": 3,
     "explanation": "クリティカルパス上の作業: 工程全体の工期を決定する、最も時間の余裕がない一連の作業経路。\n特定の作業の最早開始時刻: その作業を最も早く開始できる時刻。\n工程全体の工期: 全ての作業を完了するのに必要な最短日数。\nネットワーク式工程表の計算（最早結合点時刻、最遅結合点時刻、作業余裕時間の算出）を正確に行うことが解答の鍵となります。",
-    "imageUrl": "/quiz-images/image9.png"
+    "imageUrl": "/quiz-images/image8.png"
   },
   {
     "id": 86,
