@@ -57,7 +57,7 @@ export default function HomePage() {
   // =========================
 
   const JAPANESE_BASE_IDS = useMemo(
-    () => ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "dialect-listening", "kansai-listening", "confusing-japanese"] as const,
+    () => ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"] as const,
     []
   )
 
@@ -127,7 +127,7 @@ export default function HomePage() {
         id: "undecided",
         icon: "🌱",
         title: "まだ決まっていない方へ",
-        subtitle: "まずは日本語基礎・方言・会話理解から。後で業種は選べます",
+        subtitle: "まずは日本語基礎から。後で業種は選べます",
         extraQuizIds: [],
         note: "海外からの学習スタート向け入口",
       },

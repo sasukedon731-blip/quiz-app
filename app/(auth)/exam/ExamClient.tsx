@@ -557,7 +557,7 @@ export default function ExamClient({ quiz }: Props) {
                 )}
 
                 <div style={{ marginTop: 10 }}>
-                  {q.listeningText ? (
+                  {q.listeningText && !q.audioUrl ? (
                     <ListeningControls text={q.listeningText} storageKeyPrefix={`${quizType}-exam-result-${q.id}`} />
                   ) : null}
                 </div>
@@ -614,6 +614,7 @@ export default function ExamClient({ quiz }: Props) {
         </div>
       )}
 
+      {!current.audioUrl ? (
       <ListeningControls
         key={`${quizType}-${current.id}`}
         text={current.listeningText}
@@ -622,6 +623,7 @@ export default function ExamClient({ quiz }: Props) {
         maxPlays={2}
         onSpeakingChange={setIsListeningSpeaking}
       />
+      ) : null}
 
       <div className="choiceList">
         {current.choices.map((c, i) => {

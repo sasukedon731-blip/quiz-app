@@ -661,7 +661,7 @@ export default function NormalClient({ quiz }: Props) {
       )}
 
       {/* ✅ MP3がない場合：読み上げ（text がある時だけ） */}
-      {current.listeningText ? <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} /> : null}
+      {current.listeningText && !current.audioUrl ? <ListeningControls text={current.listeningText} storageKeyPrefix={quizType} /> : null}
 
       {current.choices.map((c, i) => (
         <Button
