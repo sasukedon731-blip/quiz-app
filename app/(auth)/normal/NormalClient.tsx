@@ -668,7 +668,9 @@ export default function NormalClient({ quiz }: Props) {
           <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
           <QuestionImage q={current} purpose="explanation" />
           <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{stripLeadingAnswerLabel(current.explanation)}</div>
-
+<div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+  {stripLeadingAnswerLabel(current.explanation)}
+</div>
           <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Button variant="main" onClick={next}>
               次へ
