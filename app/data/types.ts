@@ -39,6 +39,7 @@ export type Question = {
   question: string
   choices: string[]
   correctIndex: number
+  correctIndexes?: number[]
   explanation: string
   signId?: string
 
@@ -51,6 +52,14 @@ export type Question = {
   // - 画像は /public 配下 or 外部URL（CDN/Storage）を想定
   imageUrl?: string
   imageAlt?: string
+
+  // ✅ 追加：4択の選択用画像（電気施工など）
+  choiceImageUrl?: string
+  choiceImageAlt?: string
+
+  // ✅ 追加：解説用画像
+  explanationImageUrl?: string
+  explanationImageAlt?: string
 
   // ✅ 追加：分野ID（未設定なら「全体」扱い）
   sectionId?: string

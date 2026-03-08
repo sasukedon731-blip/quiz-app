@@ -6,6 +6,7 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import ListeningControls from '@/app/components/ListeningControls'
 import AudioPlayerButton from '@/app/components/AudioPlayerButton'
+import QuestionImage from '@/app/components/QuestionImage'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
@@ -50,7 +51,9 @@ type Props = {
 type ExamAnswer = {
   questionId: number
   selectedIndex: number | null
+  selectedIndexes?: number[]
   correctIndex: number
+  correctIndexes?: number[]
   isCorrect: boolean
   question: string
   choices: string[]
@@ -72,8 +75,11 @@ function shuffleArray<T>(arr: T[]): T[] {
 function shuffleQuestionChoices(q: Question): Question {
   const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
   const shuffled = shuffleArray(choicesWithIndex)
-  const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
-  return { ...q, choices: shuffled.map(x => x.text), correctIndex: newCorrectIndex }
+  const indexMap = new Map<number, number>()
+  shuffled.forEach((x, newIdx) => indexMap.set(x.idx, newIdx))
+  const newCorrectIndex = indexMap.get(q.correctIndex) ?? 0
+  const newCorrectIndexes = q.correctIndexes?.map(idx => indexMap.get(idx) ?? idx)
+  return { ...q, choices: shuffled.map(x => x.text), correctIndex: newCorrectIndex, correctIndexes: newCorrectIndexes }
 }
 
 function buildExamQuestions(all: Question[], count: number): Question[] {
@@ -99,7 +105,7 @@ export default function ExamClient({ quiz }: Props) {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number[]>([])
 
   // ✅ 聴解 再生中ロック（誤タップ防止）
   const [isListeningSpeaking, setIsListeningSpeaking] = useState(false)
@@ -205,7 +211,7 @@ export default function ExamClient({ quiz }: Props) {
 
   /** 次へ（自動遷移用） */
   const goNext = useCallback(() => {
-    setSelected(null)
+    setSelected([])
 
     const nextIndex = indexRef.current + 1
     if (nextIndex >= questions.length) {
@@ -255,7 +261,7 @@ export default function ExamClient({ quiz }: Props) {
           setIndex(typeof p.index === 'number' ? p.index : 0)
           setTimeLeft(typeof p.timeLeft === 'number' ? p.timeLeft : EXAM_TIME_SEC)
           setFinished(Boolean(p.finished))
-          setSelected(null)
+          setSelected([])
           return
         }
       } catch {
@@ -266,7 +272,7 @@ export default function ExamClient({ quiz }: Props) {
     const built = buildExamQuestions(quiz.questions, getExamQuestionCount(quizType))
     setQuestions(built)
     setIndex(0)
-    setSelected(null)
+    setSelected([])
     setTimeLeft(EXAM_TIME_SEC)
     setFinished(false)
     setAnswers([])
@@ -328,30 +334,46 @@ export default function ExamClient({ quiz }: Props) {
   /** 回答：正誤は表示しない。回答後に自動で次へ */
   const answer = (choiceIndex: number) => {
     if (!current) return
-    if (selected !== null) return
     if (advancingRef.current) return
 
-    setSelected(choiceIndex)
+    const requiredCount = current.correctIndexes?.length ?? 1
 
-    const isCorrect = choiceIndex === current.correctIndex
+    let nextSelected: number[]
+    if (requiredCount <= 1) {
+      if (selected.length > 0) return
+      nextSelected = [choiceIndex]
+    } else if (selected.includes(choiceIndex)) {
+      nextSelected = selected.filter(i => i !== choiceIndex)
+      setSelected(nextSelected)
+      return
+    } else {
+      if (selected.length >= requiredCount) return
+      nextSelected = [...selected, choiceIndex]
+    }
+
+    setSelected(nextSelected)
+    if (nextSelected.length !== requiredCount) return
+
+    const correctIndexes = current.correctIndexes ?? [current.correctIndex]
+    const isCorrect = nextSelected.length === correctIndexes.length && nextSelected.every(i => correctIndexes.includes(i))
 
     if (!isCorrect) {
-      // wrong に追加（重複防止）
       try {
         const raw = localStorage.getItem(wrongKey)
         const arr = raw ? (JSON.parse(raw) as Question[]) : []
         const exists = Array.isArray(arr) && arr.some(q => q.id === current.id)
         if (!exists) {
-          const next = Array.isArray(arr) ? [...arr, current] : [current]
-          localStorage.setItem(wrongKey, JSON.stringify(next))
+          localStorage.setItem(wrongKey, JSON.stringify([...(Array.isArray(arr) ? arr : []), current]))
         }
       } catch {}
     }
 
     const a: ExamAnswer = {
       questionId: current.id,
-      selectedIndex: choiceIndex,
+      selectedIndex: nextSelected[0] ?? null,
+      selectedIndexes: nextSelected,
       correctIndex: current.correctIndex,
+      correctIndexes,
       isCorrect,
       question: current.question,
       choices: current.choices,
@@ -366,7 +388,6 @@ export default function ExamClient({ quiz }: Props) {
       return next
     })
 
-    // ✅ 自動で次へ（少しだけ間を置く）
     advancingRef.current = true
     window.setTimeout(() => {
       advancingRef.current = false
@@ -399,7 +420,7 @@ export default function ExamClient({ quiz }: Props) {
     const built = buildExamQuestions(quiz.questions, getExamQuestionCount(quizType))
     setQuestions(built)
     setIndex(0)
-    setSelected(null)
+    setSelected([])
     setTimeLeft(EXAM_TIME_SEC)
     setFinished(false)
     setAnswers([])
@@ -432,9 +453,9 @@ export default function ExamClient({ quiz }: Props) {
         const label = sectionLabelMap.get(sid) ?? (sid === 'all' ? '全体' : sid)
 
         const a = answers[i]
-        const selectedIdx = a?.selectedIndex ?? null
-        const correctIdx = a?.correctIndex ?? q.correctIndex
-        const isCorrect = selectedIdx !== null && selectedIdx === correctIdx
+        const selectedIndexes = a?.selectedIndexes ?? (a?.selectedIndex !== null && a?.selectedIndex !== undefined ? [a.selectedIndex] : [])
+        const correctIndexes = a?.correctIndexes ?? q.correctIndexes ?? [a?.correctIndex ?? q.correctIndex]
+        const isCorrect = selectedIndexes.length === correctIndexes.length && selectedIndexes.every(idx => correctIndexes.includes(idx))
 
         const cur = map.get(sid) ?? { id: sid, label, total: 0, correct: 0 }
         cur.total += 1
@@ -528,11 +549,8 @@ export default function ExamClient({ quiz }: Props) {
         <div className="resultList">
           {questions.map((q, i) => {
             const a = answers[i]
-            const selectedIdx = a?.selectedIndex ?? null
-            const correctIdx = a?.correctIndex ?? q.correctIndex
-
-            const hasSign = Boolean((q as any).signId)
-            const imgUrl = hasSign ? `/signs/256/${(q as any).signId}.png` : (q as any).imageUrl
+            const selectedIndexes = a?.selectedIndexes ?? (a?.selectedIndex !== null && a?.selectedIndex !== undefined ? [a.selectedIndex] : [])
+            const correctIndexes = a?.correctIndexes ?? q.correctIndexes ?? [a?.correctIndex ?? q.correctIndex]
 
             return (
               <div key={q.id} className="resultItem">
@@ -540,16 +558,17 @@ export default function ExamClient({ quiz }: Props) {
                   <div className="resultQ">
                     Q{i + 1}. {q.question}
                   </div>
-                  <div className="resultMark">{selectedIdx === null ? '—' : selectedIdx === correctIdx ? '✅' : '❌'}</div>
+                  <div className="resultMark">{selectedIndexes.length === 0 ? '—' : selectedIndexes.length === correctIndexes.length && selectedIndexes.every(idx => correctIndexes.includes(idx)) ? '✅' : '❌'}</div>
                 </div>
 
-                {/* ✅ 画像（signId 優先、なければ imageUrl） */}
-                {imgUrl ? (
-                  <div className="panelSoft" style={{ marginTop: 10, background: '#fff' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imgUrl} alt="問題画像" style={{ width: '100%', height: 'auto', borderRadius: 12, objectFit: 'contain' }} />
-                  </div>
-                ) : null}
+                {/* ✅ 問題画像（従来の signId / imageUrl） */}
+                <QuestionImage q={q} mode="auto" />
+
+                {/* ✅ 4択の選択画像 */}
+                <QuestionImage q={q} purpose="choice" />
+
+                {/* ✅ 解説画像 */}
+                <QuestionImage q={q} purpose="explanation" />
 
                 {q.audioUrl ? (
                   <div style={{ marginTop: 10 }}>
@@ -569,9 +588,9 @@ export default function ExamClient({ quiz }: Props) {
 
                 <div className="resultChoices">
                   {q.choices.map((c, idx) => {
-                    const isCorrect = idx === correctIdx
-                    const isSelected = selectedIdx === idx
-                    const badge = isCorrect ? '（正）' : isSelected ? '（選）' : ''
+                    const isCorrect = correctIndexes.includes(idx)
+                    const isSelected = selectedIndexes.includes(idx)
+                    const badge = isCorrect && isSelected ? '（正・選）' : isCorrect ? '（正）' : isSelected ? '（選）' : ''
                     return (
                       <div key={idx} style={{ opacity: isCorrect || isSelected ? 1 : 0.85 }}>
                         {idx + 1}. {c} {badge}
@@ -589,8 +608,6 @@ export default function ExamClient({ quiz }: Props) {
     )
   }
 
-  const hasSign = Boolean((current as any).signId)
-  const imageUrl = hasSign ? `/signs/512/${(current as any).signId}.png` : (current as any).imageUrl
 
   return (
     <QuizLayout title={`${quiz.title}（模擬試験）`} subtitle="回答すると自動で次の問題へ進みます（正誤は表示されません）">
@@ -605,13 +622,11 @@ export default function ExamClient({ quiz }: Props) {
 
       <h2 className="question">{current.question}</h2>
 
-      {/* ✅ 画像（signId 優先、なければ imageUrl） */}
-      {imageUrl ? (
-        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageUrl} alt="問題画像" style={{ width: '100%', height: 'auto', borderRadius: 12, objectFit: 'contain' }} />
-        </div>
-      ) : null}
+      {/* ✅ 問題画像（従来の signId / imageUrl） */}
+      <QuestionImage q={current} mode="auto" />
+
+      {/* ✅ 4択の選択画像 */}
+      <QuestionImage q={current} purpose="choice" />
 
       {current.audioUrl ? (
         <div style={{ margin: '12px 0' }}>
@@ -632,21 +647,31 @@ export default function ExamClient({ quiz }: Props) {
       ) : null}
 
       <div className="choiceList">
-        {current.choices.map((c, i) => {
-          const isChosen = selected !== null && i === selected
+        {(() => {
+          const requiredCount = current.correctIndexes?.length ?? 1
           return (
-            <Button
-              key={i}
-              variant={isChosen ? 'sub' : 'choice'}
-              onClick={() => answer(i)}
-              disabled={selected !== null || isListeningSpeaking}
-              isCorrect={false}
-              isWrong={false}
-            >
-              {c}
-            </Button>
+            <>
+              {requiredCount > 1 && (
+                <p className="note">※ 正しいものを {requiredCount}つ選んでください（{selected.length}/{requiredCount}）</p>
+              )}
+              {current.choices.map((c, i) => {
+                const isChosen = selected.includes(i)
+                return (
+                  <Button
+                    key={i}
+                    variant={isChosen ? 'sub' : 'choice'}
+                    onClick={() => answer(i)}
+                    disabled={isListeningSpeaking || (requiredCount <= 1 ? selected.length > 0 : false)}
+                    isCorrect={false}
+                    isWrong={false}
+                  >
+                    {c}
+                  </Button>
+                )
+              })}
+            </>
           )
-        })}
+        })()}
       </div>
 
       <p className="note">※ 中断すると途中から再開できます（タイマーも保存されます）</p>

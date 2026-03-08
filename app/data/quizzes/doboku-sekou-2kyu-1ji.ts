@@ -18,9 +18,9 @@ export const dobokuSekou2kyu1ji: Quiz = {
     "correctIndex": 0,
     "explanation": "モータグレーダは、土の敷均しは出来ますが、締固め作業はできません。"
   },
-  {
-    "id": 2,,
-    "imageUrl": "/quiz-images/image1.png"
+    {
+    "id": 2,
+    "imageUrl": "/quiz-images/image1.png",
     "sectionId": "all",
     "question": "ボーリングの土質柱状図に関する下記の文章中の（　　　）の（イ）、（ロ）、（ハ）に当てはまる語句及び数値の次の組合せのうち、適当なものはどれか。N値の測定は、深さ（　イ　）mごとに行われる。そのうち、はじめの貫入量（　ロ　）cmについて測定し、この（　ハ　）がN値である。",
     "choices": [
@@ -30,8 +30,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "（イ）1　　（ロ）10　　（ハ）沈下量"
     ],
     "correctIndex": 2,
-    "explanation": "ボーリング調査における土質柱状図の『Ｎ値』の定義です。設問の通りですので、そのまま覚えるようにしましょう。また数字の部分は土質柱状図の内容から答えを導き出すことも可能です。忘れてしまっても思い出せるよう、土質柱状図の表記と合わせて覚えておくとより安心です。",
-    "imageUrl": "/quiz-images/image1.jpeg"
+    "explanation": "ボーリング調査における土質柱状図の『Ｎ値』の定義です。設問の通りですので、そのまま覚えるようにしましょう。また数字の部分は土質柱状図の内容から答えを導き出すことも可能です。忘れてしまっても思い出せるよう、土質柱状図の表記と合わせて覚えておくとより安心です。"
   },
   {
     "id": 3,
@@ -56,7 +55,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "サンドドレーン工法",
       "押え盛土工法"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "explanation": "軟弱地盤中に棒状の振動機を挿入し、さらに水を注入することで、締固めを行う工法です。"
   },
   {

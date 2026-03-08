@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
+import QuestionImage from '@/app/components/QuestionImage'
 import type { Question, Quiz, QuizType } from '@/app/data/types'
 
 import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
@@ -22,7 +23,7 @@ function isQuestionLike(v: any): v is Question {
     (typeof v.id === 'number' || typeof v.id === 'string') &&
     typeof v.question === 'string' &&
     Array.isArray(v.choices) &&
-    typeof v.correctIndex === 'number'
+    typeof v.correctIndex === 'number' && (!('correctIndexes' in v) || Array.isArray(v.correctIndexes))
   )
 }
 
@@ -41,7 +42,7 @@ export default function ReviewClient({ quiz }: Props) {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number[]>([])
 
   const goModeSelect = () => {
     stopSpeak()
@@ -55,7 +56,7 @@ export default function ReviewClient({ quiz }: Props) {
       if (!saved) {
         setQuestions([])
         setIndex(0)
-        setSelected(null)
+        setSelected([])
         return
       }
 
@@ -65,18 +66,18 @@ export default function ReviewClient({ quiz }: Props) {
         const list = uniqById(data.filter(isQuestionLike) as Question[])
         setQuestions(list)
         setIndex(0)
-        setSelected(null)
+        setSelected([])
         return
       }
 
       setQuestions([])
       setIndex(0)
-      setSelected(null)
+      setSelected([])
     } catch {
       localStorage.removeItem(storageKey)
       setQuestions([])
       setIndex(0)
-      setSelected(null)
+      setSelected([])
     }
   }, [storageKey])
 
@@ -91,12 +92,14 @@ export default function ReviewClient({ quiz }: Props) {
   }, [])
 
   const current = questions[index]
-  const answered = selected !== null
+  const correctIndexes = current?.correctIndexes ?? (current ? [current.correctIndex] : [])
+  const requiredCount = correctIndexes.length
+  const answered = requiredCount > 0 && selected.length === requiredCount
 
   const isCorrect = useMemo(() => {
-    if (!current || selected === null) return false
-    return selected === current.correctIndex
-  }, [current, selected])
+    if (!current) return false
+    return selected.length === correctIndexes.length && selected.every(i => correctIndexes.includes(i))
+  }, [current, selected, correctIndexes])
 
   // ✅ 正解した問題を wrong から削除（localStorage & state 両方）
   const removeCurrentFromWrong = (qid: any) => {
@@ -149,7 +152,17 @@ export default function ReviewClient({ quiz }: Props) {
   const answer = (i: number) => {
     if (answered) return
     stopSpeak()
-    setSelected(i)
+
+    if (requiredCount <= 1) {
+      setSelected([i])
+      return
+    }
+
+    setSelected(prev => {
+      if (prev.includes(i)) return prev.filter(v => v !== i)
+      if (prev.length >= requiredCount) return prev
+      return [...prev, i]
+    })
   }
 
   const onListen = () => {
@@ -164,7 +177,7 @@ export default function ReviewClient({ quiz }: Props) {
 
     if (isCorrect) {
       const qid = (current as any).id
-      setSelected(null)
+      setSelected([])
 
       const willBe = questions.filter(q => String((q as any).id) !== String(qid))
       if (willBe.length === 0) {
@@ -179,7 +192,7 @@ export default function ReviewClient({ quiz }: Props) {
       return
     }
 
-    setSelected(null)
+    setSelected([])
     if (index + 1 < questions.length) {
       setIndex(prev => prev + 1)
     } else {
@@ -189,8 +202,6 @@ export default function ReviewClient({ quiz }: Props) {
 
   const isLastNow = index >= questions.length - 1
 
-  const hasSign = Boolean((current as any).signId)
-  const imageUrl = hasSign ? `/signs/512/${(current as any).signId}.png` : ((current as any).imageUrl as string | undefined)
 
   return (
     <QuizLayout title={`${quiz.title}（復習）`} subtitle="正解した問題はリストから消えます">
@@ -202,24 +213,12 @@ export default function ReviewClient({ quiz }: Props) {
       </div>
 
       <h2 className="question">{current.question}</h2>
+      {/* ✅ 問題画像（従来の signId / imageUrl） */}
+      <QuestionImage q={current} mode="auto" />
 
-      {/* ✅ 画像（signId 優先、なければ imageUrl） */}
-      {imageUrl ? (
-        <div className="panelSoft" style={{ margin: '12px 0', background: '#fff' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={((current as any).imageAlt as string) || '問題の画像'}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              borderRadius: 12,
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      ) : null}
+      {/* ✅ 4択の選択画像 */}
+      <QuestionImage q={current} purpose="choice" />
+
 
       {/* ✅ Listening UI（MP3なくてもOK） */}
       {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
@@ -245,18 +244,26 @@ export default function ReviewClient({ quiz }: Props) {
       )}
 
       <div className="choiceList">
-        {current.choices.map((c, i) => (
-          <Button
-            key={i}
-            variant="choice"
-            onClick={() => answer(i)}
-            disabled={answered}
-            isCorrect={answered && i === current.correctIndex}
-            isWrong={answered && i === selected && i !== current.correctIndex}
-          >
-            {c}
-          </Button>
-        ))}
+        {requiredCount > 1 && !answered && (
+          <div className="note" style={{ marginBottom: 8 }}>
+            正しいものを {requiredCount}つ選んでください（{selected.length}/{requiredCount}）
+          </div>
+        )}
+        {current.choices.map((c, i) => {
+          const isPicked = selected.includes(i)
+          return (
+            <Button
+              key={i}
+              variant={isPicked && !answered ? 'sub' : 'choice'}
+              onClick={() => answer(i)}
+              disabled={answered}
+              isCorrect={answered && correctIndexes.includes(i)}
+              isWrong={answered && isPicked && !correctIndexes.includes(i)}
+            >
+              {c}
+            </Button>
+          )
+        })}
       </div>
 
       {answered ? (
@@ -265,6 +272,7 @@ export default function ReviewClient({ quiz }: Props) {
             {isCorrect ? '⭕ 正解！（この問題は復習リストから消えます）' : '❌ 不正解（復習に残します）'}
           </div>
 
+          <QuestionImage q={current} purpose="explanation" />
           {(current as any).explanation && <p className="explainText">{(current as any).explanation}</p>}
 
           <div className="actions">

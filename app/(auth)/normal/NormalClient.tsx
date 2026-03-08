@@ -6,6 +6,7 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import ListeningControls from '@/app/components/ListeningControls'
 import AudioPlayerButton from '@/app/components/AudioPlayerButton'
+import QuestionImage from '@/app/components/QuestionImage'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
 
 import { useAuth } from '@/app/lib/useAuth'
@@ -176,7 +177,7 @@ export default function NormalClient({ quiz }: Props) {
   const [index, setIndex] = useState(0)
   const indexRef = useRef(0)
 
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number[]>([])
   const [showExplanation, setShowExplanation] = useState(false)
   const [correct, setCorrect] = useState(false)
 
@@ -239,7 +240,7 @@ export default function NormalClient({ quiz }: Props) {
       if (filtered.length === 0) {
         setQuestions([])
         setIndex(0)
-        setSelected(null)
+        setSelected([])
         setShowExplanation(false)
         setCorrect(false)
         return
@@ -248,7 +249,7 @@ export default function NormalClient({ quiz }: Props) {
       const built = buildRandomQuestions(filtered)
       setQuestions(built)
       setIndex(0)
-      setSelected(null)
+      setSelected([])
       setShowExplanation(false)
       setCorrect(false)
 
@@ -276,7 +277,7 @@ export default function NormalClient({ quiz }: Props) {
       if (filtered.length === 0) {
         setQuestions([])
         setIndex(0)
-        setSelected(null)
+        setSelected([])
         setShowExplanation(false)
         setCorrect(false)
         return
@@ -311,7 +312,7 @@ export default function NormalClient({ quiz }: Props) {
 
     setQuestions(loadedQuestions)
     setIndex(resumeIndex)
-    setSelected(null)
+    setSelected([])
     setShowExplanation(false)
     setCorrect(false)
   }
@@ -455,10 +456,44 @@ export default function NormalClient({ quiz }: Props) {
   const current = questions[index]
 
   const answer = (choiceIndex: number) => {
-    if (selected !== null) return
-    setSelected(choiceIndex)
+    const requiredCount = current.correctIndexes?.length ?? 1
+    const answered = showExplanation
+    if (answered) return
 
-    const isCorrect = choiceIndex === current.correctIndex
+    if (requiredCount <= 1) {
+      const nextSelected = [choiceIndex]
+      setSelected(nextSelected)
+      const correctIndexes = current.correctIndexes ?? [current.correctIndex]
+      const isCorrect = nextSelected.length === correctIndexes.length && nextSelected.every(i => correctIndexes.includes(i))
+      setCorrect(isCorrect)
+      setShowExplanation(true)
+
+      if (isCorrect) playBeep(880, 120, 'triangle')
+      else playBeep(220, 180, 'sawtooth')
+
+      if (!isCorrect) {
+        const exists = wrongRef.current.some(q => q.id === current.id)
+        if (!exists) {
+          wrongRef.current = [...wrongRef.current, current]
+          localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+        }
+      }
+      return
+    }
+
+    const existsInSelected = selected.includes(choiceIndex)
+    const nextSelected = existsInSelected
+      ? selected.filter(i => i !== choiceIndex)
+      : selected.length < requiredCount
+        ? [...selected, choiceIndex]
+        : selected
+
+    setSelected(nextSelected)
+
+    if (nextSelected.length !== requiredCount) return
+
+    const correctIndexes = current.correctIndexes ?? [current.correctIndex]
+    const isCorrect = nextSelected.every(i => correctIndexes.includes(i))
     setCorrect(isCorrect)
     setShowExplanation(true)
 
@@ -475,7 +510,7 @@ export default function NormalClient({ quiz }: Props) {
   }
 
   const next = async () => {
-    setSelected(null)
+    setSelected([])
     setShowExplanation(false)
 
     if (index + 1 >= questions.length) {
@@ -593,58 +628,12 @@ export default function NormalClient({ quiz }: Props) {
       </p>
 
       <h2>{current.question}</h2>
+      {/* ✅ 問題画像（従来の signId / imageUrl） */}
+      <QuestionImage q={current} mode="auto" />
 
-      {/* ✅ 画像表示の優先順位：signId > imageUrl（←二重表示を防ぐ） */}
-      {current.signId ? (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 10,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#fff',
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/signs/512/${current.signId}.png`}
-            alt={current.imageAlt || '標識'}
-            style={{
-              width: 240,
-              maxWidth: '100%',
-              height: 'auto',
-              display: 'block',
-              borderRadius: 10,
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      ) : current.imageUrl ? (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: 10,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#fff',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={current.imageUrl}
-            alt={current.imageAlt || '問題の画像'}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              borderRadius: 10,
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      ) : null}
+      {/* ✅ 4択の選択画像 */}
+      <QuestionImage q={current} purpose="choice" />
+
 
       {current.audioUrl ? (
         <div style={{ margin: '12px 0' }}>
@@ -660,22 +649,39 @@ export default function NormalClient({ quiz }: Props) {
         />
       ) : null}
 
-      {current.choices.map((c, i) => (
-        <Button
-          key={i}
-          variant="choice"
-          onClick={() => answer(i)}
-          disabled={selected !== null}
-          isCorrect={selected !== null && i === current.correctIndex}
-          isWrong={selected !== null && i === selected && i !== current.correctIndex}
-        >
-          {c}
-        </Button>
-      ))}
+      {(() => {
+        const correctIndexes = current.correctIndexes ?? [current.correctIndex]
+        const requiredCount = correctIndexes.length
+        return (
+          <>
+            {requiredCount > 1 && !showExplanation && (
+              <div style={{ margin: '8px 0 12px', fontSize: 13, opacity: 0.8 }}>
+                正しいものを {requiredCount}つ選んでください（{selected.length}/{requiredCount}）
+              </div>
+            )}
+            {current.choices.map((c, i) => {
+              const isPicked = selected.includes(i)
+              return (
+                <Button
+                  key={i}
+                  variant={isPicked && !showExplanation ? 'sub' : 'choice'}
+                  onClick={() => answer(i)}
+                  disabled={showExplanation}
+                  isCorrect={showExplanation && correctIndexes.includes(i)}
+                  isWrong={showExplanation && isPicked && !correctIndexes.includes(i)}
+                >
+                  {c}
+                </Button>
+              )
+            })}
+          </>
+        )
+      })()}
 
       {showExplanation && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
+          <QuestionImage q={current} purpose="explanation" />
           <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanation}</div>
 
           <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>

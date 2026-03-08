@@ -16,9 +16,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 0,
-    "explanation": "【正解】(誤っているもの) 1\nこの問題は、テレビ共同受信設備に使用される「配線用図記号」と、その「名称」の組み合わせとして、不適当なもの（誤っているもの）を選ぶ問題です。\n1の図記号は、4分配器ではなく、4分岐器の記号です。\n何度か間違いの選択肢として出題されているので、しっかり覚えておきましょう。",
-    "imageUrl": "/quiz-images/image14.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q1.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanation": "【正解】(誤っているもの) 1\nこの問題は、テレビ共同受信設備に使用される「配線用図記号」と、その「名称」の組み合わせとして、不適当なもの（誤っているもの）を選ぶ問題です。\n1の図記号は、4分配器ではなく、4分岐器の記号です。\n何度か間違いの選択肢として出題されているので、しっかり覚えておきましょう。"
   },
   {
     "id": 2,
@@ -44,9 +44,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 3,
-    "explanation": "4肢の図記号は本配線盤である。したがって、４が誤っているものである。",
-    "imageUrl": "/quiz-images/image19.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q3.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q3_ex.jpeg",
+    "explanationImageAlt": "解説画像",
+    "explanation": "4肢の図記号は本配線盤である。したがって、４が誤っているものである。"
   },
   {
     "id": 4,
@@ -59,9 +61,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 0,
-    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、構内電気に用いられる機器の名称および図記号が規定されている。表は、そのうち説明に関するものを抜粋して示したものである。したがって、１が誤っているものである。",
-    "imageUrl": "/quiz-images/image24.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q4.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q4_ex.jpeg",
+    "explanationImageAlt": "解説画像",
+    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、構内電気に用いられる機器の名称および図記号が規定されている。表は、そのうち説明に関するものを抜粋して示したものである。したがって、１が誤っているものである。"
   },
   {
     "id": 5,
@@ -74,9 +78,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 2,
-    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、構内電気設備に用いられる機器の名称および図記号が規定されており、表に説明に関するものを抜粋して示す。したがって３が正しいものである。",
-    "imageUrl": "/quiz-images/image29.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q5.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q5_ex.jpeg",
+    "explanationImageAlt": "解説画像",
+    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、構内電気設備に用いられる機器の名称および図記号が規定されており、表に説明に関するものを抜粋して示す。したがって３が正しいものである。"
   },
   {
     "id": 6,
@@ -89,9 +95,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 0,
-    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、コンセントの図記号が規定されている。各コンセントの図記号は表のとおりである。したがって１が正しいものである。",
-    "imageUrl": "/quiz-images/image34.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q6.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q6_ex.jpeg",
+    "explanationImageAlt": "解説画像",
+    "explanation": "JIS C 0303「構内電気設備の配線用図記号」に、コンセントの図記号が規定されている。各コンセントの図記号は表のとおりである。したがって１が正しいものである。"
   },
   {
     "id": 7,
@@ -104,6 +112,8 @@ export const denkiSekou2kyu1ji: Quiz = {
       "端子盤の記号"
     ],
     "correctIndex": 1,
+    "choiceImageUrl": "/quiz-images/q7.png",
+    "choiceImageAlt": "選択画像（4枚）",
     "explanation": "チャイムの図記号は、四角の中に音符のマークです。Ⓒはチャイムの記号ではありません。したがって、2が正しい答えです。"
   },
   {
@@ -117,9 +127,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "電磁接触器"
     ],
     "correctIndex": 2,
-    "explanation": "• 日本電機工業会規格 (JEM) 1115 に、配電盤・制御盤・制御装置の用語及び文字記号が規定されている。主な用語と文字記号は次表の通りであり、設問の「ELCB」は漏電遮断器である。したがって、**(3)**が正しいものである。",
-    "imageUrl": "/quiz-images/image39.png",
-    "imageAlt": "解説画像"
+    "explanationImageUrl": "/quiz-images/q8_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "• 日本電機工業会規格 (JEM) 1115 に、配電盤・制御盤・制御装置の用語及び文字記号が規定されている。主な用語と文字記号は次表の通りであり、設問の「ELCB」は漏電遮断器である。したがって、**(3)**が正しいものである。"
   },
   {
     "id": 9,
@@ -132,9 +142,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 0,
-    "explanation": "図の通り、1の図記号の名称は、誘導灯ではなく、非常用照明（蛍光灯形）である。したがって、1が不適当なものである。",
-    "imageUrl": "/quiz-images/image44.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q9.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q9_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "図の通り、1の図記号の名称は、誘導灯ではなく、非常用照明（蛍光灯形）である。したがって、1が不適当なものである。"
   },
   {
     "id": 10,
@@ -147,9 +159,11 @@ export const denkiSekou2kyu1ji: Quiz = {
       "4"
     ],
     "correctIndex": 3,
-    "explanation": "図の通り、4の図記号の名称は、端子盤ではなく、ターミナルアダプタである。したがって、4が不適当なものである。",
-    "imageUrl": "/quiz-images/image49.png",
-    "imageAlt": "解説画像"
+    "choiceImageUrl": "/quiz-images/q10.png",
+    "choiceImageAlt": "選択画像（4枚）",
+    "explanationImageUrl": "/quiz-images/q10_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "図の通り、4の図記号の名称は、端子盤ではなく、ターミナルアダプタである。したがって、4が不適当なものである。"
   },
   {
     "id": 11,
@@ -162,8 +176,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "35日"
     ],
     "correctIndex": 3,
-    "explanation": "【正解】：5\nこの問題は、提示された「ネットワーク工程表（アロー型ネットワーク）」の図に基づき、クリティカルパス（最長経路）の日数、すなわち所要工期を計算して選ぶ問題です。\nクリティカルパスとは、スタート（開始イベント）からゴール（終了イベント）までをつなぐ経路のうち、所要日数の合計が最も長くなる経路のことです。\n１からスタートします。１はスタートでまだ作業がはじめっていないのでゼロです。\n各点では入ってくる矢印を見ます。\n５の点は、作業Ｃしか入ってきていないので、作業Ｃの日数の5となります。\n次に、2も同様に、作業Ｂしか入ってきていないので、作業Ｂの日数の4となります。\n次に３は、作業Ａと作業Ｄの２つの矢印が入ってきているので、それぞれ計算して、数字の大きい方をとります。\nまず、作業Ａの方の日数は３、作業Ｄは、２の4日に、作業日数6日を足して10、大きい数字を取るので、３は10となります。\nこのようにゴールまでの最も長くなる日数を計算すると、35日となります。",
-    "imageUrl": "/quiz-images/image50.png"
+    "explanationImageUrl": "/quiz-images/q11_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "【正解】：5\nこの問題は、提示された「ネットワーク工程表（アロー型ネットワーク）」の図に基づき、クリティカルパス（最長経路）の日数、すなわち所要工期を計算して選ぶ問題です。\nクリティカルパスとは、スタート（開始イベント）からゴール（終了イベント）までをつなぐ経路のうち、所要日数の合計が最も長くなる経路のことです。\n１からスタートします。１はスタートでまだ作業がはじめっていないのでゼロです。\n各点では入ってくる矢印を見ます。\n５の点は、作業Ｃしか入ってきていないので、作業Ｃの日数の5となります。\n次に、2も同様に、作業Ｂしか入ってきていないので、作業Ｂの日数の4となります。\n次に３は、作業Ａと作業Ｄの２つの矢印が入ってきているので、それぞれ計算して、数字の大きい方をとります。\nまず、作業Ａの方の日数は３、作業Ｄは、２の4日に、作業日数6日を足して10、大きい数字を取るので、３は10となります。\nこのようにゴールまでの最も長くなる日数を計算すると、35日となります。"
   },
   {
     "id": 12,
@@ -875,9 +890,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "不活性ガス消火設備"
     ],
     "correctIndex": 1,
-    "explanation": "• 消防法において、消防用設備等として定められているものは、消防の用に供する設備、消防用水、消火活動上必要な施設の 3 種類があり、そのうち、消防の用に供する設備は、消火設備、警報設備、避難設備に分けられる。\n• 次表は、消防用設備等の体系を示した表であり、設問の肢の中で消火設備として定められていないものは消防用水である。したがって、**(2)**が定められていないものである。",
-    "imageUrl": "/quiz-images/image62.png",
-    "imageAlt": "解説画像"
+    "explanationImageUrl": "/quiz-images/q65_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "• 消防法において、消防用設備等として定められているものは、消防の用に供する設備、消防用水、消火活動上必要な施設の 3 種類があり、そのうち、消防の用に供する設備は、消火設備、警報設備、避難設備に分けられる。\n• 次表は、消防用設備等の体系を示した表であり、設問の肢の中で消火設備として定められていないものは消防用水である。したがって、**(2)**が定められていないものである。"
   },
   {
     "id": 66,
@@ -1191,8 +1206,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "耐霧がいし"
     ],
     "correctIndex": 1,
-    "explanation": "• 図より、問題の図は長幹がいしである。したがって、**(2)**が適当なものである。\n    ◦ （参考）図に示されている各がいしの名称：\n        ▪ 懸垂がいし\n        ▪ 長幹がいし\n        ▪ 高圧ピンがいし\n        ▪ 耐霧がいし（スモッグがいし）\n        ▪ ラインポストがいし",
-    "imageUrl": "/quiz-images/image65.png"
+    "explanationImageUrl": "/quiz-images/q89_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "• 図より、問題の図は長幹がいしである。したがって、**(2)**が適当なものである。\n    ◦ （参考）図に示されている各がいしの名称：\n        ▪ 懸垂がいし\n        ▪ 長幹がいし\n        ▪ 高圧ピンがいし\n        ▪ 耐霧がいし（スモッグがいし）\n        ▪ ラインポストがいし"
   },
   {
     "id": 90,
@@ -1232,9 +1248,9 @@ export const denkiSekou2kyu1ji: Quiz = {
       "発信機との間で電話連絡をすることができる装置を有しなければならない。"
     ],
     "correctIndex": 3,
-    "explanation": "P型受信機とは、火災信号を共通の信号として受信し、警報音や音声で火災を知らせる自動火災報知設備のことです。\n\nP形には、1級から3級までが存在して、対応できる回線の本数が異なります。\n\n \n\n1級: ～100回線\n\n2級: 5回線\n\n3級: 1回線\n\n選択肢1. 火災灯を省略することができる。\n正しい内容です。\n\n火災灯とは、火災の発生を知らせる表示灯です。\n\n接地に関する規定はありませんが、接地基準は、消防法で定められています。\n\n選択肢2. 主音響装置の音圧は85dB以上である。\n正しい内容です。\n\n主音響装置とは、火災受信機のスピーカから発せられる火災の警報音を指します。\n\n主音響装置の音圧は、1m離れた地点で85デシベルである必要があります。\n\n選択肢3. 接続することができる回線の数は、5以下である。\n正しい内容です。\n\n冒頭でも述べたように、P型2級は、5以下です。\n\n選択肢4. 発信機との間で電話連絡をすることができる装置を有しなければならない。\n誤った内容です。\n\nこの要件は、主に「R型受信機」や大規模施設向けの装置に適用されるものです。\n\n \n\nR型受信機とは、火災信号、火災信号、火災表示信号をそれぞれ固有の信号として受信し、火災の発生を防火対象物の関係者に報知するものをいいます。",
-    "imageUrl": "/quiz-images/image68.png",
-    "imageAlt": "解説画像"
+    "explanationImageUrl": "/quiz-images/q92_ex.png",
+    "explanationImageAlt": "解説画像",
+    "explanation": "P型受信機とは、火災信号を共通の信号として受信し、警報音や音声で火災を知らせる自動火災報知設備のことです。\n\nP形には、1級から3級までが存在して、対応できる回線の本数が異なります。\n\n \n\n1級: ～100回線\n\n2級: 5回線\n\n3級: 1回線\n\n選択肢1. 火災灯を省略することができる。\n正しい内容です。\n\n火災灯とは、火災の発生を知らせる表示灯です。\n\n接地に関する規定はありませんが、接地基準は、消防法で定められています。\n\n選択肢2. 主音響装置の音圧は85dB以上である。\n正しい内容です。\n\n主音響装置とは、火災受信機のスピーカから発せられる火災の警報音を指します。\n\n主音響装置の音圧は、1m離れた地点で85デシベルである必要があります。\n\n選択肢3. 接続することができる回線の数は、5以下である。\n正しい内容です。\n\n冒頭でも述べたように、P型2級は、5以下です。\n\n選択肢4. 発信機との間で電話連絡をすることができる装置を有しなければならない。\n誤った内容です。\n\nこの要件は、主に「R型受信機」や大規模施設向けの装置に適用されるものです。\n\n \n\nR型受信機とは、火災信号、火災信号、火災表示信号をそれぞれ固有の信号として受信し、火災の発生を防火対象物の関係者に報知するものをいいます。"
   },
   {
     "id": 93,
