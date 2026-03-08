@@ -41,6 +41,8 @@ export type Question = {
   correctIndex: number
   correctIndexes?: number[]
   explanation: string
+  point?: string
+  trap?: string
   signId?: string
 
   // ✅ Listening対応（MP3がなくてもOK）
