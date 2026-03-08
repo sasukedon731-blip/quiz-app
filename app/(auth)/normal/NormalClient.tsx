@@ -663,18 +663,47 @@ export default function NormalClient({ quiz }: Props) {
       )}
 
       {showExplanation && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontWeight: 900, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
-          <QuestionImage q={current} purpose="explanation" />
-          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{stripLeadingAnswerLabel(current.explanation)}</div>
-<div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-  {stripLeadingAnswerLabel(current.explanation)}
-</div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="main" onClick={next}>
-              次へ
-            </Button>
+  <div style={{ marginTop: 12 }}>
+    <div style={{ fontWeight: 900, marginBottom: 6 }}>
+      {correct ? '✅ 正解！' : '❌ 不正解'}
+    </div>
+
+    <div style={{ fontWeight: 700, marginBottom: 8 }}>
+      【正解】 {formatCorrectAnswerLabels(current)}
+    </div>
+
+    <QuestionImage q={current} purpose="explanation" />
+
+    <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+      {stripLeadingAnswerLabel(current.explanation)}
+    </div>
+
+    {current.point && (
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 4 }}>
+          ポイント
+        </div>
+        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+          {current.point}
+        </div>
+      </div>
+    )}
+
+    {current.trap && (
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+          注意
+        </div>
+        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+          {current.trap}
+        </div>
+      </div>
+    )}
+
+    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <Button variant="main" onClick={next}>
+        次へ
+      </Button>
             <Button variant="accent" onClick={interrupt}>
               中断して戻る
             </Button>
