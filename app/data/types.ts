@@ -38,7 +38,7 @@ export type Question = {
 
   question: string
   choices: string[]
-  correctIndex: number
+  correctIndex?: number
   correctIndexes?: number[]
   explanation: string
   point?: string

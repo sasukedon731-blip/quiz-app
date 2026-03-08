@@ -50,8 +50,13 @@ export default function ChoiceBattleGame({ quizType, mode }: Props) {
   const lockedRef = useRef(false)
 
   const q = questions[idx % (questions.length || 1)]
-  const correct = q?.choices[q.correctIndex]
-  const timeLimitSec = computeTimeLimit(mode, level)
+
+const correct =
+  q && typeof q.correctIndex === "number"
+    ? q.choices[q.correctIndex]
+    : undefined
+
+const timeLimitSec = computeTimeLimit(mode, level)
 
   useEffect(() => {
     if (phase !== "playing") return
