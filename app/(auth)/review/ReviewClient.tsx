@@ -6,7 +6,7 @@ import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
 import QuestionImage from '@/app/components/QuestionImage'
 import type { Question, Quiz, QuizType } from '@/app/data/types'
-
+import { formatCorrectAnswerLabels, getCorrectIndexes, isCorrectSelection, isMultiAnswerQuestion, isSelectionComplete, requiredAnswerCount, stripLeadingAnswerLabel } from '@/app/lib/questionAnswer'
 import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
 
 const STORAGE_WRONG_KEY = 'wrong'
@@ -15,7 +15,6 @@ type Props = {
   quiz: Quiz
 }
 
-// ✅ 既存互換を崩さないため「idは number 想定」維持しつつ、落ちにくい判定にする
 function isQuestionLike(v: any): v is Question {
   return (
     v &&
@@ -23,33 +22,29 @@ function isQuestionLike(v: any): v is Question {
     (typeof v.id === 'number' || typeof v.id === 'string') &&
     typeof v.question === 'string' &&
     Array.isArray(v.choices) &&
-    typeof v.correctIndex === 'number' && (!('correctIndexes' in v) || Array.isArray(v.correctIndexes))
+    (typeof v.correctIndex === 'number' || Array.isArray(v.correctIndexes))
   )
 }
 
-// ✅ id が number / string どちらでも一意化できる
 function uniqById(list: Question[]) {
-  return Array.from(new Map(list.map(q => [String((q as any).id), q])).values())
+  return Array.from(new Map(list.map((q) => [String((q as any).id), q])).values())
 }
 
 export default function ReviewClient({ quiz }: Props) {
   const router = useRouter()
-
-  // ✅ Normal / Exam と同じ：唯一の真実は quiz.id
   const quizType: QuizType = quiz.id
-
   const storageKey = `${STORAGE_WRONG_KEY}-${quizType}`
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number[]>([])
+  const [submitted, setSubmitted] = useState(false)
 
   const goModeSelect = () => {
     stopSpeak()
     router.push(`/select-mode?type=${encodeURIComponent(quizType)}`)
   }
 
-  // 初回ロード：wrong-${quizType}（Question[]）を読む
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey)
@@ -57,129 +52,117 @@ export default function ReviewClient({ quiz }: Props) {
         setQuestions([])
         setIndex(0)
         setSelected([])
+        setSubmitted(false)
         return
       }
 
       const data = JSON.parse(saved)
-
       if (Array.isArray(data)) {
-        const list = uniqById(data.filter(isQuestionLike) as Question[])
-        setQuestions(list)
+        setQuestions(uniqById(data.filter(isQuestionLike) as Question[]))
         setIndex(0)
         setSelected([])
+        setSubmitted(false)
         return
       }
 
       setQuestions([])
       setIndex(0)
       setSelected([])
+      setSubmitted(false)
     } catch {
       localStorage.removeItem(storageKey)
       setQuestions([])
       setIndex(0)
       setSelected([])
+      setSubmitted(false)
     }
   }, [storageKey])
 
-  // ✅ 問題が切り替わったら読み上げ停止（音が残らない）
   useEffect(() => {
     stopSpeak()
+    setSelected([])
+    setSubmitted(false)
   }, [index])
 
-  // ✅ 画面離脱時にも停止
   useEffect(() => {
     return () => stopSpeak()
   }, [])
 
   const current = questions[index]
-  const correctIndexes = current?.correctIndexes ?? (current ? [current.correctIndex] : [])
-  const requiredCount = correctIndexes.length
-  const answered = requiredCount > 0 && selected.length === requiredCount
+  const answered = submitted
 
   const isCorrect = useMemo(() => {
-    if (!current) return false
-    return selected.length === correctIndexes.length && selected.every(i => correctIndexes.includes(i))
-  }, [current, selected, correctIndexes])
+    if (!current || !submitted) return false
+    return isCorrectSelection(current, selected)
+  }, [current, selected, submitted])
 
-  // ✅ 正解した問題を wrong から削除（localStorage & state 両方）
   const removeCurrentFromWrong = (qid: any) => {
     const key = String(qid)
-
-    setQuestions(prev => {
-      const next = prev.filter(q => String((q as any).id) !== key)
-
+    setQuestions((prev) => {
+      const next = prev.filter((q) => String((q as any).id) !== key)
       try {
         localStorage.setItem(storageKey, JSON.stringify(next))
       } catch {}
-
-      setIndex(i => {
-        const max = Math.max(0, next.length - 1)
-        return Math.min(i, max)
-      })
-
+      setIndex((i) => Math.min(i, Math.max(0, next.length - 1)))
       return next
     })
   }
 
-  // 復習対象なし
-  if (!questions || questions.length === 0) {
+  if (!questions.length) {
     return (
       <QuizLayout title={`${quiz.title}（復習）`} subtitle="復習リストは空です">
         <p className="note">復習する問題はありません</p>
         <div className="actions">
-          <Button variant="accent" onClick={goModeSelect}>
-            モード選択に戻る
-          </Button>
+          <Button variant="accent" onClick={goModeSelect}>モード選択に戻る</Button>
         </div>
       </QuizLayout>
     )
   }
 
-  // current がない（保険）
   if (!current) {
     return (
       <QuizLayout title={`${quiz.title}（復習）`} subtitle="読み込みエラー">
         <p className="note">問題の読み込みに失敗しました</p>
         <div className="actions">
-          <Button variant="accent" onClick={goModeSelect}>
-            モード選択に戻る
-          </Button>
+          <Button variant="accent" onClick={goModeSelect}>モード選択に戻る</Button>
         </div>
       </QuizLayout>
     )
   }
 
-  const answer = (i: number) => {
-    if (answered) return
+  const toggleChoice = (i: number) => {
+    if (submitted) return
     stopSpeak()
 
-    if (requiredCount <= 1) {
+    if (!isMultiAnswerQuestion(current)) {
       setSelected([i])
       return
     }
 
-    setSelected(prev => {
-      if (prev.includes(i)) return prev.filter(v => v !== i)
-      if (prev.length >= requiredCount) return prev
-      return [...prev, i]
+    const needed = requiredAnswerCount(current)
+    setSelected((prev) => {
+      if (prev.includes(i)) return prev.filter((v) => v !== i)
+      if (prev.length >= needed) return prev
+      return [...prev, i].sort((a, b) => a - b)
     })
   }
 
+  const submitAnswer = () => {
+    if (!isSelectionComplete(current, selected)) return
+    setSubmitted(true)
+  }
+
   const onListen = () => {
-    if ((current as any).listeningText) {
-      speak((current as any).listeningText, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
+    if (current.listeningText) {
+      speak(current.listeningText, { lang: 'ja-JP', rate: 0.9, pitch: 1.0 })
     }
   }
 
   const next = () => {
-    if (!current) return
     stopSpeak()
-
     if (isCorrect) {
-      const qid = (current as any).id
-      setSelected([])
-
-      const willBe = questions.filter(q => String((q as any).id) !== String(qid))
+      const qid = current.id
+      const willBe = questions.filter((q) => String((q as any).id) !== String(qid))
       if (willBe.length === 0) {
         try {
           localStorage.setItem(storageKey, JSON.stringify([]))
@@ -187,78 +170,62 @@ export default function ReviewClient({ quiz }: Props) {
         goModeSelect()
         return
       }
-
       removeCurrentFromWrong(qid)
       return
     }
 
     setSelected([])
-    if (index + 1 < questions.length) {
-      setIndex(prev => prev + 1)
-    } else {
-      goModeSelect()
-    }
+    setSubmitted(false)
+    if (index + 1 < questions.length) setIndex((prev) => prev + 1)
+    else goModeSelect()
   }
 
   const isLastNow = index >= questions.length - 1
-
+  const correctIndexes = getCorrectIndexes(current)
 
   return (
     <QuizLayout title={`${quiz.title}（復習）`} subtitle="正解した問題はリストから消えます">
       <div className="kicker">
         <span className="badge">復習</span>
-        <span>
-          {index + 1} / {questions.length}
-        </span>
+        <span>{index + 1} / {questions.length}</span>
       </div>
 
       <h2 className="question">{current.question}</h2>
-      {/* ✅ 問題画像（従来の signId / imageUrl） */}
       <QuestionImage q={current} mode="auto" />
-
-      {/* ✅ 4択の選択画像 */}
       <QuestionImage q={current} purpose="choice" />
 
-
-      {/* ✅ Listening UI（MP3なくてもOK） */}
-      {(((current as any).audioUrl as string | undefined) || (current as any).listeningText) && (
+      {(current.audioUrl || current.listeningText) && (
         <div className="panelSoft" style={{ margin: '12px 0' }}>
-          {(current as any).audioUrl ? (
-            <audio controls src={(current as any).audioUrl as string} preload="none" />
+          {current.audioUrl ? (
+            <audio controls src={current.audioUrl} preload="none" />
           ) : (
             <div className="listenRow">
-              <Button variant="sub" onClick={onListen} disabled={!canSpeak()}>
-                🔊 音声を聞く
-              </Button>
-              <Button variant="sub" onClick={() => stopSpeak()}>
-                ⏹ 停止
-              </Button>
-              {!canSpeak() && (
-                <span className="listenHint">
-                  この端末/ブラウザでは読み上げが使えない可能性があります（別ブラウザをお試しください）
-                </span>
-              )}
+              <Button variant="sub" onClick={onListen} disabled={!canSpeak()}>🔊 音声を聞く</Button>
+              <Button variant="sub" onClick={() => stopSpeak()}>⏹ 停止</Button>
+              {!canSpeak() && <span className="listenHint">この端末/ブラウザでは読み上げが使えない可能性があります</span>}
             </div>
           )}
         </div>
       )}
 
+      {isMultiAnswerQuestion(current) && (
+        <div style={{ margin: '8px 0 12px', fontSize: 13, opacity: 0.8 }}>
+          この問題は <b>{requiredAnswerCount(current)}つ選択</b> です。
+        </div>
+      )}
+
       <div className="choiceList">
-        {requiredCount > 1 && !answered && (
-          <div className="note" style={{ marginBottom: 8 }}>
-            正しいものを {requiredCount}つ選んでください（{selected.length}/{requiredCount}）
-          </div>
-        )}
         {current.choices.map((c, i) => {
-          const isPicked = selected.includes(i)
+          const selectedNow = selected.includes(i)
           return (
             <Button
               key={i}
-              variant={isPicked && !answered ? 'sub' : 'choice'}
-              onClick={() => answer(i)}
-              disabled={answered}
-              isCorrect={answered && correctIndexes.includes(i)}
-              isWrong={answered && isPicked && !correctIndexes.includes(i)}
+              variant="choice"
+              onClick={() => toggleChoice(i)}
+              disabled={submitted}
+              isCorrect={submitted && correctIndexes.includes(i)}
+              isWrong={submitted && selectedNow && !correctIndexes.includes(i)}
+              style={!submitted && selectedNow ? { outline: '3px solid #60a5fa', outlineOffset: 1 } : undefined}
             >
               {c}
             </Button>
@@ -266,26 +233,22 @@ export default function ReviewClient({ quiz }: Props) {
         })}
       </div>
 
-      {answered ? (
+      {!submitted ? (
+        <div className="actions">
+          <Button variant="main" onClick={submitAnswer} disabled={!isSelectionComplete(current, selected)}>回答する</Button>
+          <Button variant="accent" onClick={goModeSelect}>モード選択に戻る</Button>
+        </div>
+      ) : (
         <div className="explainBox">
           <div className="explainTitle">
             {isCorrect ? '⭕ 正解！（この問題は復習リストから消えます）' : '❌ 不正解（復習に残します）'}
           </div>
-
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
           <QuestionImage q={current} purpose="explanation" />
-          {(current as any).explanation && <p className="explainText">{(current as any).explanation}</p>}
-
+          {current.explanation && <p className="explainText">{stripLeadingAnswerLabel(current.explanation)}</p>}
           <div className="actions">
-            <Button variant="main" onClick={next}>
-              {isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}
-            </Button>
+            <Button variant="main" onClick={next}>{isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}</Button>
           </div>
-        </div>
-      ) : (
-        <div className="actions">
-          <Button variant="accent" onClick={goModeSelect}>
-            モード選択に戻る
-          </Button>
         </div>
       )}
     </QuizLayout>

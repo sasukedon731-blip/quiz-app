@@ -73,6 +73,7 @@ function mapStudyToGame(
 ): GameQuestion | null {
   if (!q || typeof q !== "object") return null
   if (!Array.isArray(q.choices) || typeof q.correctIndex !== "number") return null
+  if (Array.isArray((q as any).correctIndexes) && (q as any).correctIndexes.length > 1) return null
 
   // ✅ sectionId（N4のカテゴリ用）
   const sectionId = String((q as any).sectionId ?? "").trim()

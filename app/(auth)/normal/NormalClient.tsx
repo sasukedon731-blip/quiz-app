@@ -8,6 +8,7 @@ import ListeningControls from '@/app/components/ListeningControls'
 import AudioPlayerButton from '@/app/components/AudioPlayerButton'
 import QuestionImage from '@/app/components/QuestionImage'
 import type { Quiz, QuizType, Question } from '@/app/data/types'
+import { formatCorrectAnswerLabels, getCorrectIndexes, isCorrectSelection, isMultiAnswerQuestion, isSelectionComplete, requiredAnswerCount, shuffleQuestionChoices as shuffleQuestionChoicesWithAnswers, stripLeadingAnswerLabel } from '@/app/lib/questionAnswer'
 
 import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
@@ -47,15 +48,8 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a
 }
 
-function shuffleQuestionChoices(q: Question): Question {
-  const choicesWithIndex = q.choices.map((text, idx) => ({ text, idx }))
-  const shuffled = shuffleArray(choicesWithIndex)
-  const newCorrectIndex = shuffled.findIndex(x => x.idx === q.correctIndex)
-  return { ...q, choices: shuffled.map(x => x.text), correctIndex: newCorrectIndex }
-}
-
 function buildRandomQuestions(questions: Question[]): Question[] {
-  return shuffleArray(questions.map(shuffleQuestionChoices))
+  return shuffleArray(questions.map((q) => shuffleQuestionChoicesWithAnswers(q, shuffleArray)))
 }
 
 function todayKey() {
@@ -455,45 +449,29 @@ export default function NormalClient({ quiz }: Props) {
 
   const current = questions[index]
 
-  const answer = (choiceIndex: number) => {
-    const requiredCount = current.correctIndexes?.length ?? 1
-    const answered = showExplanation
-    if (answered) return
+  const toggleChoice = (choiceIndex: number) => {
+    if (showExplanation) return
 
-    if (requiredCount <= 1) {
-      const nextSelected = [choiceIndex]
-      setSelected(nextSelected)
-      const correctIndexes = current.correctIndexes ?? [current.correctIndex]
-      const isCorrect = nextSelected.length === correctIndexes.length && nextSelected.every(i => correctIndexes.includes(i))
-      setCorrect(isCorrect)
-      setShowExplanation(true)
+    const needed = requiredAnswerCount(current)
+    const isMulti = isMultiAnswerQuestion(current)
 
-      if (isCorrect) playBeep(880, 120, 'triangle')
-      else playBeep(220, 180, 'sawtooth')
-
-      if (!isCorrect) {
-        const exists = wrongRef.current.some(q => q.id === current.id)
-        if (!exists) {
-          wrongRef.current = [...wrongRef.current, current]
-          localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
-        }
-      }
+    if (!isMulti) {
+      setSelected([choiceIndex])
       return
     }
 
-    const existsInSelected = selected.includes(choiceIndex)
-    const nextSelected = existsInSelected
-      ? selected.filter(i => i !== choiceIndex)
-      : selected.length < requiredCount
-        ? [...selected, choiceIndex]
-        : selected
+    setSelected((prev) => {
+      if (prev.includes(choiceIndex)) return prev.filter((v) => v !== choiceIndex)
+      if (prev.length >= needed) return prev
+      return [...prev, choiceIndex].sort((a, b) => a - b)
+    })
+  }
 
-    setSelected(nextSelected)
+  const submitAnswer = () => {
+    if (showExplanation) return
+    if (!isSelectionComplete(current, selected)) return
 
-    if (nextSelected.length !== requiredCount) return
-
-    const correctIndexes = current.correctIndexes ?? [current.correctIndex]
-    const isCorrect = nextSelected.every(i => correctIndexes.includes(i))
+    const isCorrect = isCorrectSelection(current, selected)
     setCorrect(isCorrect)
     setShowExplanation(true)
 
@@ -649,40 +627,47 @@ export default function NormalClient({ quiz }: Props) {
         />
       ) : null}
 
-      {(() => {
-        const correctIndexes = current.correctIndexes ?? [current.correctIndex]
-        const requiredCount = correctIndexes.length
+      {isMultiAnswerQuestion(current) && (
+        <div style={{ margin: '8px 0 12px', fontSize: 13, opacity: 0.8 }}>
+          この問題は <b>{requiredAnswerCount(current)}つ選択</b> です。
+        </div>
+      )}
+
+      {current.choices.map((c, i) => {
+        const selectedNow = selected.includes(i)
+        const correctIndexes = getCorrectIndexes(current)
         return (
-          <>
-            {requiredCount > 1 && !showExplanation && (
-              <div style={{ margin: '8px 0 12px', fontSize: 13, opacity: 0.8 }}>
-                正しいものを {requiredCount}つ選んでください（{selected.length}/{requiredCount}）
-              </div>
-            )}
-            {current.choices.map((c, i) => {
-              const isPicked = selected.includes(i)
-              return (
-                <Button
-                  key={i}
-                  variant={isPicked && !showExplanation ? 'sub' : 'choice'}
-                  onClick={() => answer(i)}
-                  disabled={showExplanation}
-                  isCorrect={showExplanation && correctIndexes.includes(i)}
-                  isWrong={showExplanation && isPicked && !correctIndexes.includes(i)}
-                >
-                  {c}
-                </Button>
-              )
-            })}
-          </>
+          <Button
+            key={i}
+            variant="choice"
+            onClick={() => toggleChoice(i)}
+            disabled={showExplanation}
+            isCorrect={showExplanation && correctIndexes.includes(i)}
+            isWrong={showExplanation && selectedNow && !correctIndexes.includes(i)}
+            style={!showExplanation && selectedNow ? { outline: '3px solid #60a5fa', outlineOffset: 1 } : undefined}
+          >
+            {c}
+          </Button>
         )
-      })()}
+      })}
+
+      {!showExplanation && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="main" onClick={submitAnswer} disabled={!isSelectionComplete(current, selected)}>
+            回答する
+          </Button>
+          <Button variant="accent" onClick={interrupt}>
+            中断して戻る
+          </Button>
+        </div>
+      )}
 
       {showExplanation && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>{correct ? '✅ 正解！' : '❌ 不正解'}</div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
           <QuestionImage q={current} purpose="explanation" />
-          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanation}</div>
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{stripLeadingAnswerLabel(current.explanation)}</div>
 
           <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Button variant="main" onClick={next}>
@@ -695,13 +680,6 @@ export default function NormalClient({ quiz }: Props) {
         </div>
       )}
 
-      {!showExplanation && (
-        <div style={{ marginTop: 12 }}>
-          <Button variant="accent" onClick={interrupt}>
-            中断して戻る
-          </Button>
-        </div>
-      )}
     </QuizLayout>
   )
 }
