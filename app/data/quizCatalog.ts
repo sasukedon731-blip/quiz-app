@@ -170,7 +170,30 @@ export const quizCatalog: QuizDef[] = [
       { id: "tools", title: "道具", enabled: true, order: 8 },
     ],
   },
-
+{
+  id: "construction-terms-reverse",
+  title: "建設・現場 用語（用語→説明）",
+  description: "用語の意味を選ぶ問題",
+  enabled: true,
+  order: 50,
+  industries: ["construction"],
+  modes: ["normal", "exam", "review"],
+  sections: [
+    { id: "all", title: "すべて", enabled: true, order: 1 }
+  ]
+},
+{
+  id: "construction-terms-image",
+  title: "建設・現場 用語（画像）",
+  description: "画像から用語を答える問題",
+  enabled: true,
+  order: 60,
+  industries: ["construction"],
+  modes: ["normal", "exam", "review"],
+  sections: [
+    { id: "all", title: "すべて", enabled: true, order: 1 }
+  ]
+},
   {
     id: "kenchiku-sekou-2kyu-1ji",
     title: "2級建築施工管理技士 1次",

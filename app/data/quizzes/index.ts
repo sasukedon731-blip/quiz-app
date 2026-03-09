@@ -13,6 +13,8 @@ import { speakingPractice } from "./speaking-practice"
 import { genbaPhrasebook } from "./genba-phrasebook"
 import { roadSignsQuiz } from "./road-signs"
 import { constructionTermsQuiz } from "./construction-terms"
+import { constructionTermsReverseQuiz } from "./construction-terms_reverse"
+import { constructionTermsImageQuiz } from "./construction-terms-image"
 
 // ★ 製造教材
 import { manufacturingTermsQuiz } from "./manufacturing-terms"
@@ -44,6 +46,8 @@ export const quizzes = {
   "speaking-practice": speakingPractice,
   "genba-phrasebook": genbaPhrasebook,
   "construction-terms": constructionTermsQuiz,
+  "construction-terms-reverse": constructionTermsReverseQuiz,
+  "construction-terms-image": constructionTermsImageQuiz,
   "road-signs": roadSignsQuiz,
 
   // ★ 製造

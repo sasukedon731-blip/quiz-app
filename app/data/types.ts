@@ -14,6 +14,8 @@ export type QuizType =
   | "genba-phrasebook"
   | "road-signs"
   | "construction-terms"
+  | "construction-terms-reverse"
+  | "construction-terms-image"
   | "manufacturing-terms"
   | "manufacturing-listening"
   | "manufacturing-conversation"
