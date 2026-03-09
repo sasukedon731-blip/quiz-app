@@ -616,7 +616,7 @@ export const dobokuSekou2kyu1ji: Quiz = {
       "擁壁高　H2、つま先版　B1"
     ],
     "correctIndex": 2,
-    "explanation": "もたれ式擁壁では、擁壁高は H1、底版のかかと側の幅は B2、つま先側の幅は B1 で表されます。したがって「擁壁高 H1、底版かかと B2」の組合せが正しい。",
+    "explanation": "もたれ式擁壁では、擁壁高は H1、底版のつま先側の幅は B2 で表されます。",
     "imageUrl": "/quiz-images/image3.jpeg"
   },
   {
