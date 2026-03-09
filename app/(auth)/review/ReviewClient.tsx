@@ -246,6 +246,18 @@ export default function ReviewClient({ quiz }: Props) {
           <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
           <QuestionImage q={current} purpose="explanation" />
           {current.explanation && <p className="explainText">{stripLeadingAnswerLabel(current.explanation)}</p>}
+          {current.point && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 700, color: '#16a34a' }}>ポイント</div>
+              <div className="explainText" style={{ marginTop: 4 }}>{current.point}</div>
+            </div>
+          )}
+          {current.trap && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 700, color: '#dc2626' }}>注意</div>
+              <div className="explainText" style={{ marginTop: 4 }}>{current.trap}</div>
+            </div>
+          )}
           <div className="actions">
             <Button variant="main" onClick={next}>{isCorrect ? '次へ（克服して進む）' : isLastNow ? '終了（モード選択へ）' : '次へ'}</Button>
           </div>
