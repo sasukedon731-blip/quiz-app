@@ -16,6 +16,16 @@ export type QuizType =
   | "construction-terms"
   | "construction-terms-reverse"
   | "construction-terms-image"
+
+  // ★ 今回追加した建設用語PPT抽出教材
+  | "construction-tools"
+  | "hvac-terms"
+  | "plant-terms"
+  | "architecture-terms"
+  | "construction-management-terms"
+  | "electric-terms"
+  | "civil-terms"
+
   | "manufacturing-terms"
   | "manufacturing-listening"
   | "manufacturing-conversation"
@@ -26,7 +36,6 @@ export type QuizType =
   | "dialect-listening"
   | "kansai-listening"
   | "confusing-japanese"
-
 
 // ✅ 分野（セクション）定義
 export type QuizSection = {
@@ -67,6 +76,10 @@ export type Question = {
 
   // ✅ 追加：分野ID（未設定なら「全体」扱い）
   sectionId?: string
+
+  // ★ PPT抽出クイズ用
+  kind?: "description" | "term" | "image"
+  hint?: string
 }
 
 export type Quiz = {

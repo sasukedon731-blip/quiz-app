@@ -16,6 +16,15 @@ import { constructionTermsQuiz } from "./construction-terms"
 import { constructionTermsReverseQuiz } from "./construction-terms_reverse"
 import { constructionTermsImageQuiz } from "./construction-terms-image"
 
+// ★ 今回追加する建設用語PPT抽出教材
+import constructionTools from "./construction-tools.quiz"
+import hvacTerms from "./hvac-terms.quiz"
+import plantTerms from "./plant-terms.quiz"
+import architectureTerms from "./architecture-terms.quiz"
+import constructionManagementTerms from "./construction-management-terms.quiz"
+import electricTerms from "./electric-terms.quiz"
+import civilTerms from "./civil-terms.quiz"
+
 // ★ 製造教材
 import { manufacturingTermsQuiz } from "./manufacturing-terms"
 import { manufacturingListeningQuiz } from "./manufacturing-listening"
@@ -50,6 +59,15 @@ export const quizzes = {
   "construction-terms-image": constructionTermsImageQuiz,
   "road-signs": roadSignsQuiz,
 
+  // ★ 今回追加した建設用語PPT抽出教材
+  "construction-tools": constructionTools,
+  "hvac-terms": hvacTerms,
+  "plant-terms": plantTerms,
+  "architecture-terms": architectureTerms,
+  "construction-management-terms": constructionManagementTerms,
+  "electric-terms": electricTerms,
+  "civil-terms": civilTerms,
+
   // ★ 製造
   "manufacturing-terms": manufacturingTermsQuiz,
   "manufacturing-listening": manufacturingListeningQuiz,
@@ -60,6 +78,8 @@ export const quizzes = {
   "care-terms": careTermsQuiz,
   "care-listening": careListeningQuiz,
   "care-conversation": careConversationQuiz,
+
+  // ★ 方言
   "dialect-listening": dialectListeningQuiz,
   "kansai-listening": kansaiListeningQuiz,
   "confusing-japanese": confusingJapaneseQuiz,
