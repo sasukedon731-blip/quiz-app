@@ -74,7 +74,6 @@ export default function HomePage() {
     title: string
     subtitle: string
     extraQuizIds: string[]
-    note?: string
     groups?: QuizGroup[]
   }
 
@@ -86,6 +85,10 @@ export default function HomePage() {
         title: "建設で働く方へ",
         subtitle: "用語・施工管理試験・現場日本語・日本語N4〜N2",
         extraQuizIds: [
+          "japanese-n4",
+          "japanese-n3",
+          "japanese-n2",
+          "speaking-practice",
           "genba-listening",
           "genba-phrasebook",
           "construction-tools",
@@ -101,6 +104,12 @@ export default function HomePage() {
           "kanko-sekou-2kyu-1ji",
         ],
         groups: [
+          {
+            id: "construction-jlpt",
+            title: "日本語検定を学ぶ",
+            description: "日本語N4・N3・N2・スピーキング",
+            quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
           {
             id: "construction-vocabulary",
             title: "建設用語を学ぶ",
@@ -133,7 +142,6 @@ export default function HomePage() {
             quizIds: ["genba-listening", "genba-phrasebook"],
           },
         ],
-        note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
         id: "manufacturing",
@@ -141,6 +149,10 @@ export default function HomePage() {
         title: "製造で働く方へ",
         subtitle: "用語・現場会話・技能試験・日本語N4〜N2",
         extraQuizIds: [
+          "japanese-n4",
+          "japanese-n3",
+          "japanese-n2",
+          "speaking-practice",
           "genba-listening",
           "genba-phrasebook",
           "manufacturing-terms",
@@ -148,7 +160,6 @@ export default function HomePage() {
           "manufacturing-conversation",
           "skill-test-machining",
         ],
-        note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
         id: "care",
@@ -156,34 +167,42 @@ export default function HomePage() {
         title: "介護で働く方へ",
         subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2",
         extraQuizIds: [
+          "japanese-n4",
+          "japanese-n3",
+          "japanese-n2",
+          "speaking-practice",
           "care-terms",
           "care-listening",
           "care-conversation",
         ],
-        note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
       {
         id: "driver",
         icon: "🚗",
         title: "運転・免許が必要な方へ",
         subtitle: "交通ルール・道路標識・日本語N4〜N2",
-        extraQuizIds: ["gaikoku-license","road-signs"],
-        note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
+        extraQuizIds: [
+          "japanese-n4",
+          "japanese-n3",
+          "japanese-n2",
+          "speaking-practice",
+          "gaikoku-license",
+          "road-signs",
+        ],
       },
       {
         id: "undecided",
         icon: "🌱",
         title: "まだ決まっていない方へ",
         subtitle: "まずは日本語N4〜N2と基礎学習から",
-        extraQuizIds: [],
-        note: "海外からの学習スタート向け入口",
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
       },
     ],
     []
   )
 
   const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>(null)
-  const [openConstructionGroupId, setOpenConstructionGroupId] = useState<string | null>(null)
+  const [openGroupIds, setOpenGroupIds] = useState<Record<string, boolean>>({})
 
   // ✅ localStorage “確実修正”
   const LS_INDUSTRY_KEY = "selected-industry"
@@ -415,15 +434,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     style={styles.industryHead}
-                    onClick={() => {
-                      if (isOpen) {
-                        setOpenIndustryId(null)
-                        if (ind.id === "construction") setOpenConstructionGroupId(null)
-                      } else {
-                        setOpenIndustryId(ind.id)
-                        if (ind.id !== "construction") setOpenConstructionGroupId(null)
-                      }
-                    }}
+                    onClick={() => setOpenIndustryId(isOpen ? null : ind.id)}
                     aria-expanded={isOpen}
                   >
                     <div style={styles.industryHeadLeft}>
@@ -438,39 +449,32 @@ export default function HomePage() {
 
                   {isOpen ? (
                     <div style={styles.industryBody}>
-                      {ind.note ? <div style={styles.industryNote}>{ind.note}</div> : null}
-
                       {ind.groups?.length ? (
                         <div style={styles.industryGroupWrap}>
                           {ind.groups.map((group) => {
                             const groupItems = getItemsForGroup(group.quizIds)
                             if (!groupItems.length) return null
 
-                            const groupOpen =
-                              ind.id === "construction"
-                                ? openConstructionGroupId === group.id
-                                : true
+                            const groupKey = `${ind.id}:${group.id}`
+                            const groupOpen = !!openGroupIds[groupKey]
 
                             return (
                               <div key={group.id} style={styles.industryGroupCard}>
                                 <button
                                   type="button"
-                                  style={styles.industryGroupHead}
-                                  onClick={() => {
-                                    if (ind.id !== "construction") return
-                                    setOpenConstructionGroupId((prev) =>
-                                      prev === group.id ? null : group.id
-                                    )
-                                  }}
-                                  aria-expanded={groupOpen}
+                                  style={styles.industryGroupButton}
+                                  onClick={() =>
+                                    setOpenGroupIds((prev) => ({
+                                      ...prev,
+                                      [groupKey]: !prev[groupKey],
+                                    }))
+                                  }
                                 >
-                                  <div>
+                                  <div style={styles.industryGroupButtonText}>
                                     <div style={styles.industryGroupTitle}>{group.title}</div>
                                     <div style={styles.industryGroupDesc}>{group.description}</div>
                                   </div>
-                                  <div style={styles.industryGroupChevron}>
-                                    {ind.id === "construction" ? (groupOpen ? "−" : "+") : ""}
-                                  </div>
+                                  <div style={styles.industryGroupChevron}>{groupOpen ? "−" : "+"}</div>
                                 </button>
 
                                 {groupOpen ? (
@@ -532,12 +536,7 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                        <Button variant="sub" onClick={() => router.push("/contents")}>
-                          すべての教材を見る
-                        </Button>
-
-                        {/* ✅ 確実修正：業種を保存→industry付きでselect-modeへ */}
+                      <div style={{ marginTop: 14, display: "flex", justifyContent: "center" }}>
                         <Button
                           variant="main"
                           onClick={() => {
@@ -886,16 +885,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f9fafb",
   },
 
-  industryNote: {
-    marginTop: 10,
-    padding: "10px 12px",
-    borderRadius: 14,
-    background: "#eef2ff",
-    border: "1px solid #c7d2fe",
-    fontSize: 12.5,
-    opacity: 0.88,
-    lineHeight: 1.6,
-  },
 
   industryGroupWrap: {
     marginTop: 10,
@@ -906,9 +895,33 @@ const styles: Record<string, React.CSSProperties> = {
   industryGroupCard: {
     background: "#fff",
     border: "1px solid #dbe4ff",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 12,
     boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
+  },
+  industryGroupButton: {
+    width: "100%",
+    border: "none",
+    background: "#f8fafc",
+    borderRadius: 16,
+    padding: "14px 16px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    textAlign: "left",
+  },
+  industryGroupButtonText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  industryGroupChevron: {
+    flexShrink: 0,
+    fontSize: 28,
+    fontWeight: 900,
+    lineHeight: 1,
+    color: "#0f172a",
   },
   industryGroupTitle: { fontWeight: 900, fontSize: 16, color: "#0f172a" },
   industryGroupDesc: { marginTop: 4, opacity: 0.75, fontSize: 12.5, lineHeight: 1.6 },
@@ -929,14 +942,14 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
     display: "flex",
     flexDirection: "column",
-    minHeight: 140,
+    minHeight: 112,
     cursor: "pointer",
     transition: "all 0.2s ease",
   },
 
   industryItemTitle: { fontWeight: 900, fontSize: 15 },
-  industryItemDesc: { marginTop: 6, opacity: 0.8, fontSize: 12.5, lineHeight: 1.6, minHeight: 36 },
-  industryItemDescMuted: { marginTop: 6, opacity: 0.5, fontSize: 12.5, minHeight: 36 },
+  industryItemDesc: { marginTop: 6, opacity: 0.8, fontSize: 12.5, lineHeight: 1.55 },
+  industryItemDescMuted: { marginTop: 6, opacity: 0.5, fontSize: 12.5 },
   industryItemMeta: { marginTop: "auto", paddingTop: 8, fontSize: 12, fontWeight: 800, opacity: 0.7 },
 
   grid4: {
