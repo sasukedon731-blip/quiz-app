@@ -61,6 +61,13 @@ export default function HomePage() {
     []
   )
 
+  type QuizGroup = {
+    id: string
+    title: string
+    description: string
+    quizIds: string[]
+  }
+
   type IndustryCard = {
     id: IndustryId
     icon: string
@@ -68,6 +75,7 @@ export default function HomePage() {
     subtitle: string
     extraQuizIds: string[]
     note?: string
+    groups?: QuizGroup[]
   }
 
   const INDUSTRIES: IndustryCard[] = useMemo(
@@ -76,15 +84,54 @@ export default function HomePage() {
         id: "construction",
         icon: "👷",
         title: "建設で働く方へ",
-        subtitle: "現場日本語・安全・施工管理",
+        subtitle: "用語・施工管理試験・現場日本語",
         extraQuizIds: [
           "genba-listening",
           "genba-phrasebook",
+          "construction-tools",
+          "hvac-terms",
+          "plant-terms",
+          "architecture-terms",
+          "construction-management-terms",
+          "electric-terms",
+          "civil-terms",
           "kenchiku-sekou-2kyu-1ji",
           "doboku-sekou-2kyu-1ji",
           "denki-sekou-2kyu-1ji",
           "kanko-sekou-2kyu-1ji",
-          "construction-terms",
+        ],
+        groups: [
+          {
+            id: "construction-vocabulary",
+            title: "建設用語を学ぶ",
+            description: "道具・建築・土木・電気・空調衛生・プラント・施工管理",
+            quizIds: [
+              "construction-tools",
+              "architecture-terms",
+              "civil-terms",
+              "electric-terms",
+              "hvac-terms",
+              "plant-terms",
+              "construction-management-terms",
+            ],
+          },
+          {
+            id: "construction-exams",
+            title: "施工管理試験を学ぶ",
+            description: "2級建築・土木・電気・管工事施工管理",
+            quizIds: [
+              "kenchiku-sekou-2kyu-1ji",
+              "doboku-sekou-2kyu-1ji",
+              "denki-sekou-2kyu-1ji",
+              "kanko-sekou-2kyu-1ji",
+            ],
+          },
+          {
+            id: "construction-japanese",
+            title: "現場日本語を学ぶ",
+            description: "現場用語・聞き取り・会話",
+            quizIds: ["genba-listening", "genba-phrasebook"],
+          },
         ],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
@@ -92,7 +139,7 @@ export default function HomePage() {
         id: "manufacturing",
         icon: "🏭",
         title: "製造で働く方へ",
-        subtitle: "工場の指示・安全用語を強化",
+        subtitle: "用語・現場会話・技能試験",
         extraQuizIds: [
           "genba-listening",
           "genba-phrasebook",
@@ -107,7 +154,7 @@ export default function HomePage() {
         id: "care",
         icon: "👵",
         title: "介護で働く方へ",
-        subtitle: "介護会話・現場日本語（準備中もOK）",
+        subtitle: "介護用語・現場会話・国家試験",
         extraQuizIds: [
           "care-terms",
           "care-listening",
@@ -119,7 +166,7 @@ export default function HomePage() {
         id: "driver",
         icon: "🚗",
         title: "運転・免許が必要な方へ",
-        subtitle: "外国免許切替・交通ルール",
+        subtitle: "交通ルール・道路標識",
         extraQuizIds: ["gaikoku-license","road-signs"],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
@@ -166,6 +213,12 @@ export default function HomePage() {
       (q, idx, arr) => arr.findIndex((x) => x.id === q.id) === idx
     )
     return merged.sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+  }
+
+  const getItemsForGroup = (quizIds: string[]) => {
+    return enabledCatalog
+      .filter((q) => quizIds.includes(q.id))
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
   }
 
   return (
@@ -378,31 +431,73 @@ export default function HomePage() {
                     <div style={styles.industryBody}>
                       {ind.note ? <div style={styles.industryNote}>{ind.note}</div> : null}
 
-                      <div style={styles.industryGrid}>
-                        {items.map((q) => (
-                          <div
-                            key={q.id}
-                            style={styles.industryItem}
-                            onClick={() => router.push(`/contents/${q.id}`)}
-                            onMouseEnter={(e) => {
-                              ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
-                              ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
-                            }}
-                            onMouseLeave={(e) => {
-                              ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
-                              ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
-                            }}
-                          >
-                            <div style={styles.industryItemTitle}>{q.title}</div>
-                            {q.description ? (
-                              <div style={styles.industryItemDesc}>{q.description}</div>
-                            ) : (
-                              <div style={styles.industryItemDescMuted}>（説明なし）</div>
-                            )}
-                            <div style={styles.industryItemMeta}>詳しく見る →</div>
-                          </div>
-                        ))}
-                      </div>
+                      {ind.groups?.length ? (
+                        <div style={styles.industryGroupWrap}>
+                          {ind.groups.map((group) => {
+                            const groupItems = getItemsForGroup(group.quizIds)
+                            if (!groupItems.length) return null
+
+                            return (
+                              <div key={group.id} style={styles.industryGroupCard}>
+                                <div style={styles.industryGroupTitle}>{group.title}</div>
+                                <div style={styles.industryGroupDesc}>{group.description}</div>
+
+                                <div style={styles.industryGrid}>
+                                  {groupItems.map((q) => (
+                                    <div
+                                      key={q.id}
+                                      style={styles.industryItem}
+                                      onClick={() => router.push(`/contents/${q.id}`)}
+                                      onMouseEnter={(e) => {
+                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
+                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
+                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
+                                      }}
+                                    >
+                                      <div style={styles.industryItemTitle}>{q.title}</div>
+                                      {q.description ? (
+                                        <div style={styles.industryItemDesc}>{q.description}</div>
+                                      ) : (
+                                        <div style={styles.industryItemDescMuted}>（説明なし）</div>
+                                      )}
+                                      <div style={styles.industryItemMeta}>詳しく見る →</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div style={styles.industryGrid}>
+                          {items.map((q) => (
+                            <div
+                              key={q.id}
+                              style={styles.industryItem}
+                              onClick={() => router.push(`/contents/${q.id}`)}
+                              onMouseEnter={(e) => {
+                                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
+                                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
+                              }}
+                              onMouseLeave={(e) => {
+                                ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
+                                ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
+                              }}
+                            >
+                              <div style={styles.industryItemTitle}>{q.title}</div>
+                              {q.description ? (
+                                <div style={styles.industryItemDesc}>{q.description}</div>
+                              ) : (
+                                <div style={styles.industryItemDescMuted}>（説明なし）</div>
+                              )}
+                              <div style={styles.industryItemMeta}>詳しく見る →</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                         <Button variant="sub" onClick={() => router.push("/contents")}>
@@ -768,6 +863,22 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.88,
     lineHeight: 1.6,
   },
+
+  industryGroupWrap: {
+    marginTop: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  industryGroupCard: {
+    background: "#fff",
+    border: "1px solid #dbe4ff",
+    borderRadius: 16,
+    padding: 12,
+    boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
+  },
+  industryGroupTitle: { fontWeight: 900, fontSize: 16, color: "#0f172a" },
+  industryGroupDesc: { marginTop: 4, opacity: 0.75, fontSize: 12.5, lineHeight: 1.6 },
 
   industryGrid: {
     marginTop: 10,
