@@ -65,7 +65,9 @@ export default function HomePage() {
     id: string
     title: string
     description: string
-    quizIds: string[]
+    quizIds?: string[]
+    href?: string
+    ctaLabel?: string
   }
 
   type IndustryCard = {
@@ -74,6 +76,7 @@ export default function HomePage() {
     title: string
     subtitle: string
     extraQuizIds: string[]
+    note?: string
     groups?: QuizGroup[]
   }
 
@@ -83,7 +86,7 @@ export default function HomePage() {
         id: "construction",
         icon: "👷",
         title: "建設で働く方へ",
-        subtitle: "用語・施工管理試験・現場日本語・日本語N4〜N2",
+        subtitle: "建設用語・施工管理試験・現場日本語・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -107,7 +110,7 @@ export default function HomePage() {
           {
             id: "construction-jlpt",
             title: "日本語検定を学ぶ",
-            description: "日本語N4・N3・N2・スピーキング",
+            description: "N4・N3・N2・スピーキング",
             quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
           },
           {
@@ -144,8 +147,9 @@ export default function HomePage() {
           {
             id: "construction-battle",
             title: "日本語バトルをプレイ",
-            description: "非会員は1日1回、会員は無制限",
-            quizIds: [],
+            description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
+            href: "/game?mode=normal",
+            ctaLabel: "今すぐバトルする",
           },
         ],
       },
@@ -153,7 +157,7 @@ export default function HomePage() {
         id: "manufacturing",
         icon: "🏭",
         title: "製造で働く方へ",
-        subtitle: "用語・現場会話・技能試験・日本語N4〜N2",
+        subtitle: "用語・現場会話・技能試験・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -166,12 +170,38 @@ export default function HomePage() {
           "manufacturing-conversation",
           "skill-test-machining",
         ],
+        groups: [
+          {
+            id: "manufacturing-jlpt",
+            title: "日本語検定を学ぶ",
+            description: "N4・N3・N2・スピーキング",
+            quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
+          {
+            id: "manufacturing-content",
+            title: "製造教材を学ぶ",
+            description: "製造用語・現場会話・技能試験",
+            quizIds: [
+              "manufacturing-terms",
+              "manufacturing-listening",
+              "manufacturing-conversation",
+              "skill-test-machining",
+            ],
+          },
+          {
+            id: "manufacturing-battle",
+            title: "日本語バトルをプレイ",
+            description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
+            href: "/game?mode=normal",
+            ctaLabel: "今すぐバトルする",
+          },
+        ],
       },
       {
         id: "care",
         icon: "👵",
         title: "介護で働く方へ",
-        subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2",
+        subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -181,12 +211,33 @@ export default function HomePage() {
           "care-listening",
           "care-conversation",
         ],
+        groups: [
+          {
+            id: "care-jlpt",
+            title: "日本語検定を学ぶ",
+            description: "N4・N3・N2・スピーキング",
+            quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
+          {
+            id: "care-content",
+            title: "介護教材を学ぶ",
+            description: "介護用語・現場会話・リスニング",
+            quizIds: ["care-terms", "care-listening", "care-conversation"],
+          },
+          {
+            id: "care-battle",
+            title: "日本語バトルをプレイ",
+            description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
+            href: "/game?mode=normal",
+            ctaLabel: "今すぐバトルする",
+          },
+        ],
       },
       {
         id: "driver",
         icon: "🚗",
         title: "運転・免許が必要な方へ",
-        subtitle: "交通ルール・道路標識・日本語N4〜N2",
+        subtitle: "交通ルール・道路標識・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -195,20 +246,55 @@ export default function HomePage() {
           "gaikoku-license",
           "road-signs",
         ],
+        groups: [
+          {
+            id: "driver-jlpt",
+            title: "日本語検定を学ぶ",
+            description: "N4・N3・N2・スピーキング",
+            quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
+          {
+            id: "driver-content",
+            title: "運転・免許教材を学ぶ",
+            description: "交通ルール・道路標識",
+            quizIds: ["gaikoku-license", "road-signs"],
+          },
+          {
+            id: "driver-battle",
+            title: "日本語バトルをプレイ",
+            description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
+            href: "/game?mode=normal",
+            ctaLabel: "今すぐバトルする",
+          },
+        ],
       },
       {
         id: "undecided",
         icon: "🌱",
         title: "まだ決まっていない方へ",
-        subtitle: "まずは日本語N4〜N2と基礎学習から",
+        subtitle: "まずは日本語N4〜N2・スピーキング・日本語バトルから",
         extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+        groups: [
+          {
+            id: "undecided-jlpt",
+            title: "日本語検定を学ぶ",
+            description: "N4・N3・N2・スピーキング",
+            quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
+          {
+            id: "undecided-battle",
+            title: "日本語バトルをプレイ",
+            description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
+            href: "/game?mode=normal",
+            ctaLabel: "今すぐバトルする",
+          },
+        ],
       },
     ],
     []
   )
 
   const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>(null)
-  const [openGroupIds, setOpenGroupIds] = useState<Record<string, boolean>>({})
 
   // ✅ localStorage “確実修正”
   const LS_INDUSTRY_KEY = "selected-industry"
@@ -426,7 +512,7 @@ export default function HomePage() {
             <div style={styles.sectionSub}>
               クリックして開くと、その業種で学べる内容が一覧で見れます。
               <br />
-              どの業種を選んでも、<b>日本語N4〜N2とスピーキング</b>を一緒に学べます。
+              どの業種でも、日本語N4〜N2と日本語バトルを学習に組み込めます。
             </div>
           </div>
 
@@ -458,38 +544,41 @@ export default function HomePage() {
                       {ind.groups?.length ? (
                         <div style={styles.industryGroupWrap}>
                           {ind.groups.map((group) => {
-                            const groupItems = getItemsForGroup(group.quizIds)
-                            const isBattleGroup = group.id === "construction-battle"
-                            if (!groupItems.length && !isBattleGroup) return null
-
-                            const groupKey = `${ind.id}:${group.id}`
-                            const groupOpen = !!openGroupIds[groupKey]
+                            const groupItems = group.quizIds?.length ? getItemsForGroup(group.quizIds) : []
+                            const isActionGroup = !!group.href
+                            if (!isActionGroup && !groupItems.length) return null
 
                             return (
                               <div key={group.id} style={styles.industryGroupCard}>
-                                <button
-                                  type="button"
-                                  style={styles.industryGroupButton}
-                                  onClick={() =>
-                                    setOpenGroupIds((prev) => ({
-                                      ...prev,
-                                      [groupKey]: !prev[groupKey],
-                                    }))
-                                  }
-                                >
-                                  <div style={styles.industryGroupButtonText}>
-                                    <div style={styles.industryGroupTitle}>{group.title}</div>
-                                    <div style={styles.industryGroupDesc}>{group.description}</div>
-                                  </div>
-                                  <div style={styles.industryGroupChevron}>{groupOpen ? "−" : "+"}</div>
-                                </button>
+                                <div style={styles.industryGroupTitle}>{group.title}</div>
+                                <div style={styles.industryGroupDesc}>{group.description}</div>
 
-                                {groupOpen ? (
-                                  group.id === "construction-battle" ? (
-                                    <div style={styles.industryGrid}>
+                                {isActionGroup ? (
+                                  <div style={styles.industryGrid}>
+                                    <div
+                                      style={styles.industryItem}
+                                      onClick={() => router.push(group.href!)}
+                                      onMouseEnter={(e) => {
+                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
+                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
+                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
+                                      }}
+                                    >
+                                      <div style={styles.industryItemTitle}>{group.ctaLabel ?? group.title}</div>
+                                      <div style={styles.industryItemDesc}>{group.description}</div>
+                                      <div style={styles.industryItemMeta}>プレイする →</div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={styles.industryGrid}>
+                                    {groupItems.map((q) => (
                                       <div
+                                        key={q.id}
                                         style={styles.industryItem}
-                                        onClick={goJapaneseBattle}
+                                        onClick={() => router.push(`/contents/${q.id}`)}
                                         onMouseEnter={(e) => {
                                           ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
                                           ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
@@ -499,39 +588,17 @@ export default function HomePage() {
                                           ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
                                         }}
                                       >
-                                        <div style={styles.industryItemTitle}>日本語バトル</div>
-                                        <div style={styles.industryItemDesc}>語彙・文法・記憶ゲーム。非会員は1日1回、会員は無制限。</div>
-                                        <div style={styles.industryItemMeta}>ゲームをプレイ →</div>
+                                        <div style={styles.industryItemTitle}>{q.title}</div>
+                                        {q.description ? (
+                                          <div style={styles.industryItemDesc}>{q.description}</div>
+                                        ) : (
+                                          <div style={styles.industryItemDescMuted}>（説明なし）</div>
+                                        )}
+                                        <div style={styles.industryItemMeta}>詳しく見る →</div>
                                       </div>
-                                    </div>
-                                  ) : (
-                                    <div style={styles.industryGrid}>
-                                      {groupItems.map((q) => (
-                                        <div
-                                          key={q.id}
-                                          style={styles.industryItem}
-                                          onClick={() => router.push(`/contents/${q.id}`)}
-                                          onMouseEnter={(e) => {
-                                            ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
-                                            ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
-                                            ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
-                                          }}
-                                        >
-                                          <div style={styles.industryItemTitle}>{q.title}</div>
-                                          {q.description ? (
-                                            <div style={styles.industryItemDesc}>{q.description}</div>
-                                          ) : (
-                                            <div style={styles.industryItemDescMuted}>（説明なし）</div>
-                                          )}
-                                          <div style={styles.industryItemMeta}>詳しく見る →</div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )
-                                ) : null}
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
@@ -913,6 +980,16 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f9fafb",
   },
 
+  industryNote: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 14,
+    background: "#eef2ff",
+    border: "1px solid #c7d2fe",
+    fontSize: 12.5,
+    opacity: 0.88,
+    lineHeight: 1.6,
+  },
 
   industryGroupWrap: {
     marginTop: 10,
@@ -923,33 +1000,9 @@ const styles: Record<string, React.CSSProperties> = {
   industryGroupCard: {
     background: "#fff",
     border: "1px solid #dbe4ff",
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 12,
     boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
-  },
-  industryGroupButton: {
-    width: "100%",
-    border: "none",
-    background: "#f8fafc",
-    borderRadius: 16,
-    padding: "14px 16px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    textAlign: "left",
-  },
-  industryGroupButtonText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  industryGroupChevron: {
-    flexShrink: 0,
-    fontSize: 28,
-    fontWeight: 900,
-    lineHeight: 1,
-    color: "#0f172a",
   },
   industryGroupTitle: { fontWeight: 900, fontSize: 16, color: "#0f172a" },
   industryGroupDesc: { marginTop: 4, opacity: 0.75, fontSize: 12.5, lineHeight: 1.6 },
@@ -970,14 +1023,14 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 6px 14px rgba(0,0,0,0.04)",
     display: "flex",
     flexDirection: "column",
-    minHeight: 112,
+    minHeight: 140,
     cursor: "pointer",
     transition: "all 0.2s ease",
   },
 
   industryItemTitle: { fontWeight: 900, fontSize: 15 },
-  industryItemDesc: { marginTop: 6, opacity: 0.8, fontSize: 12.5, lineHeight: 1.55 },
-  industryItemDescMuted: { marginTop: 6, opacity: 0.5, fontSize: 12.5 },
+  industryItemDesc: { marginTop: 6, opacity: 0.8, fontSize: 12.5, lineHeight: 1.6, minHeight: 36 },
+  industryItemDescMuted: { marginTop: 6, opacity: 0.5, fontSize: 12.5, minHeight: 36 },
   industryItemMeta: { marginTop: "auto", paddingTop: 8, fontSize: 12, fontWeight: 800, opacity: 0.7 },
 
   grid4: {
