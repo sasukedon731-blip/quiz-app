@@ -21,8 +21,6 @@ const PLAN_LABEL: Record<PlanId, string> = {
   all: "ALLプラン",
 }
 
-const GAME_FIXED_TYPE: QuizType = "japanese-n4"
-
 type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
 
 const INDUSTRY_LABEL: Record<IndustryId, string> = {
@@ -43,17 +41,136 @@ function isIndustryId(v: any): v is IndustryId {
   )
 }
 
+type GroupConfig = {
+  title: string
+  description: string
+  quizIds?: QuizType[]
+  isBattle?: boolean
+}
+
+const GROUP_CONFIG: Record<string, GroupConfig> = {
+  // 共通
+  jlpt: {
+    title: "日本語検定を学ぶ",
+    description: "N4・N3・N2・スピーキング",
+    quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+  },
+  battle: {
+    title: "日本語バトル",
+    description: "語彙・文法・判断・記憶ゲーム",
+    isBattle: true,
+  },
+
+  // 建設
+  "construction-vocabulary": {
+    title: "建設用語を学ぶ",
+    description: "道具・建築・土木・電気・空調衛生・プラント・施工管理",
+    quizIds: [
+      "construction-tools",
+      "architecture-terms",
+      "civil-terms",
+      "electric-terms",
+      "hvac-terms",
+      "plant-terms",
+      "construction-management-terms",
+    ],
+  },
+  "construction-exam": {
+    title: "施工管理試験を学ぶ",
+    description: "2級建築・土木・電気・管工事施工管理",
+    quizIds: [
+      "kenchiku-sekou-2kyu-1ji",
+      "doboku-sekou-2kyu-1ji",
+      "denki-sekou-2kyu-1ji",
+      "kanko-sekou-2kyu-1ji",
+    ],
+  },
+  "construction-japanese": {
+    title: "現場日本語を学ぶ",
+    description: "現場用語・聞き取り・会話",
+    quizIds: ["genba-listening", "genba-phrasebook"],
+  },
+
+  // 製造
+  "manufacturing-vocabulary": {
+    title: "製造用語を学ぶ",
+    description: "製造用語の基礎を学ぶ",
+    quizIds: ["manufacturing-terms"],
+  },
+  "manufacturing-listening": {
+    title: "製造リスニングを学ぶ",
+    description: "現場の聞き取りを強化",
+    quizIds: ["manufacturing-listening"],
+  },
+  "manufacturing-conversation": {
+    title: "製造現場会話を学ぶ",
+    description: "現場会話・やりとりを学ぶ",
+    quizIds: ["manufacturing-conversation"],
+  },
+  "manufacturing-skill": {
+    title: "技能試験を学ぶ",
+    description: "技能検定 機械加工 学科",
+    quizIds: ["skill-test-machining"],
+  },
+
+  // 介護
+  "care-vocabulary": {
+    title: "介護用語を学ぶ",
+    description: "介護現場で使う重要用語",
+    quizIds: ["care-terms"],
+  },
+  "care-listening": {
+    title: "介護リスニングを学ぶ",
+    description: "介護現場の聞き取り",
+    quizIds: ["care-listening"],
+  },
+  "care-conversation": {
+    title: "介護現場会話を学ぶ",
+    description: "現場会話・対応を学ぶ",
+    quizIds: ["care-conversation"],
+  },
+
+  // 運転
+  "driver-license": {
+    title: "外国免許切替を学ぶ",
+    description: "交通ルール・優先関係・標識",
+    quizIds: ["gaikoku-license"],
+  },
+  "driver-signs": {
+    title: "道路標識を学ぶ",
+    description: "標識を集中して覚える",
+    quizIds: ["road-signs"],
+  },
+
+  // 未定
+  "undecided-speaking": {
+    title: "スピーキングを学ぶ",
+    description: "話す練習・発話練習",
+    quizIds: ["speaking-practice"],
+  },
+}
+
+function getGroupTitle(group: string | null, industry: IndustryId | null) {
+  if (group && GROUP_CONFIG[group]) return GROUP_CONFIG[group].title
+  if (industry) return INDUSTRY_LABEL[industry]
+  return "学習を始める"
+}
+
+function getGroupDescription(group: string | null) {
+  if (group && GROUP_CONFIG[group]) return GROUP_CONFIG[group].description
+  return "教材を選んで「通常 / 模擬 / 復習 / 日本語バトル」を開始できます。"
+}
+
 export default function SelectModePage() {
   const router = useRouter()
   const params = useSearchParams()
 
   let industry = (params.get("industry") as IndustryId | null) ?? null
+  const group = params.get("group")
   const [industryReady, setIndustryReady] = useState(false)
 
-  // ✅ localStorage key
   const LS_INDUSTRY_KEY = "selected-industry"
 
-  // ✅ URLに無ければ localStorage から復元してURLを正にする（導線途切れ防止）
   useEffect(() => {
     if (industry && isIndustryId(industry)) {
       try {
@@ -66,20 +183,25 @@ export default function SelectModePage() {
     try {
       const saved = localStorage.getItem(LS_INDUSTRY_KEY)
       if (saved && isIndustryId(saved)) {
-        router.replace(`/select-mode?industry=${encodeURIComponent(saved)}`)
+        const next = `/select-mode?industry=${encodeURIComponent(saved)}${
+          group ? `&group=${encodeURIComponent(group)}` : ""
+        }`
+        router.replace(next)
         return
       }
     } catch {}
 
-    // 保存が無い場合でも画面は出す
     setIndustryReady(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const withIndustry = (path: string) => {
-    if (!industry) return path
+    const qs: string[] = []
+    if (industry) qs.push(`industry=${encodeURIComponent(industry)}`)
+    if (group) qs.push(`group=${encodeURIComponent(group)}`)
+    if (qs.length === 0) return path
     const join = path.includes("?") ? "&" : "?"
-    return `${path}${join}industry=${encodeURIComponent(industry)}`
+    return `${path}${join}${qs.join("&")}`
   }
 
   const [uid, setUid] = useState<string | null>(null)
@@ -141,20 +263,25 @@ export default function SelectModePage() {
     })()
   }, [uid])
 
-  const selectedCards = useMemo(() => {
-    return selected.filter((q) => quizzes[q])
-  }, [selected])
+  const filteredSelectedCards = useMemo(() => {
+    let ids = selected.filter((q) => quizzes[q])
 
-  // ✅ 一覧を探しやすく：カードは「選択」、操作は下部バーに集約
+    if (group && GROUP_CONFIG[group]?.quizIds) {
+      const allowed = GROUP_CONFIG[group].quizIds!
+      ids = ids.filter((q) => allowed.includes(q))
+    }
+
+    return ids
+  }, [selected, group])
+
   const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null)
 
   useEffect(() => {
-    // 選択が無い/変わった時は先頭を自動選択
-    if (!activeQuiz || (activeQuiz && !selectedCards.includes(activeQuiz))) {
-      setActiveQuiz(selectedCards[0] ?? null)
+    if (!activeQuiz || (activeQuiz && !filteredSelectedCards.includes(activeQuiz))) {
+      setActiveQuiz(filteredSelectedCards[0] ?? null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCards.join(",")])
+  }, [filteredSelectedCards.join(",")])
 
   if (!industryReady) {
     return (
@@ -172,9 +299,7 @@ export default function SelectModePage() {
         <div style={styles.shell}>
           {accessBlocked ? (
             <div style={styles.payWarn}>
-              <div style={{ fontWeight: 900 }}>
-                利用開始にはお支払い手続きが必要です
-              </div>
+              <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
                 状態：<b>{billingStatus}</b>
               </div>
@@ -207,18 +332,17 @@ export default function SelectModePage() {
     ? { ...styles.grid, gridTemplateColumns: "1fr", gap: 12 }
     : styles.grid
 
-  const quizActionsStyle: React.CSSProperties = isMobile
-    ? { ...styles.quizActions, gap: 10 }
-    : styles.quizActions
+  const currentGroup = group ? GROUP_CONFIG[group] : null
+  const isBattleGroup = !!currentGroup?.isBattle
+  const pageTitle = getGroupTitle(group, industry)
+  const pageDescription = getGroupDescription(group)
 
   return (
     <main style={styles.page}>
       <div style={shellStyle}>
         {accessBlocked ? (
           <div style={styles.payWarn}>
-            <div style={{ fontWeight: 900 }}>
-              利用開始にはお支払い手続きが必要です
-            </div>
+            <div style={{ fontWeight: 900 }}>利用開始にはお支払い手続きが必要です</div>
             <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85 }}>
               状態：<b>{billingStatus}</b>
             </div>
@@ -233,7 +357,7 @@ export default function SelectModePage() {
           </div>
         ) : null}
 
-        <AppHeader title="学習を始める" />
+        <AppHeader title={pageTitle} />
 
         <div
           style={{
@@ -254,16 +378,44 @@ export default function SelectModePage() {
               </>
             ) : null}
           </div>
-          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
-            教材を選んで「通常 / 模擬 / 復習 / 日本語バトル」を開始できます。
-          </div>
+          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>{pageDescription}</div>
         </div>
 
         {error ? <div style={styles.alert}>{error}</div> : null}
 
-        {selectedCards.length === 0 ? (
+        {isBattleGroup ? (
+          <section style={{ marginTop: 16 }}>
+            <div style={styles.sectionHead}>
+              <h2 style={styles.h2}>日本語バトル</h2>
+              <span style={styles.badge}>目玉</span>
+            </div>
+
+            <div style={styles.quizCard}>
+              <div style={styles.quizTitle}>🎮 日本語バトルをプレイ</div>
+              <div style={styles.quizDesc}>
+                語彙・文法・判断・記憶ゲーム。
+                <br />
+                非会員は1日1回、会員は無制限でプレイできます。
+              </div>
+              <div style={styles.quizActions}>
+                <Link href="/game" style={{ ...btnStyle, ...styles.btnBlue }}>
+                  日本語バトルへ
+                </Link>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
+                教材を変更する
+              </Link>
+              <Link href={withIndustry("/plans")} style={{ ...btnStyle, ...styles.btnBlue }}>
+                プランを確認
+              </Link>
+            </div>
+          </section>
+        ) : filteredSelectedCards.length === 0 ? (
           <section style={styles.card}>
-            <div style={styles.cardTitle}>教材が選択されていません</div>
+            <div style={styles.cardTitle}>この分類の教材が選択されていません</div>
             <p style={styles.cardText}>
               まずは今月受講する教材を選びましょう。選択後、この画面から
               「通常 / 模擬 / 復習」を開始できます。
@@ -282,15 +434,27 @@ export default function SelectModePage() {
         ) : (
           <section style={{ marginTop: 14 }}>
             <div style={styles.sectionHead}>
-              <h2 style={styles.h2}>あなたの教材（今月の受講）</h2>
-              <span style={styles.badge}>{selectedCards.length} 件</span>
+              <h2 style={styles.h2}>{pageTitle}</h2>
+              <span style={styles.badge}>{filteredSelectedCards.length} 件</span>
             </div>
 
             <div style={gridStyle}>
-              {selectedCards.map((id) => {
+              {filteredSelectedCards.map((id) => {
                 const q = quizzes[id]
                 return (
-                  <div key={id} style={{...styles.quizCard, ...(activeQuiz === id ? styles.quizCardActive : {})}} role="button" tabIndex={0} onClick={() => setActiveQuiz(id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveQuiz(id) }}>
+                  <div
+                    key={id}
+                    style={{
+                      ...styles.quizCard,
+                      ...(activeQuiz === id ? styles.quizCardActive : {}),
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveQuiz(id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setActiveQuiz(id)
+                    }}
+                  >
                     <div style={styles.quizTitle}>{q.title}</div>
 
                     {q.description ? (
@@ -305,11 +469,13 @@ export default function SelectModePage() {
               })}
             </div>
 
-            {/* ✅ 下部固定：選んだ教材に対して操作する（探しやすい） */}
             {activeQuiz ? (
               <div style={styles.bottomBar}>
                 <div style={{ fontSize: 12, opacity: 0.8 }}>
-                  選択中：<span style={{ fontWeight: 900 }}>{quizzes[activeQuiz]?.title ?? activeQuiz}</span>
+                  選択中：
+                  <span style={{ fontWeight: 900 }}>
+                    {quizzes[activeQuiz]?.title ?? activeQuiz}
+                  </span>
                 </div>
                 <div style={styles.bottomActions}>
                   <Link href={`/normal?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnBlue }}>
@@ -324,6 +490,7 @@ export default function SelectModePage() {
                 </div>
               </div>
             ) : null}
+
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
                 教材を変更する
@@ -335,29 +502,32 @@ export default function SelectModePage() {
           </section>
         )}
 
-        <section style={{ marginTop: 16 }}>
-          <div style={styles.sectionHead}>
-            <h2 style={styles.h2}>ゲームで学ぶ</h2>
-            <span style={styles.badge}>NEW</span>
-          </div>
+        {!isBattleGroup ? (
+          <section style={{ marginTop: 16 }}>
+            <div style={styles.sectionHead}>
+              <h2 style={styles.h2}>ゲームで学ぶ</h2>
+              <span style={styles.badge}>NEW</span>
+            </div>
 
-          <div style={styles.quizCard}>
-            <div style={styles.quizTitle}>落ち物ネプリーグ（日本語検定 N4）</div>
-            <div style={styles.quizDesc}>
-              ゲームは1つに固定（日本語N4）。通常/模擬/復習は教材ごとに今まで通り使えます。
+            <div style={styles.quizCard}>
+              <div style={styles.quizTitle}>🎮 日本語バトル</div>
+              <div style={styles.quizDesc}>
+                どの業種でも使える共通ゲームです。
+                <br />
+                非会員は1日1回、会員は無制限でプレイできます。
+              </div>
+              <div style={styles.quizActions}>
+                <Link href="/game" style={{ ...btnStyle, ...styles.btnBlue }}>
+                  日本語バトルへ
+                </Link>
+              </div>
             </div>
-            <div style={styles.quizMeta}>ID: {GAME_FIXED_TYPE}</div>
-            <div style={quizActionsStyle}>
-              <Link href={`/game`} style={{ ...btnStyle, ...styles.btnBlue }}>
-                日本語バトルへ
-              </Link>
-            </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <footer style={styles.footer}>
           <div style={styles.footerNote}>
-            ※ ゲームは日本語検定（N4）固定です。スマホでは「1カラム＆大きめボタン」になります。
+            ※ 業種と分類に合わせて、今月選択中の教材だけを表示しています。
           </div>
         </footer>
       </div>
