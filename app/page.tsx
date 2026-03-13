@@ -84,7 +84,7 @@ export default function HomePage() {
         id: "construction",
         icon: "👷",
         title: "建設で働く方へ",
-        subtitle: "用語・施工管理試験・現場日本語",
+        subtitle: "用語・施工管理試験・現場日本語・日本語N4〜N2",
         extraQuizIds: [
           "genba-listening",
           "genba-phrasebook",
@@ -139,7 +139,7 @@ export default function HomePage() {
         id: "manufacturing",
         icon: "🏭",
         title: "製造で働く方へ",
-        subtitle: "用語・現場会話・技能試験",
+        subtitle: "用語・現場会話・技能試験・日本語N4〜N2",
         extraQuizIds: [
           "genba-listening",
           "genba-phrasebook",
@@ -154,7 +154,7 @@ export default function HomePage() {
         id: "care",
         icon: "👵",
         title: "介護で働く方へ",
-        subtitle: "介護用語・現場会話・国家試験",
+        subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2",
         extraQuizIds: [
           "care-terms",
           "care-listening",
@@ -166,7 +166,7 @@ export default function HomePage() {
         id: "driver",
         icon: "🚗",
         title: "運転・免許が必要な方へ",
-        subtitle: "交通ルール・道路標識",
+        subtitle: "交通ルール・道路標識・日本語N4〜N2",
         extraQuizIds: ["gaikoku-license","road-signs"],
         note: "※ 日本語基礎（JLPT/スピーキング）は全員に含まれます",
       },
@@ -174,7 +174,7 @@ export default function HomePage() {
         id: "undecided",
         icon: "🌱",
         title: "まだ決まっていない方へ",
-        subtitle: "まずは日本語基礎から。後で業種は選べます",
+        subtitle: "まずは日本語N4〜N2と基礎学習から",
         extraQuizIds: [],
         note: "海外からの学習スタート向け入口",
       },
@@ -183,6 +183,7 @@ export default function HomePage() {
   )
 
   const [openIndustryId, setOpenIndustryId] = useState<IndustryId | null>(null)
+  const [openConstructionGroupId, setOpenConstructionGroupId] = useState<string | null>(null)
 
   // ✅ localStorage “確実修正”
   const LS_INDUSTRY_KEY = "selected-industry"
@@ -414,7 +415,15 @@ export default function HomePage() {
                   <button
                     type="button"
                     style={styles.industryHead}
-                    onClick={() => setOpenIndustryId(isOpen ? null : ind.id)}
+                    onClick={() => {
+                      if (isOpen) {
+                        setOpenIndustryId(null)
+                        if (ind.id === "construction") setOpenConstructionGroupId(null)
+                      } else {
+                        setOpenIndustryId(ind.id)
+                        if (ind.id !== "construction") setOpenConstructionGroupId(null)
+                      }
+                    }}
                     aria-expanded={isOpen}
                   >
                     <div style={styles.industryHeadLeft}>
@@ -437,36 +446,60 @@ export default function HomePage() {
                             const groupItems = getItemsForGroup(group.quizIds)
                             if (!groupItems.length) return null
 
+                            const groupOpen =
+                              ind.id === "construction"
+                                ? openConstructionGroupId === group.id
+                                : true
+
                             return (
                               <div key={group.id} style={styles.industryGroupCard}>
-                                <div style={styles.industryGroupTitle}>{group.title}</div>
-                                <div style={styles.industryGroupDesc}>{group.description}</div>
+                                <button
+                                  type="button"
+                                  style={styles.industryGroupHead}
+                                  onClick={() => {
+                                    if (ind.id !== "construction") return
+                                    setOpenConstructionGroupId((prev) =>
+                                      prev === group.id ? null : group.id
+                                    )
+                                  }}
+                                  aria-expanded={groupOpen}
+                                >
+                                  <div>
+                                    <div style={styles.industryGroupTitle}>{group.title}</div>
+                                    <div style={styles.industryGroupDesc}>{group.description}</div>
+                                  </div>
+                                  <div style={styles.industryGroupChevron}>
+                                    {ind.id === "construction" ? (groupOpen ? "−" : "+") : ""}
+                                  </div>
+                                </button>
 
-                                <div style={styles.industryGrid}>
-                                  {groupItems.map((q) => (
-                                    <div
-                                      key={q.id}
-                                      style={styles.industryItem}
-                                      onClick={() => router.push(`/contents/${q.id}`)}
-                                      onMouseEnter={(e) => {
-                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
-                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
-                                        ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
-                                      }}
-                                    >
-                                      <div style={styles.industryItemTitle}>{q.title}</div>
-                                      {q.description ? (
-                                        <div style={styles.industryItemDesc}>{q.description}</div>
-                                      ) : (
-                                        <div style={styles.industryItemDescMuted}>（説明なし）</div>
-                                      )}
-                                      <div style={styles.industryItemMeta}>詳しく見る →</div>
-                                    </div>
-                                  ))}
-                                </div>
+                                {groupOpen ? (
+                                  <div style={styles.industryGrid}>
+                                    {groupItems.map((q) => (
+                                      <div
+                                        key={q.id}
+                                        style={styles.industryItem}
+                                        onClick={() => router.push(`/contents/${q.id}`)}
+                                        onMouseEnter={(e) => {
+                                          ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"
+                                          ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 20px rgba(0,0,0,0.06)"
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          ;(e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)"
+                                          ;(e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 14px rgba(0,0,0,0.04)"
+                                        }}
+                                      >
+                                        <div style={styles.industryItemTitle}>{q.title}</div>
+                                        {q.description ? (
+                                          <div style={styles.industryItemDesc}>{q.description}</div>
+                                        ) : (
+                                          <div style={styles.industryItemDescMuted}>（説明なし）</div>
+                                        )}
+                                        <div style={styles.industryItemMeta}>詳しく見る →</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
                               </div>
                             )
                           })}
