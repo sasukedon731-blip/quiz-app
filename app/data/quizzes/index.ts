@@ -16,7 +16,6 @@ import { constructionTermsQuiz } from "./construction-terms"
 import { constructionTermsReverseQuiz } from "./construction-terms_reverse"
 import { constructionTermsImageQuiz } from "./construction-terms-image"
 
-// ★ 今回追加する建設用語PPT抽出教材
 import constructionTools from "./construction-tools.quiz"
 import hvacTerms from "./hvac-terms.quiz"
 import plantTerms from "./plant-terms.quiz"
@@ -26,9 +25,11 @@ import electricTerms from "./electric-terms.quiz"
 import civilTerms from "./civil-terms.quiz"
 
 // ★ 製造教材
-import { manufacturingTermsQuiz } from "./manufacturing-terms"
+import { manufacturingMeaning } from "./manufacturing-meaning-150"
+import { manufacturingWord } from "./manufacturing-word-100"
 import { manufacturingListeningQuiz } from "./manufacturing-listening"
 import { manufacturingConversationQuiz } from "./manufacturing-conversation"
+import { manufacturingConversation as manufacturingConversation50 } from "./manufacturing-conversation-50"
 import { skillTestMachiningQuiz } from "./skill-test-machining"
 
 // ★ 介護教材
@@ -60,7 +61,6 @@ export const quizzes = {
   "construction-terms-image": constructionTermsImageQuiz,
   "road-signs": roadSignsQuiz,
 
-  // ★ 今回追加した建設用語PPT抽出教材
   "construction-tools": constructionTools,
   "hvac-terms": hvacTerms,
   "plant-terms": plantTerms,
@@ -69,19 +69,18 @@ export const quizzes = {
   "electric-terms": electricTerms,
   "civil-terms": civilTerms,
 
-  // ★ 製造
-  "manufacturing-terms": manufacturingTermsQuiz,
+  "manufacturing-meaning": manufacturingMeaning,
+  "manufacturing-word": manufacturingWord,
   "manufacturing-listening": manufacturingListeningQuiz,
   "manufacturing-conversation": manufacturingConversationQuiz,
+  "manufacturing-conversation-50": manufacturingConversation50,
   "skill-test-machining": skillTestMachiningQuiz,
 
-  // ★ 介護
   "care-terms": careTermsQuiz,
   "care-listening": careListeningQuiz,
   "care-conversation": careConversationQuiz,
   "care-worker-exam": careWorkerExamQuiz,
 
-  // ★ 方言
   "dialect-listening": dialectListeningQuiz,
   "kansai-listening": kansaiListeningQuiz,
   "confusing-japanese": confusingJapaneseQuiz,

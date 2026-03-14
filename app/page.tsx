@@ -164,9 +164,11 @@ export default function HomePage() {
           "japanese-n3",
           "japanese-n2",
           "speaking-practice",
-          "manufacturing-terms",
+          "manufacturing-meaning",
+          "manufacturing-word",
           "manufacturing-listening",
           "manufacturing-conversation",
+          "manufacturing-conversation-50",
           "skill-test-machining",
         ],
         groups: [
@@ -180,7 +182,13 @@ export default function HomePage() {
             id: "manufacturing-practice",
             title: "製造用語・会話を学ぶ",
             description: "製造用語・リスニング・現場会話",
-            quizIds: ["manufacturing-terms", "manufacturing-listening", "manufacturing-conversation"],
+            quizIds: [
+              "manufacturing-meaning",
+              "manufacturing-word",
+              "manufacturing-listening",
+              "manufacturing-conversation",
+              "manufacturing-conversation-50",
+            ],
           },
           {
             id: "manufacturing-skill-test",

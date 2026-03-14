@@ -26,9 +26,13 @@ export type QuizType =
   | "electric-terms"
   | "civil-terms"
 
-  | "manufacturing-terms"
+  // ★ 製造（旧 manufacturing-terms は削除）
+  | "manufacturing-meaning"
+  | "manufacturing-word"
   | "manufacturing-listening"
   | "manufacturing-conversation"
+  | "manufacturing-conversation-50"
+
   | "care-listening"
   | "care-conversation"
   | "care-terms"
@@ -62,8 +66,6 @@ export type Question = {
   listeningText?: string
 
   // ✅ 画像対応（イラスト問題・聴解の状況図など）
-  // - まずは「問題に1枚」から始めて拡張しやすくする
-  // - 画像は /public 配下 or 外部URL（CDN/Storage）を想定
   imageUrl?: string
   imageAlt?: string
 

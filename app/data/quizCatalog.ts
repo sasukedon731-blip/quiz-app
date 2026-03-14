@@ -132,7 +132,6 @@ export const quizCatalog: QuizDef[] = [
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
 
-
   {
     id: "genba-phrasebook",
     title: "現場で使える用語集（ヒアリング・スピーキング）",
@@ -162,8 +161,6 @@ export const quizCatalog: QuizDef[] = [
   // ===============================
   // 建設
   // ===============================
-
-  // ===== 今回PPTから抽出した個別教材 =====
   {
     id: "construction-tools",
     title: "建設道具クイズ",
@@ -289,13 +286,24 @@ export const quizCatalog: QuizDef[] = [
   // 製造
   // ===============================
   {
-    id: "manufacturing-terms",
-    title: "製造用語",
-    description: "やさしい日本語＋英語補助で製造の重要用語を覚える",
+    id: "manufacturing-meaning",
+    title: "製造用語（意味→言葉）",
+    description: "意味を読んで正しい製造用語を選ぶ",
     enabled: true,
     order: 70,
     industries: ["manufacturing"],
-    modes: ["normal", "review"],
+    modes: ["normal", "exam", "review"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
+
+  {
+    id: "manufacturing-word",
+    title: "製造用語（言葉→意味）",
+    description: "製造用語の意味を4択で確認する",
+    enabled: true,
+    order: 71,
+    industries: ["manufacturing"],
+    modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
   },
 
@@ -304,7 +312,7 @@ export const quizCatalog: QuizDef[] = [
     title: "製造リスニング",
     description: "製造現場でよく聞く用語・指示を聞いて選ぶ",
     enabled: true,
-    order: 71,
+    order: 72,
     industries: ["manufacturing"],
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
@@ -312,12 +320,23 @@ export const quizCatalog: QuizDef[] = [
 
   {
     id: "manufacturing-conversation",
-    title: "製造現場会話",
+    title: "製造現場会話（音声）",
     description: "製造現場の指示・会話を聞いて対応を選ぶ",
     enabled: true,
-    order: 72,
+    order: 73,
     industries: ["manufacturing"],
     modes: ["normal", "review"],
+    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
+  },
+
+  {
+    id: "manufacturing-conversation-50",
+    title: "製造現場会話（読解）",
+    description: "製造現場の会話を読んで正しい言葉を選ぶ",
+    enabled: true,
+    order: 74,
+    industries: ["manufacturing"],
+    modes: ["normal", "exam", "review"],
     sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
   },
 
@@ -326,7 +345,7 @@ export const quizCatalog: QuizDef[] = [
     title: "技能検定 機械加工 学科",
     description: "技能検定の学科試験対策（○×問題）",
     enabled: true,
-    order: 73,
+    order: 75,
     industries: ["manufacturing"],
     modes: ["normal", "exam", "review"],
     sections: [
@@ -401,15 +420,15 @@ export const quizCatalog: QuizDef[] = [
     ],
   },
   {
-  id: "care-worker-exam",
-  title: "介護福祉士試験",
-  description: "介護福祉士国家試験レベルの知識を学ぶ",
-  enabled: true,
-  order: 40,
-  industries: ["care"],
-  modes: ["normal","exam","review"],
-  sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
-},
+    id: "care-worker-exam",
+    title: "介護福祉士試験",
+    description: "介護福祉士国家試験レベルの知識を学ぶ",
+    enabled: true,
+    order: 40,
+    industries: ["care"],
+    modes: ["normal","exam","review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
 ]
 
 /**
