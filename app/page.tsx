@@ -203,7 +203,7 @@ export default function HomePage() {
         icon: "👵",
         title: "介護で働く方へ",
         subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2・日本語バトル",
-        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "care-terms", "care-listening", "care-conversation"],
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "care-terms", "care-listening", "care-conversation", "care-worker-exam"],
         groups: [
           {
             id: "care-jlpt",
@@ -217,6 +217,12 @@ export default function HomePage() {
             description: "介護用語・リスニング・現場会話",
             quizIds: ["care-terms", "care-listening", "care-conversation"],
           },
+          {
+  id: "care-exam",
+  title: "介護福祉士試験",
+  description: "国家試験レベルの問題",
+  quizIds: ["care-worker-exam"],
+},
           {
             id: "care-battle",
             title: "日本語バトルをプレイ",
@@ -261,13 +267,19 @@ export default function HomePage() {
         icon: "🌱",
         title: "まだ決まっていない方へ",
         subtitle: "まずは日本語N4〜N2と基礎学習・日本語バトルから",
-        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "kansai-listening"],
         groups: [
           {
             id: "undecided-jlpt",
             title: "日本語検定を学ぶ",
             description: "N4・N3・N2・スピーキング",
             quizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice"],
+          },
+          {
+            id: "undecided-kansai",
+            title: "関西弁を学ぶ",
+            description: "関西弁の聞き取りを学ぶ",
+            quizIds: ["kansai-listening"],
           },
           {
             id: "undecided-battle",

@@ -130,6 +130,11 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     description: "現場会話・対応を学ぶ",
     quizIds: ["care-conversation"],
   },
+  "care-exam": {
+  title: "介護福祉士試験",
+  description: "国家試験レベルの問題",
+  quizIds: ["care-worker-exam"],
+},
 
   // 運転
   "driver-license": {

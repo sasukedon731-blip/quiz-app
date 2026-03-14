@@ -35,6 +35,7 @@ import { skillTestMachiningQuiz } from "./skill-test-machining"
 import { careTermsQuiz } from "./care-terms"
 import { careListeningQuiz } from "./care-listening"
 import { careConversationQuiz } from "./care-conversation"
+import { careWorkerExamQuiz } from "./care-worker-exam"
 
 // ★ 方言教材
 import { dialectListeningQuiz } from "./dialect-listening"
@@ -78,6 +79,7 @@ export const quizzes = {
   "care-terms": careTermsQuiz,
   "care-listening": careListeningQuiz,
   "care-conversation": careConversationQuiz,
+  "care-worker-exam": careWorkerExamQuiz,
 
   // ★ 方言
   "dialect-listening": dialectListeningQuiz,

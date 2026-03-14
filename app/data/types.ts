@@ -36,6 +36,7 @@ export type QuizType =
   | "dialect-listening"
   | "kansai-listening"
   | "confusing-japanese"
+  | "care-worker-exam"
 
 // ✅ 分野（セクション）定義
 export type QuizSection = {

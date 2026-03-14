@@ -400,6 +400,16 @@ export const quizCatalog: QuizDef[] = [
       { id: "risk", title: "リスク・緊急時", enabled: true, order: 9 },
     ],
   },
+  {
+  id: "care-worker-exam",
+  title: "介護福祉士試験",
+  description: "介護福祉士国家試験レベルの知識を学ぶ",
+  enabled: true,
+  order: 40,
+  industries: ["care"],
+  modes: ["normal","exam","review"],
+  sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+},
 ]
 
 /**
