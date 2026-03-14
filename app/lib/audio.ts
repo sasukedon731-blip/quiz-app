@@ -31,6 +31,9 @@ function getAudioUrl(quizType: QuizType, question: Question): string | undefined
     case "care-conversation":
       return `/audio/care-conversation/care-conversation_${question.id}.mp3`
 
+    case "kansai-listening":
+      return `/audio/kansai-listening/kansai_${String(question.id).padStart(3, "0")}.mp3`
+
     default:
       return undefined
   }
