@@ -131,10 +131,10 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     quizIds: ["care-conversation"],
   },
   "care-exam": {
-  title: "介護福祉士試験",
-  description: "国家試験レベルの問題",
-  quizIds: ["care-worker-exam"],
-},
+    title: "介護福祉士試験",
+    description: "国家試験レベルの問題",
+    quizIds: ["care-worker-exam"],
+  },
 
   // 運転
   "driver-license": {
@@ -154,7 +154,7 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     description: "話す練習・発話練習",
     quizIds: ["speaking-practice"],
   },
-    "kansai-listening": {
+  "kansai-listening": {
     title: "関西弁を学ぶ",
     description: "関西弁の聞き取りを学ぶ",
     quizIds: ["kansai-listening"],
@@ -275,23 +275,23 @@ export default function SelectModePage() {
   }, [uid])
 
   const filteredSelectedCards = useMemo(() => {
-  const activeCatalogIds = new Set(
-    quizCatalog.filter((q) => q.enabled !== false).map((q) => q.id)
-  )
+    const activeCatalogIds = new Set(
+      quizCatalog.filter((q) => q.enabled !== false).map((q) => q.id)
+    )
 
-  let ids = selected.filter((q) => {
-    if (!quizzes[q]) return false
-    if (!activeCatalogIds.has(q)) return false
-    return true
-  })
+    let ids = selected.filter((q) => {
+      if (!quizzes[q]) return false
+      if (!activeCatalogIds.has(q)) return false
+      return true
+    })
 
-  if (group && GROUP_CONFIG[group]?.quizIds) {
-    const allowed = GROUP_CONFIG[group].quizIds!
-    ids = ids.filter((q) => allowed.includes(q))
-  }
+    if (group && GROUP_CONFIG[group]?.quizIds) {
+      const allowed = GROUP_CONFIG[group].quizIds!
+      ids = ids.filter((q) => allowed.includes(q))
+    }
 
-  return ids
-}, [selected, group])
+    return ids
+  }, [selected, group])
 
   const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null)
 
@@ -460,12 +460,14 @@ export default function SelectModePage() {
             <div style={gridStyle}>
               {filteredSelectedCards.map((id) => {
                 const q = quizzes[id]
+                const isSelected = activeQuiz === id
+
                 return (
                   <div
                     key={id}
                     style={{
                       ...styles.quizCard,
-                      ...(activeQuiz === id ? styles.quizCardActive : {}),
+                      ...(isSelected ? styles.quizCardActive : {}),
                     }}
                     role="button"
                     tabIndex={0}
@@ -474,7 +476,10 @@ export default function SelectModePage() {
                       if (e.key === "Enter" || e.key === " ") setActiveQuiz(id)
                     }}
                   >
-                    <div style={styles.quizTitle}>{q.title}</div>
+                    <div style={styles.quizHeadRow}>
+                      <div style={styles.quizTitle}>{q.title}</div>
+                      {isSelected ? <span style={styles.selectBadge}>選択中</span> : null}
+                    </div>
 
                     {q.description ? (
                       <div style={styles.quizDesc}>{q.description}</div>
@@ -483,32 +488,41 @@ export default function SelectModePage() {
                     )}
 
                     <div style={styles.quizMeta}>ID: {id}</div>
+
+                    {!isSelected ? (
+                      <div style={styles.tapHint}>タップして選択</div>
+                    ) : (
+                      <div style={styles.cardActionWrap}>
+                        <div style={styles.cardActionTitle}>この教材を始める</div>
+                        <div style={styles.cardActions}>
+                          <Link
+                            href={`/normal?type=${id}`}
+                            style={{ ...btnStyle, ...styles.cardBtnBlue }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            通常
+                          </Link>
+                          <Link
+                            href={`/exam?type=${id}`}
+                            style={{ ...btnStyle, ...styles.cardBtnGray }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            模擬
+                          </Link>
+                          <Link
+                            href={`/review?type=${id}`}
+                            style={{ ...btnStyle, ...styles.cardBtnGreen }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            復習
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
-
-            {activeQuiz ? (
-              <div style={styles.bottomBar}>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>
-                  選択中：
-                  <span style={{ fontWeight: 900 }}>
-                    {quizzes[activeQuiz]?.title ?? activeQuiz}
-                  </span>
-                </div>
-                <div style={styles.bottomActions}>
-                  <Link href={`/normal?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnBlue }}>
-                    通常
-                  </Link>
-                  <Link href={`/exam?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnGray }}>
-                    模擬
-                  </Link>
-                  <Link href={`/review?type=${activeQuiz}`} style={{ ...btnStyle, ...styles.bottomBtnGreen }}>
-                    復習
-                  </Link>
-                </div>
-              </div>
-            ) : null}
 
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link href={withIndustry("/select-quizzes")} style={{ ...btnStyle, ...styles.btnGreen }}>
@@ -609,43 +623,31 @@ const styles: Record<string, CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     minHeight: 140,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
   },
   quizCardActive: {
     border: "2px solid #93c5fd",
     boxShadow: "0 10px 26px rgba(59,130,246,0.18)",
+    transform: "translateY(-1px)",
   },
 
-  bottomBar: {
-    position: "sticky",
-    bottom: 12,
-    marginTop: 14,
-    padding: 12,
-    borderRadius: 18,
-    border: "1px solid rgba(0,0,0,0.08)",
-    background: "rgba(255,255,255,0.92)",
-    backdropFilter: "blur(10px)",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
+  quizHeadRow: {
     display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    zIndex: 20,
-  },
-  bottomActions: {
-    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     gap: 10,
   },
 
-  bottomBtnBlue: {
-    background: "#2563eb",
-    color: "#fff",
-  },
-  bottomBtnGray: {
-    background: "#111827",
-    color: "#fff",
-  },
-  bottomBtnGreen: {
-    background: "#16a34a",
-    color: "#fff",
+  selectBadge: {
+    fontSize: 12,
+    fontWeight: 900,
+    padding: "5px 10px",
+    borderRadius: 999,
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    whiteSpace: "nowrap",
   },
 
   quizTitle: { fontWeight: 900, fontSize: 16 },
@@ -653,6 +655,46 @@ const styles: Record<string, CSSProperties> = {
   quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5, minHeight: 48 },
   quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55, minHeight: 48 },
   quizMeta: { marginTop: 8, fontSize: 12, opacity: 0.6 },
+
+  tapHint: {
+    marginTop: "auto",
+    paddingTop: 12,
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#94a3b8",
+  },
+
+  cardActionWrap: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTop: "1px solid #e5e7eb",
+  },
+
+  cardActionTitle: {
+    marginBottom: 10,
+    fontSize: 12,
+    fontWeight: 900,
+    color: "#475569",
+  },
+
+  cardActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+
+  cardBtnBlue: {
+    background: "#2563eb",
+    color: "#fff",
+  },
+  cardBtnGray: {
+    background: "#111827",
+    color: "#fff",
+  },
+  cardBtnGreen: {
+    background: "#16a34a",
+    color: "#fff",
+  },
 
   quizActions: { marginTop: "auto", display: "grid", gap: 8 },
 
