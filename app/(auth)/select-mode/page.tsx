@@ -148,6 +148,11 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     description: "話す練習・発話練習",
     quizIds: ["speaking-practice"],
   },
+    "kansai-listening": {
+    title: "関西弁を学ぶ",
+    description: "関西弁の聞き取りを学ぶ",
+    quizIds: ["kansai-listening"],
+  },
 }
 
 function getGroupTitle(group: string | null, industry: IndustryId | null) {

@@ -121,6 +121,17 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+  {
+    id: "kansai-listening",
+    title: "関西弁リスニング",
+    description: "関西弁のあいさつ・日常表現・会話表現を音声で学ぶ",
+    enabled: true,
+    order: 12,
+    industries: ["undecided"],
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
+
 
   {
     id: "genba-phrasebook",
@@ -151,47 +162,6 @@ export const quizCatalog: QuizDef[] = [
   // ===============================
   // 建設
   // ===============================
-  {
-    id: "construction-terms",
-    title: "建設・現場 用語（分野別）",
-    description: "説明→用語の4択で分野別に覚える（画像は補助）",
-    enabled: false,
-    order: 50,
-    industries: ["construction"],
-    modes: ["normal", "review"],
-    sections: [
-      { id: "all", title: "すべて", enabled: true, order: 1 },
-      { id: "architecture", title: "建築", enabled: true, order: 2 },
-      { id: "civil", title: "土木", enabled: true, order: 3 },
-      { id: "electric", title: "電気", enabled: true, order: 4 },
-      { id: "hvac", title: "空調・衛生", enabled: true, order: 5 },
-      { id: "plant", title: "プラント", enabled: true, order: 6 },
-      { id: "management", title: "施工管理", enabled: true, order: 7 },
-      { id: "tools", title: "道具", enabled: true, order: 8 },
-    ],
-  },
-
-  {
-    id: "construction-terms-reverse",
-    title: "建設・現場 用語（用語→説明）",
-    description: "用語の意味を選ぶ問題",
-    enabled: false,
-    order: 51,
-    industries: ["construction"],
-    modes: ["normal", "exam", "review"],
-    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
-  },
-
-  {
-    id: "construction-terms-image",
-    title: "建設・現場 用語（画像）",
-    description: "画像から用語を答える問題",
-    enabled: false,
-    order: 52,
-    industries: ["construction"],
-    modes: ["normal", "exam", "review"],
-    sections: [{ id: "all", title: "すべて", enabled: true, order: 1 }],
-  },
 
   // ===== 今回PPTから抽出した個別教材 =====
   {
