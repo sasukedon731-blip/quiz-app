@@ -12,6 +12,7 @@ import type { PlanId } from "@/app/lib/plan"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import { assertActiveAccess } from "@/app/lib/guards"
 import AppHeader from "@/app/components/AppHeader"
+import { quizCatalog } from "@/app/data/quizCatalog"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -269,15 +270,23 @@ export default function SelectModePage() {
   }, [uid])
 
   const filteredSelectedCards = useMemo(() => {
-    let ids = selected.filter((q) => quizzes[q])
+  const activeCatalogIds = new Set(
+    quizCatalog.filter((q) => q.enabled !== false).map((q) => q.id)
+  )
 
-    if (group && GROUP_CONFIG[group]?.quizIds) {
-      const allowed = GROUP_CONFIG[group].quizIds!
-      ids = ids.filter((q) => allowed.includes(q))
-    }
+  let ids = selected.filter((q) => {
+    if (!quizzes[q]) return false
+    if (!activeCatalogIds.has(q)) return false
+    return true
+  })
 
-    return ids
-  }, [selected, group])
+  if (group && GROUP_CONFIG[group]?.quizIds) {
+    const allowed = GROUP_CONFIG[group].quizIds!
+    ids = ids.filter((q) => allowed.includes(q))
+  }
+
+  return ids
+}, [selected, group])
 
   const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null)
 
