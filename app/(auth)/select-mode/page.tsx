@@ -487,8 +487,6 @@ export default function SelectModePage() {
                       <div style={styles.quizDescMuted}>（説明なし）</div>
                     )}
 
-                    <div style={styles.quizMeta}>ID: {id}</div>
-
                     {!isSelected ? (
                       <div style={styles.tapHint}>タップして選択</div>
                     ) : (
@@ -618,7 +616,7 @@ const styles: Record<string, CSSProperties> = {
     background: "#fff",
     border: "1px solid #e5e7eb",
     borderRadius: 16,
-    padding: 14,
+    padding: 12,
     boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
     display: "flex",
     flexDirection: "column",
@@ -652,7 +650,7 @@ const styles: Record<string, CSSProperties> = {
 
   quizTitle: { fontWeight: 900, fontSize: 16 },
 
-  quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5, minHeight: 48 },
+  quizDesc: { marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.5, minHeight: 32 },
   quizDescMuted: { marginTop: 6, fontSize: 13, opacity: 0.55, minHeight: 48 },
   quizMeta: { marginTop: 8, fontSize: 12, opacity: 0.6 },
 
