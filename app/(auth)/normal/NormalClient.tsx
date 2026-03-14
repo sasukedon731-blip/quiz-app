@@ -160,6 +160,11 @@ function filterBySection(questions: Question[], sectionId: string | null) {
 
 type NormalSession = { questions: Question[]; sectionId?: string | null }
 
+type SavedNormalProgress = {
+  index?: number
+  correctCount?: number
+}
+
 export default function NormalClient({ quiz }: Props) {
   const router = useRouter()
   const { user } = useAuth()
@@ -174,6 +179,8 @@ export default function NormalClient({ quiz }: Props) {
   const [selected, setSelected] = useState<number[]>([])
   const [showExplanation, setShowExplanation] = useState(false)
   const [correct, setCorrect] = useState(false)
+  const [correctCount, setCorrectCount] = useState(0)
+  const [finished, setFinished] = useState(false)
 
   // ✅ 続きから/はじめから選択
   const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
@@ -237,6 +244,8 @@ export default function NormalClient({ quiz }: Props) {
         setSelected([])
         setShowExplanation(false)
         setCorrect(false)
+        setCorrectCount(0)
+        setFinished(false)
         return
       }
 
@@ -246,6 +255,8 @@ export default function NormalClient({ quiz }: Props) {
       setSelected([])
       setShowExplanation(false)
       setCorrect(false)
+      setCorrectCount(0)
+      setFinished(false)
 
       const session: NormalSession = { questions: built, sectionId }
       localStorage.setItem(sessionKey, JSON.stringify(session))
@@ -274,11 +285,18 @@ export default function NormalClient({ quiz }: Props) {
         setSelected([])
         setShowExplanation(false)
         setCorrect(false)
+        setCorrectCount(0)
+        setFinished(false)
         return
       }
       const built = buildRandomQuestions(filtered)
       setQuestions(built)
       setIndex(0)
+      setSelected([])
+      setShowExplanation(false)
+      setCorrect(false)
+      setCorrectCount(0)
+      setFinished(false)
       localStorage.setItem(sessionKey, JSON.stringify({ questions: built, sectionId }))
       localStorage.removeItem(progressKey)
       return
@@ -293,8 +311,9 @@ export default function NormalClient({ quiz }: Props) {
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
       try {
-        const d = JSON.parse(savedProgressRaw) as { index?: number }
+        const d = JSON.parse(savedProgressRaw) as SavedNormalProgress
         if (typeof d.index === 'number') resumeIndex = d.index
+        if (typeof d.correctCount === 'number') setCorrectCount(d.correctCount)
       } catch {}
     }
 
@@ -309,6 +328,7 @@ export default function NormalClient({ quiz }: Props) {
     setSelected([])
     setShowExplanation(false)
     setCorrect(false)
+    setFinished(false)
   }
 
   // ✅ 初期化
@@ -341,8 +361,8 @@ export default function NormalClient({ quiz }: Props) {
     const savedProgressRaw = localStorage.getItem(progressKey)
     if (savedProgressRaw) {
       try {
-        const d = JSON.parse(savedProgressRaw) as { index?: number }
-        if (typeof d.index === 'number' && d.index > 0) {
+        const d = JSON.parse(savedProgressRaw) as SavedNormalProgress
+        if ((typeof d.index === 'number' && d.index > 0) || (typeof d.correctCount === 'number' && d.correctCount > 0)) {
           setStartChoice(null)
           return
         }
@@ -361,14 +381,14 @@ export default function NormalClient({ quiz }: Props) {
     const handler = () => {
       try {
         if (questions.length > 0) {
-          localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current }))
+          localStorage.setItem(progressKey, JSON.stringify({ index: indexRef.current, correctCount }))
           localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
         }
       } catch {}
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [questions.length, progressKey, wrongKey])
+  }, [questions.length, progressKey, wrongKey, correctCount])
 
   // ✅ 続き/最初
   if (startChoice === null) {
@@ -447,7 +467,105 @@ export default function NormalClient({ quiz }: Props) {
     )
   }
 
+  const activeSectionLabel =
+    sectionChoice === 'all'
+      ? `すべて（${allCount}）`
+      : `${quiz.sections?.find(s => s.id === sectionChoice)?.label ?? '分野'}（${sectionCounts[sectionChoice] ?? 0}）`
+
+  if (finished) {
+    const totalCount = questions.length
+    const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+
+    return (
+      <QuizLayout title={quiz.title} subtitle={hasSections ? activeSectionLabel : undefined}>
+        <div
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 20,
+            padding: 20,
+            background: 'white',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+          }}
+        >
+          <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>🎉 学習完了！</div>
+          <div style={{ opacity: 0.8, marginBottom: 18 }}>最後までおつかれさまでした。</div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 10,
+              marginBottom: 18,
+            }}
+          >
+            <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>問題数</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>{totalCount}</div>
+            </div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>正解数</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>{correctCount}</div>
+            </div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>正答率</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>{accuracy}%</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            <Button
+              variant="main"
+              onClick={() => {
+                startSession('restart', sectionChoice ?? 'all')
+              }}
+            >
+              もう一度やる
+            </Button>
+
+            <Button
+              variant="accent"
+              onClick={() => {
+                router.push(`/review?type=${quizType}`)
+              }}
+            >
+              復習する
+            </Button>
+
+            <Button variant="success" onClick={goModeSelect}>
+              学習選択へ戻る
+            </Button>
+          </div>
+        </div>
+      </QuizLayout>
+    )
+  }
+
   const current = questions[index]
+
+  const submitSelection = (selection: number[]) => {
+    if (showExplanation) return
+    if (!isSelectionComplete(current, selection)) return
+
+    const isCorrect = isCorrectSelection(current, selection)
+    setSelected(selection)
+    setCorrect(isCorrect)
+    setShowExplanation(true)
+
+    if (isCorrect) playBeep(880, 120, 'triangle')
+    else playBeep(220, 180, 'sawtooth')
+
+    if (isCorrect) {
+      setCorrectCount((prev) => prev + 1)
+    }
+
+    if (!isCorrect) {
+      const exists = wrongRef.current.some(q => q.id === current.id)
+      if (!exists) {
+        wrongRef.current = [...wrongRef.current, current]
+        localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
+      }
+    }
+  }
 
   const toggleChoice = (choiceIndex: number) => {
     if (showExplanation) return
@@ -456,34 +574,20 @@ export default function NormalClient({ quiz }: Props) {
     const isMulti = isMultiAnswerQuestion(current)
 
     if (!isMulti) {
-      setSelected([choiceIndex])
+      submitSelection([choiceIndex])
       return
     }
 
-    setSelected((prev) => {
-      if (prev.includes(choiceIndex)) return prev.filter((v) => v !== choiceIndex)
-      if (prev.length >= needed) return prev
-      return [...prev, choiceIndex].sort((a, b) => a - b)
-    })
-  }
+    const nextSelected = selected.includes(choiceIndex)
+      ? selected.filter((v) => v !== choiceIndex)
+      : selected.length >= needed
+        ? selected
+        : [...selected, choiceIndex].sort((a, b) => a - b)
 
-  const submitAnswer = () => {
-    if (showExplanation) return
-    if (!isSelectionComplete(current, selected)) return
+    setSelected(nextSelected)
 
-    const isCorrect = isCorrectSelection(current, selected)
-    setCorrect(isCorrect)
-    setShowExplanation(true)
-
-    if (isCorrect) playBeep(880, 120, 'triangle')
-    else playBeep(220, 180, 'sawtooth')
-
-    if (!isCorrect) {
-      const exists = wrongRef.current.some(q => q.id === current.id)
-      if (!exists) {
-        wrongRef.current = [...wrongRef.current, current]
-        localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
-      }
+    if (isSelectionComplete(current, nextSelected)) {
+      submitSelection(nextSelected)
     }
   }
 
@@ -512,26 +616,21 @@ export default function NormalClient({ quiz }: Props) {
       localStorage.removeItem(progressKey)
       localStorage.removeItem(sessionKey)
 
-      goModeSelect()
+      setFinished(true)
       return
     }
 
     const nextIndex = index + 1
     setIndex(nextIndex)
-    localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex }))
+    localStorage.setItem(progressKey, JSON.stringify({ index: nextIndex, correctCount }))
   }
 
   const interrupt = () => {
     stopSpeak()
-    localStorage.setItem(progressKey, JSON.stringify({ index }))
+    localStorage.setItem(progressKey, JSON.stringify({ index, correctCount }))
     localStorage.setItem(wrongKey, JSON.stringify(wrongRef.current))
     goModeSelect()
   }
-
-  const activeSectionLabel =
-    sectionChoice === 'all'
-      ? `すべて（${allCount}）`
-      : `${quiz.sections?.find(s => s.id === sectionChoice)?.label ?? '分野'}（${sectionCounts[sectionChoice] ?? 0}）`
 
   return (
     <QuizLayout title={quiz.title} subtitle={hasSections ? activeSectionLabel : undefined}>
@@ -629,7 +728,7 @@ export default function NormalClient({ quiz }: Props) {
 
       {isMultiAnswerQuestion(current) && (
         <div style={{ margin: '8px 0 12px', fontSize: 13, opacity: 0.8 }}>
-          この問題は <b>{requiredAnswerCount(current)}つ選択</b> です。
+          この問題は <b>{requiredAnswerCount(current)}つ選択</b> です。必要数そろうと自動で判定されます。
         </div>
       )}
 
@@ -653,9 +752,6 @@ export default function NormalClient({ quiz }: Props) {
 
       {!showExplanation && (
         <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button variant="main" onClick={submitAnswer} disabled={!isSelectionComplete(current, selected)}>
-            回答する
-          </Button>
           <Button variant="accent" onClick={interrupt}>
             中断して戻る
           </Button>
@@ -702,7 +798,7 @@ export default function NormalClient({ quiz }: Props) {
 
     <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
       <Button variant="main" onClick={next}>
-        次へ
+        {index + 1 >= questions.length ? '学習完了へ' : '次の問題へ'}
       </Button>
             <Button variant="accent" onClick={interrupt}>
               中断して戻る
