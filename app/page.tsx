@@ -275,7 +275,7 @@ export default function HomePage() {
         icon: "🌱",
         title: "まだ決まっていない方へ",
         subtitle: "まずは日本語N4〜N2と基礎学習・日本語バトルから",
-        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "kansai-listening"],
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "kansai-listening", "dialect-meaning"],
         groups: [
           {
             id: "undecided-jlpt",
@@ -288,6 +288,12 @@ export default function HomePage() {
             title: "関西弁を学ぶ",
             description: "関西弁の聞き取りを学ぶ",
             quizIds: ["kansai-listening"],
+          },
+          {
+            id: "undecided-dialect-meaning",
+            title: "全国の方言を学ぶ",
+            description: "北海道・東北、関東、中部・北陸、中国・四国、九州・沖縄の方言を意味当てで学ぶ",
+            quizIds: ["dialect-meaning"],
           },
           {
             id: "undecided-battle",

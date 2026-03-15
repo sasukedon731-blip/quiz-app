@@ -131,6 +131,16 @@ export const quizCatalog: QuizDef[] = [
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
+  {
+    id: "dialect-meaning",
+    title: "全国方言 意味当て",
+    description: "各地の方言の意味を4択で学ぶ",
+    enabled: true,
+    order: 13,
+    industries: ["undecided"],
+    modes: ["normal", "review"],
+    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+  },
 
   {
     id: "genba-phrasebook",
