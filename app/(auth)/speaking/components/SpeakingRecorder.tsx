@@ -4,141 +4,171 @@ import { useEffect, useRef, useState } from "react"
 
 type SpeakingRecorderProps = {
   target: string
+  reading?: string
   onTranscript: (transcript: string) => void
 }
 
-export default function SpeakingRecorder({ target, onTranscript }: SpeakingRecorderProps) {
-  const recorderRef = useRef<MediaRecorder | null>(null)
+export default function SpeakingRecorder({
+  target,
+  reading,
+  onTranscript,
+}: SpeakingRecorderProps) {
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
-  const autoStopRef = useRef<number | null>(null)
 
   const [recording, setRecording] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const [error, setError] = useState("")
-
-  const clearTimer = () => {
-    if (autoStopRef.current) {
-      window.clearTimeout(autoStopRef.current)
-      autoStopRef.current = null
-    }
-  }
-
-  const cleanupStream = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-  }
 
   useEffect(() => {
     return () => {
-      clearTimer()
-      cleanupStream()
+      streamRef.current?.getTracks().forEach((track) => track.stop())
     }
   }, [])
 
-  const stopRecording = async () => {
-    if (!recorderRef.current || recorderRef.current.state === "inactive") return
-    clearTimer()
-    recorderRef.current.stop()
-    setRecording(false)
+  function getMimeType() {
+    if (typeof MediaRecorder === "undefined") return ""
+
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/mp4",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+    ]
+
+    for (const type of candidates) {
+      if (typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported(type)) {
+        return type
+      }
+    }
+
+    return ""
   }
 
-  const startRecording = async () => {
+  async function startRecording() {
     try {
       setError("")
-      setBusy(false)
+
+      if (typeof window === "undefined" || typeof navigator === "undefined") {
+        throw new Error("この端末では録音を開始できません")
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        throw new Error("このブラウザは録音に対応していません")
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
       streamRef.current = stream
-      recorderRef.current = mediaRecorder
       chunksRef.current = []
 
+      const mimeType = getMimeType()
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
+
+      mediaRecorderRef.current = mediaRecorder
+
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data)
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onerror = () => {
+        setError("録音中にエラーが発生しました")
+        setRecording(false)
       }
 
       mediaRecorder.onstop = async () => {
         try {
-          setBusy(true)
-          const blob = new Blob(chunksRef.current, { type: "audio/webm" })
+          setRecording(false)
+          setProcessing(true)
+
+          const finalMimeType = mediaRecorder.mimeType || mimeType || "audio/webm"
+          const blob = new Blob(chunksRef.current, { type: finalMimeType })
+          const extension = finalMimeType.includes("mp4") ? "m4a" : finalMimeType.includes("ogg") ? "ogg" : "webm"
+
           const form = new FormData()
-          form.append("audio", blob, "speech.webm")
+          form.append("audio", blob, `speech.${extension}`)
 
           const res = await fetch("/api/speaking/transcribe", {
             method: "POST",
             body: form,
           })
+
           const json = await res.json()
-          if (!res.ok) throw new Error(json?.error || "文字起こしに失敗しました")
-          onTranscript(String(json?.transcript ?? ""))
+
+          if (!res.ok) {
+            throw new Error(json?.error || "音声認識に失敗しました")
+          }
+
+          if (!json?.transcript) {
+            throw new Error("文字起こし結果が空でした")
+          }
+
+          onTranscript(json.transcript)
         } catch (err) {
+          console.error("transcribe error:", err)
           setError(err instanceof Error ? err.message : "音声認識に失敗しました")
         } finally {
-          cleanupStream()
-          recorderRef.current = null
+          setProcessing(false)
+          streamRef.current?.getTracks().forEach((track) => track.stop())
+          streamRef.current = null
+          mediaRecorderRef.current = null
           chunksRef.current = []
-          setBusy(false)
         }
       }
 
       mediaRecorder.start()
       setRecording(true)
-      autoStopRef.current = window.setTimeout(() => {
-        stopRecording().catch(() => undefined)
-      }, 5000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "マイクの使用を開始できませんでした")
-      cleanupStream()
+      console.error("record start error:", err)
+      setError(err instanceof Error ? err.message : "録音を開始できませんでした")
       setRecording(false)
     }
   }
 
+  function stopRecording() {
+    const recorder = mediaRecorderRef.current
+    if (!recorder || recorder.state === "inactive") return
+    recorder.stop()
+  }
+
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="mb-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            STEP 3
-          </div>
-          <h3 className="text-xl font-bold text-slate-900">話してみよう</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">下の文を見ながら、5秒以内で話してください。</p>
+    <div className="space-y-4">
+      <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
+        <div className="text-xs font-semibold tracking-wide text-amber-700">お手本</div>
+        <div className="mt-1 text-lg font-bold leading-8 text-slate-900">{target}</div>
+        {reading ? <div className="mt-2 text-sm text-slate-500">{reading}</div> : null}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={recording ? stopRecording : startRecording}
+          disabled={processing}
+          className={[
+            "inline-flex min-h-14 items-center justify-center rounded-2xl px-5 py-4 text-base font-bold text-white shadow-sm transition",
+            recording ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600",
+            processing ? "cursor-not-allowed bg-slate-400 hover:bg-slate-400" : "",
+          ].join(" ")}
+        >
+          {processing ? "文字起こし中..." : recording ? "録音を停止する" : "録音を開始する"}
+        </button>
+
+        <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          {recording
+            ? "話し終わったら「録音を停止する」を押してください。"
+            : "ボタンを押してから、上の文をゆっくり話してください。"}
         </div>
-        <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">録音は自動停止します</div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-        <div className="text-xs font-semibold text-slate-500">お手本</div>
-        <div className="mt-2 text-lg font-bold leading-8 text-slate-900">{target}</div>
-      </div>
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        {!recording ? (
-          <button
-            type="button"
-            onClick={startRecording}
-            disabled={busy}
-            className="inline-flex flex-1 items-center justify-center rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {busy ? "文字起こし中..." : "録音スタート"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              stopRecording().catch(() => undefined)
-            }}
-            className="inline-flex flex-1 items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:opacity-90"
-          >
-            録音を停止する
-          </button>
-        )}
-      </div>
-
-      <div className="mt-3 text-xs leading-5 text-slate-500">
-        コツ: 大きな声で、文末までゆっくりはっきり話すと認識されやすくなります。
-      </div>
-
-      {error ? <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-    </section>
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+    </div>
   )
 }

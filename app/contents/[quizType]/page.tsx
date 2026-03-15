@@ -27,35 +27,6 @@ export default function QuizDetailPage() {
     )
   }
 
-  if (quiz.id === "speaking-practice") {
-    return (
-      <main style={styles.page}>
-        <div style={styles.shell}>
-          <div style={styles.header}>
-            <h1 style={styles.title}>AI会話トレーニング</h1>
-            <div style={styles.badge}>教材ID: speaking-practice</div>
-          </div>
-
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>教材について</h2>
-            <p style={styles.description}>
-              母国語で入力し、AIが自然な日本語を提案。実際に話して、AI評価まで確認できます。
-            </p>
-          </div>
-
-          <div style={styles.actions}>
-            <Button variant="main" onClick={() => router.push("/speaking")}>
-              AI会話トレーニングを始める
-            </Button>
-            <Button variant="sub" onClick={() => router.push("/contents")}>
-              教材一覧へ戻る
-            </Button>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
   return (
     <main style={styles.page}>
       <div style={styles.shell}>

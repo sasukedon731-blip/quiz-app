@@ -34,7 +34,6 @@ export default function SpeakingClient() {
   const [loading, setLoading] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState("")
-  const [playingId, setPlayingId] = useState<string | null>(null)
 
   async function generate(data: {
     sourceLanguage: string
@@ -59,8 +58,15 @@ export default function SpeakingClient() {
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || "日本語変換に失敗しました")
-      if (!Array.isArray(json?.candidates)) throw new Error("候補データの形式が正しくありません")
+
+      if (!res.ok) {
+        throw new Error(json?.error || "日本語変換に失敗しました")
+      }
+
+      if (!Array.isArray(json?.candidates)) {
+        throw new Error("候補データの形式が正しくありません")
+      }
+
       setCandidates(json.candidates)
     } catch (err) {
       console.error("generate error:", err)
@@ -73,9 +79,11 @@ export default function SpeakingClient() {
 
   async function evaluate(spoken: string) {
     if (!selected) return
+
     try {
-      setError("")
       setEvaluating(true)
+      setError("")
+      setEvaluation(null)
 
       const res = await fetch("/api/speaking/evaluate", {
         method: "POST",
@@ -89,7 +97,11 @@ export default function SpeakingClient() {
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || "評価に失敗しました")
+
+      if (!res.ok) {
+        throw new Error(json?.error || "評価に失敗しました")
+      }
+
       setEvaluation(json)
     } catch (err) {
       console.error("evaluate error:", err)
@@ -99,155 +111,110 @@ export default function SpeakingClient() {
     }
   }
 
-  async function playTts(candidate: Candidate) {
-    try {
-      setPlayingId(candidate.id)
-      const res = await fetch("/api/speaking/tts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: candidate.japanese }),
-      })
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => null)
-        throw new Error(json?.error || "音声再生に失敗しました")
-      }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      audio.onended = () => {
-        URL.revokeObjectURL(url)
-        setPlayingId(null)
-      }
-      audio.onerror = () => {
-        URL.revokeObjectURL(url)
-        setPlayingId(null)
-      }
-      await audio.play()
-    } catch (err) {
-      setPlayingId(null)
-      setError(err instanceof Error ? err.message : "音声再生に失敗しました")
-    }
-  }
-
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-[28px] bg-slate-900 px-6 py-7 text-white shadow-lg md:px-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
-                AI会話トレーニング
-              </div>
-              <h1 className="text-3xl font-black tracking-tight md:text-4xl">話せる日本語を、すぐ練習</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                母国語で入力 → AIが自然な日本語を提案 → 音声で発話 → AIが評価。
-                1画面で完結するスピーキング教材です。
-              </p>
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div className="space-y-2">
+        <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+          AI日本語スピーキング
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          母国語から日本語を作って、話して、評価を受けよう
+        </h1>
+        <p className="text-sm leading-6 text-slate-600 sm:text-base">
+          ①入力 → ②候補選択 → ③話してみる → ④AI評価 の流れで練習できます。
+        </p>
+      </div>
+
+      <SpeakingInput onGenerate={generate} loading={loading} />
+
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {candidates.length > 0 && (
+        <section className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700">
+              2
             </div>
-            <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="rounded-3xl bg-white/10 p-4">
-                <div className="text-xs text-slate-300">候補生成</div>
-                <div className="mt-1 text-2xl font-black">3文</div>
-              </div>
-              <div className="rounded-3xl bg-white/10 p-4">
-                <div className="text-xs text-slate-300">評価軸</div>
-                <div className="mt-1 text-2xl font-black">3項目</div>
-              </div>
+            <div>
+              <h2 className="font-bold text-slate-900">日本語候補をえらぶ</h2>
+              <p className="text-sm text-slate-500">一番言いやすい文を選んで練習します。</p>
             </div>
           </div>
-        </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <SpeakingInput onGenerate={generate} loading={loading} />
-
-            {error ? <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-
-            {candidates.length > 0 ? (
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-                <div className="mb-5 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="mb-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                      STEP 2
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900">AI候補から1つ選ぶ</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">まずはおすすめ文から練習すると進めやすいです。</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  {candidates.map((candidate, index) => (
-                    <CandidateCard
-                      key={candidate.id}
-                      candidate={candidate}
-                      recommended={index === 0}
-                      selected={selected?.id === candidate.id}
-                      onSelect={() => {
-                        setSelected(candidate)
-                        setEvaluation(null)
-                        setTranscript("")
-                      }}
-                      onPlay={() => playTts(candidate)}
-                      playing={playingId === candidate.id}
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {selected ? (
-              <SpeakingRecorder
-                target={selected.japanese}
-                onTranscript={(spokenText: string) => {
-                  setTranscript(spokenText)
-                  evaluate(spokenText)
+          <div className="grid gap-3">
+            {candidates.map((c) => (
+              <CandidateCard
+                key={c.id}
+                candidate={c}
+                selected={selected?.id === c.id}
+                onSelect={() => {
+                  setSelected(c)
+                  setTranscript("")
+                  setEvaluation(null)
+                  setError("")
                 }}
               />
-            ) : null}
+            ))}
+          </div>
+        </section>
+      )}
+
+      {selected && (
+        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700">
+              3
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900">話してみよう</h2>
+              <p className="text-sm text-slate-500">録音を開始して、文を読んだら停止してください。</p>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="text-sm font-bold text-slate-900">学習の流れ</div>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <div className="rounded-2xl bg-slate-50 p-4">1. 母国語で入力</div>
-                <div className="rounded-2xl bg-slate-50 p-4">2. 日本語候補を選択</div>
-                <div className="rounded-2xl bg-slate-50 p-4">3. 音声で話す</div>
-                <div className="rounded-2xl bg-slate-50 p-4">4. AI評価を確認</div>
+          <SpeakingRecorder
+            target={selected.japanese}
+            reading={selected.reading}
+            onTranscript={(t: string) => {
+              setTranscript(t)
+              evaluate(t)
+            }}
+          />
+
+          {transcript && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-1 text-xs font-semibold tracking-wide text-slate-500">
+                認識結果
               </div>
-            </section>
+              <div className="text-base font-medium text-slate-900">{transcript}</div>
+            </div>
+          )}
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="text-sm font-bold text-slate-900">選択中の文</div>
-              {selected ? (
-                <>
-                  <div className="mt-3 text-lg font-bold leading-8 text-slate-900">{selected.japanese}</div>
-                  <div className="mt-2 text-sm text-slate-500">{selected.reading}</div>
-                  <div className="mt-3 text-sm leading-6 text-slate-600">{selected.note}</div>
-                </>
-              ) : (
-                <div className="mt-3 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-500">
-                  まずはAI候補から1文選んでください。
-                </div>
-              )}
-            </section>
+          {evaluating && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              AIが評価しています...
+            </div>
+          )}
+        </section>
+      )}
 
-            {transcript ? (
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-                <div className="text-sm font-bold text-slate-900">認識結果</div>
-                <div className="mt-3 rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">{transcript}</div>
-                {evaluating ? <div className="mt-3 text-xs text-slate-500">AIが評価中です...</div> : null}
-              </section>
-            ) : null}
-
-            {evaluation ? <EvaluationCard result={evaluation} /> : null}
+      {evaluation && (
+        <section className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
+              4
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900">AI評価</h2>
+              <p className="text-sm text-slate-500">伝わりやすさ・自然さ・丁寧さを見ます。</p>
+            </div>
           </div>
-        </div>
-      </div>
-    </main>
+          <EvaluationCard result={evaluation} />
+        </section>
+      )}
+    </div>
   )
 }
