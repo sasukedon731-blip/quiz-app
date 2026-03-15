@@ -93,7 +93,7 @@ export default function SpeakingRecorder({
           })
 
           if (blob.size === 0) {
-            throw new Error("音声が取得できませんでした。Safariのマイク許可を確認してください。")
+            throw new Error("音声が取得できませんでした。ChromeまたはSafariのマイク許可を確認してください。")
           }
 
           const fileName = blob.type.includes("mp4") ? "speech.m4a" : "speech.webm"
@@ -133,8 +133,20 @@ export default function SpeakingRecorder({
       recorder.start()
       setRecording(true)
       setStatus("録音中です。話し終わったらもう一度ボタンを押してください。")
-    } catch (error) {
-      emitError(error instanceof Error ? error.message : "マイクを開始できませんでした")
+    } catch (error: any) {
+      let message = "マイクを開始できませんでした。"
+      if (error?.name === "NotAllowedError") {
+        message =
+          "マイクが許可されていません。iPhoneの「設定 → Chrome → マイク」または「設定 → Safari → マイク」をONにして、ページを再読み込みしてください。"
+      } else if (error?.name === "NotFoundError") {
+        message = "マイクが見つかりませんでした。端末のマイク設定を確認してください。"
+      } else if (error?.name === "NotReadableError") {
+        message = "マイクを使用できませんでした。他のアプリが使っていないか確認してください。"
+      } else if (error instanceof Error && error.message) {
+        message = error.message
+      }
+      emitError(message)
+      setStatus("録音を開始できませんでした。")
       setRecording(false)
       stopTracks()
     }
@@ -143,19 +155,16 @@ export default function SpeakingRecorder({
   function stopRecording() {
     const recorder = mediaRecorderRef.current
     if (!recorder) return
-
-    if (recorder.state !== "inactive") {
-      recorder.stop()
-    }
+    if (recorder.state !== "inactive") recorder.stop()
   }
 
   return (
     <div className="space-y-4">
       <div className="rounded-3xl bg-slate-50 p-4">
         <div className="mb-2 text-xs font-semibold text-slate-500">お手本</div>
-        <div className="text-2xl font-bold leading-9 text-slate-900">{target}</div>
+        <div className="text-3xl font-bold leading-tight text-slate-900">{target}</div>
         {reading ? <div className="mt-2 text-sm text-slate-500">{reading}</div> : null}
-        {note ? <div className="mt-3 rounded-2xl bg-white px-3 py-2 text-sm text-slate-600">{note}</div> : null}
+        {note ? <div className="mt-3 rounded-2xl bg-white px-3 py-2 text-sm leading-6 text-slate-600">{note}</div> : null}
       </div>
 
       <button
@@ -163,28 +172,28 @@ export default function SpeakingRecorder({
         disabled={processing}
         onClick={recording ? stopRecording : startRecording}
         className={[
-          "w-full rounded-2xl px-4 py-4 text-base font-bold text-white transition",
+          "flex h-16 w-full items-center justify-center rounded-2xl px-4 text-lg font-bold text-white transition shadow-sm",
           processing
             ? "bg-slate-400"
             : recording
               ? "bg-red-600 hover:bg-red-500"
-              : "bg-indigo-600 hover:bg-indigo-500",
+              : "bg-emerald-600 hover:bg-emerald-500",
         ].join(" ")}
       >
         {processing ? "文字起こし中..." : recording ? "録音を停止する" : "ここを押して話し始める"}
       </button>
 
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
         {status}
       </div>
 
       {localError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
           {localError}
         </div>
       ) : (
-        <div className="text-xs leading-5 text-slate-500">
-          iPhoneでは、最初にマイク許可が必要です。録音開始後に話し、話し終わったらもう一度同じボタンを押してください。
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+          マイクが動かないときは、iPhoneの「設定 → Chrome → マイク」または「設定 → Safari → マイク」を確認してください。
         </div>
       )}
     </div>

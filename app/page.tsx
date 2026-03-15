@@ -485,37 +485,35 @@ export default function HomePage() {
               <br />
               “今月の教材” に集中できる学習体験
             </h1>
-            <div style={styles.heroEntryList}>
-              <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16 } : styles.gameHero}>
-                <div style={styles.gameHeroTop}>
-                  <div style={styles.gameHeroBadge}>🔥 人気コンテンツ</div>
-                  <div style={styles.gameHeroTitle}>🎮 日本語バトル</div>
-                  <div style={styles.gameHeroSub}>
-                    {user ? "今日も腕試し！スコア・レベルが保存されます" : "登録不要でまず体験。ゲストは1日1回プレイOK"}
-                  </div>
+            <div style={isMobile ? { ...styles.heroStack, marginTop: 14 } : styles.heroStack}>
+              <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16, marginTop: 0 } : styles.gameHero}>
+              <div style={styles.gameHeroTop}>
+                <div style={styles.gameHeroBadge}>🔥 今月のおすすめ</div>
+                <div style={styles.gameHeroTitle}>🎮 日本語バトル</div>
+                <div style={styles.gameHeroSub}>
+                  {user ? "今日も腕試し！スコア・レベルが保存されます" : "登録不要でまず体験。ゲストは1日1回プレイOK"}
                 </div>
+              </div>
 
-                <button type="button" onClick={goJapaneseBattle} style={styles.gameHeroBtn}>
-                  今すぐバトルする
-                </button>
+              <button type="button" onClick={goJapaneseBattle} style={styles.gameHeroBtn}>
+                今すぐバトルする
+              </button>
 
-                <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
+              <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
               </div>
 
               <div style={isMobile ? { ...styles.speakingHero, padding: 14, borderRadius: 16 } : styles.speakingHero}>
                 <div style={styles.gameHeroTop}>
-                  <div style={styles.speakingHeroBadge}>🎤 新機能</div>
+                  <div style={styles.speakingHeroBadge}>🎤 AI会話トレーニング</div>
                   <div style={styles.gameHeroTitle}>AI日本語スピーキング</div>
-                  <div style={styles.gameHeroSub}>
-                    母国語から日本語を作って、話して、AIに評価してもらえます
-                  </div>
+                  <div style={styles.gameHeroSub}>言いたいことを日本語にして、話して、AI評価まで一気に練習できます</div>
                 </div>
 
                 <button type="button" onClick={goSpeaking} style={styles.speakingHeroBtn}>
                   会話トレーニングを始める
                 </button>
 
-                <div style={styles.gameHeroNote}>※ まずは短いフレーズから練習できます</div>
+                <div style={styles.gameHeroNote}>※ マイクが必要です。スマホでも練習できます</div>
               </div>
             </div>
 
@@ -944,7 +942,7 @@ const styles: Record<string, React.CSSProperties> = {
   h1: { margin: 0, fontSize: 34, letterSpacing: 0.2, lineHeight: 1.1 },
   lead: { marginTop: 10, opacity: 0.85, lineHeight: 1.7, fontSize: 14 },
   heroActions: { marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" },
-  heroEntryList: { marginTop: 12, display: "flex", flexDirection: "column", gap: 12 },
+  heroStack: { marginTop: 14, display: "grid", gap: 12 },
 
   gameHero: {
     marginTop: 12,
@@ -982,14 +980,12 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 18px rgba(0,0,0,0.10)",
   },
   gameHeroNote: { marginTop: 8, opacity: 0.86, fontSize: 12 },
-
   speakingHero: {
-    marginTop: 0,
     padding: 16,
     borderRadius: 18,
-    background: "linear-gradient(135deg, #0f766e, #115e59)",
+    background: "linear-gradient(135deg, #10b981, #0f766e)",
     color: "#fff",
-    boxShadow: "0 10px 26px rgba(0,0,0,0.14)",
+    boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
     border: "1px solid rgba(255,255,255,0.12)",
   },
   speakingHeroBadge: {
@@ -997,7 +993,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignSelf: "flex-start",
     padding: "6px 10px",
     borderRadius: 999,
-    background: "rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.18)",
     fontSize: 12,
     fontWeight: 900,
     letterSpacing: 0.2,
@@ -1009,7 +1005,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 14,
     border: "none",
     background: "#fff",
-    color: "#115e59",
+    color: "#0f766e",
     fontWeight: 900,
     fontSize: 16,
     cursor: "pointer",
