@@ -1,14 +1,10 @@
-// app/api/speaking/generate/route.ts
-
 import OpenAI from "openai"
 
 function getOpenAI() {
   const apiKey = process.env.OPENAI_API_KEY
-
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set")
   }
-
   return new OpenAI({ apiKey })
 }
 
@@ -34,7 +30,8 @@ export async function POST(req: Request) {
 You are a Japanese expression coach for foreign learners.
 
 Convert the user's text into 3 natural Japanese candidate sentences.
-Return JSON only in this shape:
+
+Return JSON only in this exact format:
 {
   "candidates": [
     { "id": "c1", "japanese": "...", "reading": "...", "note": "..." },
@@ -44,14 +41,14 @@ Return JSON only in this shape:
 }
 
 Rules:
+- sourceLanguage: ${sourceLanguage}
 - scene: ${scene}
 - politeness: ${politeness}
-- sourceLanguage: ${sourceLanguage}
-- Make the 1st the best recommendation
+- first sentence should be the best recommendation
 - reading should be mainly hiragana
 - note should be short
-- useful for real life or work
-- JSON only
+- useful for real work or daily life
+- output JSON only
 
 User text:
 ${sourceText}
@@ -62,32 +59,36 @@ ${sourceText}
       input: prompt,
     })
 
-    const text =
-      res.output_text ||
-      `{"candidates":[{"id":"c1","japanese":"明日、お休みをいただきたいです。","reading":"あした、おやすみをいただきたいです。","note":"丁寧な表現です。"}]}`
+    const text = res.output_text?.trim()
 
-    let parsed: unknown
-
-    try {
-      parsed = JSON.parse(text)
-    } catch {
-      parsed = {
-        candidates: [
-          {
-            id: "c1",
-            japanese: "明日、お休みをいただきたいです。",
-            reading: "あした、おやすみをいただきたいです。",
-            note: "丁寧な表現です。",
-          },
-        ],
-      }
+    if (!text) {
+      throw new Error("OpenAI returned empty output")
     }
 
-    return Response.json(parsed)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(text)
+    } catch (e) {
+      console.error("JSON parse failed. raw text:", text)
+      throw new Error("OpenAI response was not valid JSON")
+    }
+
+    const candidates = (parsed as { candidates?: unknown[] })?.candidates
+
+    if (!Array.isArray(candidates)) {
+      throw new Error("Candidates array is missing")
+    }
+
+    return Response.json({ candidates })
   } catch (error) {
     console.error("generate route error:", error)
     return Response.json(
-      { error: "Failed to generate Japanese candidates" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate Japanese candidates",
+      },
       { status: 500 }
     )
   }
