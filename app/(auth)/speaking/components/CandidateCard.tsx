@@ -23,19 +23,19 @@ export default function CandidateCard({
   return (
     <div
       className={[
-        "rounded-[28px] border p-4 shadow-sm transition",
+        "rounded-[28px] border p-5 shadow-sm transition",
         selected
-          ? "border-blue-300 bg-blue-50 ring-2 ring-blue-200"
+          ? "border-2 border-blue-300 bg-blue-50 ring-2 ring-blue-100"
           : "border-slate-200 bg-white",
       ].join(" ")}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+        <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
           候補 {ranking}
         </div>
 
         {selected ? (
-          <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+          <div className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-black text-white">
             選択中
           </div>
         ) : null}
@@ -43,9 +43,10 @@ export default function CandidateCard({
 
       <div className="space-y-3">
         <div className="rounded-3xl bg-white/80 p-4">
-          <div className="text-[28px] font-black leading-tight text-slate-900">
+          <div className="text-[30px] font-black leading-tight text-slate-900">
             {candidate.japanese}
           </div>
+
           {candidate.reading ? (
             <div className="mt-2 text-sm font-semibold text-slate-500">
               {candidate.reading}
@@ -64,10 +65,10 @@ export default function CandidateCard({
         type="button"
         onClick={onSelect}
         className={[
-          "mt-4 flex h-14 w-full items-center justify-center rounded-2xl text-base font-black transition",
+          "mt-5 flex h-16 w-full items-center justify-center rounded-[22px] px-5 text-lg font-black shadow-sm transition",
           selected
-            ? "border border-blue-200 bg-white text-blue-700"
-            : "bg-blue-600 text-white hover:bg-blue-500",
+            ? "border-2 border-blue-300 bg-blue-100 text-blue-800"
+            : "bg-blue-600 text-white hover:bg-blue-500 active:scale-[0.99]",
         ].join(" ")}
       >
         {selected ? "この文を選択中" : "この文で練習する"}

@@ -98,6 +98,7 @@ export default function SpeakingRecorder({
       }
       setRecording(false)
       setStatus("音声認識に失敗しました。")
+      setProcessing(false)
       stopRecognition()
     }
 
@@ -255,9 +256,11 @@ export default function SpeakingRecorder({
       <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
         <div className="mb-2 text-xs font-black tracking-wide text-slate-500">お手本</div>
         <div className="text-[30px] font-black leading-tight text-slate-900">{target}</div>
+
         {reading ? (
           <div className="mt-2 text-sm font-semibold text-slate-500">{reading}</div>
         ) : null}
+
         {note ? (
           <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-600">
             {note}
@@ -270,12 +273,12 @@ export default function SpeakingRecorder({
         disabled={processing && !recording}
         onClick={recording ? stopRecording : startRecording}
         className={[
-          "flex h-16 w-full items-center justify-center rounded-[24px] px-5 text-lg font-black text-white shadow-sm transition",
+          "flex h-[68px] w-full items-center justify-center rounded-[24px] px-6 text-xl font-black text-white shadow-md transition",
           processing && !recording
             ? "bg-slate-400"
             : recording
-              ? "bg-red-600 hover:bg-red-500"
-              : "bg-emerald-600 hover:bg-emerald-500",
+              ? "bg-red-600 hover:bg-red-500 active:scale-[0.99]"
+              : "bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99]",
         ].join(" ")}
       >
         {processing && !recording

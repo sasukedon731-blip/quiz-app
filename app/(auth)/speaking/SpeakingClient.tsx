@@ -137,7 +137,7 @@ export default function SpeakingClient() {
     <>
       <AppHeader title="スピーキング" />
 
-      <main className="mx-auto w-full max-w-2xl px-4 pb-32 pt-6">
+      <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-44 sm:pb-40">
         <div className="mb-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-2 text-sm font-bold text-slate-500">AI日本語トレーニング</div>
           <h1 className="mb-3 text-[36px] font-black tracking-tight text-slate-900 sm:text-5xl">
@@ -284,7 +284,7 @@ export default function SpeakingClient() {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
         <div className="mx-auto max-w-2xl">
           <Link
             href="/"
