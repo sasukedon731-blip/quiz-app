@@ -6,7 +6,6 @@ import Button from "@/app/components/Button"
 import type { QuizType } from "@/app/data/types"
 import { quizCatalog } from "@/app/data/quizCatalog"
 
-// ✅ quizTypeごとの見た目（追加が来ても落ちない）
 function badgeByType(type: string) {
   if (type === "japanese-n4") return { title: "日本語検定N4", badge: "N4", color: "#5b21b6" }
   if (type === "japanese-n3") return { title: "日本語N3", badge: "N3", color: "#4338ca" }
@@ -20,10 +19,9 @@ function badgeByType(type: string) {
   if (type === "denki-sekou-2kyu-1ji") return { title: "2級電気施工管理技士1次", badge: "電気", color: "#0e7490" }
   if (type === "kanko-sekou-2kyu-1ji") return { title: "2級管工事施工管理技士1次", badge: "管工", color: "#1d4ed8" }
 
-  if (type === "speaking-practice") return { title: "スピーキング練習", badge: "話す", color: "#be185d" }
+  if (type === "speaking-practice") return { title: "AI会話トレーニング", badge: "話す", color: "#be185d" }
 
-  // ✅ デフォルト（増えてもここで落ちない）
-  const fromCatalog = quizCatalog.find(q => q.id === type)
+  const fromCatalog = quizCatalog.find((q) => q.id === type)
   return { title: fromCatalog?.title ?? type, badge: "QUIZ", color: "#111827" }
 }
 
@@ -49,10 +47,10 @@ export default function SelectModeClient() {
   }
 
   const meta = badgeByType(type)
+  const isSpeaking = type === "speaking-practice"
 
   return (
     <QuizLayout title="モード選択" subtitle={meta.title}>
-      {/* バッジ */}
       <div style={{ marginBottom: 12 }}>
         <span
           style={{
@@ -68,22 +66,43 @@ export default function SelectModeClient() {
         </span>
       </div>
 
-      {/* モード選択 */}
-      <div style={{ display: "grid", gap: 10 }}>
-        <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(type)}`)}>
-          標準問題（Normal）
-        </Button>
+      {isSpeaking ? (
+        <>
+          <div
+            style={{
+              background: "white",
+              border: "1px solid var(--border)",
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 14,
+              lineHeight: 1.8,
+            }}
+          >
+            母国語で入力 → AIが自然な日本語を提案 → 音声で発話 → AIが評価する、会話練習専用の教材です。
+          </div>
 
-        <Button variant="accent" onClick={() => router.push(`/exam?type=${encodeURIComponent(type)}`)}>
-          模擬試験（Exam）
-        </Button>
+          <div style={{ display: "grid", gap: 10 }}>
+            <Button variant="main" onClick={() => router.push("/speaking")}>
+              AI会話トレーニングを始める
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          <Button variant="main" onClick={() => router.push(`/normal?type=${encodeURIComponent(type)}`)}>
+            標準問題（Normal）
+          </Button>
 
-        <Button variant="success" onClick={() => router.push(`/review?type=${encodeURIComponent(type)}`)}>
-          復習（Review）
-        </Button>
-      </div>
+          <Button variant="accent" onClick={() => router.push(`/exam?type=${encodeURIComponent(type)}`)}>
+            模擬試験（Exam）
+          </Button>
 
-      {/* ✅ 戻る導線（重要）：教材選択に“戻る”を混ぜない */}
+          <Button variant="success" onClick={() => router.push(`/review?type=${encodeURIComponent(type)}`)}>
+            復習（Review）
+          </Button>
+        </div>
+      )}
+
       <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
         <Button variant="success" onClick={() => router.push("/mypage")}>
           マイページへ戻る
