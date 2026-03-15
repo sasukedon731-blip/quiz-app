@@ -8,6 +8,13 @@ function getOpenAI() {
   return new OpenAI({ apiKey })
 }
 
+type Candidate = {
+  id: string
+  japanese: string
+  reading: string
+  note: string
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -18,10 +25,7 @@ export async function POST(req: Request) {
     const politeness = String(body?.politeness ?? "polite")
 
     if (!sourceText) {
-      return Response.json(
-        { error: "sourceText is required" },
-        { status: 400 }
-      )
+      return Response.json({ error: "sourceText is required" }, { status: 400 })
     }
 
     const openai = getOpenAI()
@@ -29,7 +33,7 @@ export async function POST(req: Request) {
     const prompt = `
 You are a Japanese expression coach for foreign learners.
 
-Convert the user's text into 2 natural Japanese candidate sentences.
+Convert the user's text into exactly 2 natural Japanese candidate sentences.
 
 Return JSON only in this exact format:
 {
@@ -45,7 +49,7 @@ Rules:
 - politeness: ${politeness}
 - first sentence should be the best recommendation
 - reading should be mainly hiragana
-- note should be short
+- note should be short and in Japanese
 - useful for real work or daily life
 - output JSON only
 
@@ -59,7 +63,6 @@ ${sourceText}
     })
 
     const text = res.output_text?.trim()
-
     if (!text) {
       throw new Error("OpenAI returned empty output")
     }
@@ -67,18 +70,34 @@ ${sourceText}
     let parsed: unknown
     try {
       parsed = JSON.parse(text)
-    } catch (e) {
+    } catch {
       console.error("JSON parse failed. raw text:", text)
       throw new Error("OpenAI response was not valid JSON")
     }
 
-    const candidates = (parsed as { candidates?: unknown[] })?.candidates
-
-    if (!Array.isArray(candidates)) {
+    const rawCandidates = (parsed as { candidates?: unknown[] })?.candidates
+    if (!Array.isArray(rawCandidates)) {
       throw new Error("Candidates array is missing")
     }
 
-    return Response.json({ candidates: candidates.slice(0, 2) })
+    const candidates: Candidate[] = rawCandidates
+      .slice(0, 2)
+      .map((item, index) => {
+        const candidate = item as Partial<Candidate>
+        return {
+          id: candidate.id || `c${index + 1}`,
+          japanese: String(candidate.japanese ?? "").trim(),
+          reading: String(candidate.reading ?? "").trim(),
+          note: String(candidate.note ?? "").trim(),
+        }
+      })
+      .filter((item) => item.japanese)
+
+    if (candidates.length === 0) {
+      throw new Error("有効な候補を作成できませんでした")
+    }
+
+    return Response.json({ candidates })
   } catch (error) {
     console.error("generate route error:", error)
     return Response.json(
