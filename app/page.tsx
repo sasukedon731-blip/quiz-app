@@ -539,21 +539,21 @@ export default function HomePage() {
             <div style={styles.featureCard}>
               <div style={styles.featureTitle}>教材選択がブレない</div>
               <div style={styles.featureText}>
-                プランに応じて候補を決め、今月の教材は <b>selectedQuizTypes</b> に集約。
+                プランに応じて候補を決め、月によって学習内容をかえられる。
               </div>
             </div>
 
             <div style={styles.featureCard}>
-              <div style={styles.featureTitle}>モードが整理される</div>
+              <div style={styles.featureTitle}>日本語の勉強が多彩</div>
               <div style={styles.featureText}>
-                select-mode を「ハブ」にして、通常/模擬/復習の入口を統一。
+                検定の勉強だけでなく、現場で使える日本語を学べる
               </div>
             </div>
 
             <div style={styles.featureCard}>
-              <div style={styles.featureTitle}>増えても見やすい</div>
+              <div style={styles.featureTitle}>ひとりじゃない</div>
               <div style={styles.featureText}>
-                教材が増えても、TOPは「紹介」だけ。学習開始の導線は一本化。
+                日本語バトルはユーザー同士競いながら高め合う
               </div>
             </div>
           </div>
