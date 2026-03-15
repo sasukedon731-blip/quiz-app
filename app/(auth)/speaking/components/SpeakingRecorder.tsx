@@ -97,8 +97,8 @@ export default function SpeakingRecorder({
         emitError("音声認識に失敗しました。もう一度お試しください。")
       }
       setRecording(false)
-      setStatus("音声認識に失敗しました。")
       setProcessing(false)
+      setStatus("音声認識に失敗しました。")
       stopRecognition()
     }
 
@@ -252,17 +252,64 @@ export default function SpeakingRecorder({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
-        <div className="mb-2 text-xs font-black tracking-wide text-slate-500">お手本</div>
-        <div className="text-[30px] font-black leading-tight text-slate-900">{target}</div>
+    <div style={{ display: "grid", gap: 14 }}>
+      <div
+        style={{
+          border: "1px solid #d9e0ea",
+          background: "#f8fafc",
+          borderRadius: 24,
+          padding: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 900,
+            color: "#64748b",
+            marginBottom: 8,
+            letterSpacing: 0.4,
+          }}
+        >
+          お手本
+        </div>
+
+        <div
+          style={{
+            fontSize: 30,
+            lineHeight: 1.3,
+            fontWeight: 900,
+            color: "#0f172a",
+            wordBreak: "break-word",
+          }}
+        >
+          {target}
+        </div>
 
         {reading ? (
-          <div className="mt-2 text-sm font-semibold text-slate-500">{reading}</div>
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#64748b",
+            }}
+          >
+            {reading}
+          </div>
         ) : null}
 
         {note ? (
-          <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-600">
+          <div
+            style={{
+              marginTop: 12,
+              borderRadius: 18,
+              background: "#ffffff",
+              padding: "12px 14px",
+              fontSize: 14,
+              lineHeight: 1.7,
+              color: "#475569",
+            }}
+          >
             {note}
           </div>
         ) : null}
@@ -272,14 +319,23 @@ export default function SpeakingRecorder({
         type="button"
         disabled={processing && !recording}
         onClick={recording ? stopRecording : startRecording}
-        className={[
-          "flex h-[68px] w-full items-center justify-center rounded-[24px] px-6 text-xl font-black text-white shadow-md transition",
-          processing && !recording
-            ? "bg-slate-400"
-            : recording
-              ? "bg-red-600 hover:bg-red-500 active:scale-[0.99]"
-              : "bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99]",
-        ].join(" ")}
+        style={{
+          width: "100%",
+          height: 68,
+          borderRadius: 22,
+          border: "none",
+          background:
+            processing && !recording
+              ? "#94a3b8"
+              : recording
+                ? "#dc2626"
+                : "#16a34a",
+          color: "#ffffff",
+          fontSize: 22,
+          fontWeight: 900,
+          cursor: "pointer",
+          boxShadow: "0 8px 18px rgba(15,23,42,0.12)",
+        }}
       >
         {processing && !recording
           ? "文字起こし中..."
@@ -288,25 +344,84 @@ export default function SpeakingRecorder({
             : "ここを押して話し始める"}
       </button>
 
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold leading-6 text-slate-700">
+      <div
+        style={{
+          border: "1px solid #d9e0ea",
+          background: "#ffffff",
+          borderRadius: 18,
+          padding: "14px 16px",
+          fontSize: 14,
+          fontWeight: 700,
+          lineHeight: 1.7,
+          color: "#334155",
+        }}
+      >
         {status}
       </div>
 
       {liveTranscript ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
-          <div className="mb-1 text-xs font-black text-blue-700">認識結果</div>
-          <div className="text-lg font-black text-slate-900">{liveTranscript}</div>
+        <div
+          style={{
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
+            borderRadius: 18,
+            padding: "14px 16px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              color: "#1d4ed8",
+              marginBottom: 6,
+            }}
+          >
+            認識結果
+          </div>
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 900,
+              color: "#0f172a",
+              lineHeight: 1.5,
+            }}
+          >
+            {liveTranscript}
+          </div>
         </div>
       ) : null}
 
       {localError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold leading-6 text-red-700">
+        <div
+          style={{
+            border: "1px solid #fecaca",
+            background: "#fef2f2",
+            color: "#b91c1c",
+            borderRadius: 18,
+            padding: "14px 16px",
+            fontSize: 14,
+            fontWeight: 700,
+            lineHeight: 1.7,
+          }}
+        >
           {localError}
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+        <div
+          style={{
+            border: "1px solid #d9e0ea",
+            background: "#f8fafc",
+            borderRadius: 18,
+            padding: "14px 16px",
+            fontSize: 14,
+            lineHeight: 1.7,
+            color: "#475569",
+          }}
+        >
           マイクが動かないときは、iPhoneの
-          <span className="font-bold text-slate-900">「設定 → Chrome → マイク」</span>
+          <span style={{ fontWeight: 900, color: "#0f172a" }}>
+            {" "}「設定 → Chrome → マイク」
+          </span>
           を確認してください。
         </div>
       )}

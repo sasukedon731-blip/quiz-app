@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 
 import AppHeader from "@/app/components/AppHeader"
@@ -12,8 +12,8 @@ import EvaluationCard from "./components/EvaluationCard"
 type Candidate = {
   id: string
   japanese: string
-  reading: string
-  note: string
+  reading?: string
+  note?: string
 }
 
 type EvaluationResult = {
@@ -29,14 +29,6 @@ type EvaluationResult = {
   shortFeedback?: string
 }
 
-function StepBadge({ step }: { step: number }) {
-  return (
-    <div className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-slate-900 px-3 text-sm font-bold text-white">
-      {step}
-    </div>
-  )
-}
-
 export default function SpeakingClient() {
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [selected, setSelected] = useState<Candidate | null>(null)
@@ -44,12 +36,6 @@ export default function SpeakingClient() {
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
-  const selectedId = selected?.id ?? ""
-  const selectedIndex = useMemo(
-    () => candidates.findIndex((c) => c.id === selectedId),
-    [candidates, selectedId]
-  )
 
   async function generate(data: {
     sourceLanguage: string
@@ -60,16 +46,14 @@ export default function SpeakingClient() {
     try {
       setLoading(true)
       setError("")
-      setSelected(null)
-      setEvaluation(null)
-      setTranscript("")
       setCandidates([])
+      setSelected(null)
+      setTranscript("")
+      setEvaluation(null)
 
       const res = await fetch("/api/speaking/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
 
@@ -79,18 +63,14 @@ export default function SpeakingClient() {
         throw new Error(json?.error || "日本語候補の作成に失敗しました")
       }
 
-      if (!Array.isArray(json?.candidates)) {
-        throw new Error("候補データの形式が正しくありません")
-      }
-
-      setCandidates(json.candidates)
-      if (json.candidates.length > 0) {
-        setSelected(json.candidates[0])
+      const nextCandidates = Array.isArray(json?.candidates) ? json.candidates : []
+      setCandidates(nextCandidates)
+      if (nextCandidates.length > 0) {
+        setSelected(nextCandidates[0])
       }
     } catch (err) {
-      console.error("generate error:", err)
+      console.error(err)
       setError(err instanceof Error ? err.message : "エラーが発生しました")
-      setCandidates([])
     } finally {
       setLoading(false)
     }
@@ -105,9 +85,7 @@ export default function SpeakingClient() {
 
       const res = await fetch("/api/speaking/evaluate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetText: selected.japanese,
           spokenTranscript: spoken,
@@ -122,8 +100,8 @@ export default function SpeakingClient() {
 
       setEvaluation(json)
     } catch (err) {
-      console.error("evaluate error:", err)
-      setError(err instanceof Error ? err.message : "評価中にエラーが発生しました")
+      console.error(err)
+      setError(err instanceof Error ? err.message : "評価に失敗しました")
     }
   }
 
@@ -137,163 +115,315 @@ export default function SpeakingClient() {
     <>
       <AppHeader title="スピーキング" />
 
-      <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-44 sm:pb-40">
-        <div className="mb-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-2 text-sm font-bold text-slate-500">AI日本語トレーニング</div>
-          <h1 className="mb-3 text-[36px] font-black tracking-tight text-slate-900 sm:text-5xl">
-            話す練習をしよう
-          </h1>
-          <p className="text-base leading-8 text-slate-600">
+      <main style={styles.main}>
+        <section style={styles.heroCard}>
+          <div style={styles.eyebrow}>AI日本語トレーニング</div>
+          <h1 style={styles.heroTitle}>話す練習をしよう</h1>
+          <p style={styles.heroText}>
             言いたいことを入れて、日本語候補を2つから選び、録音してAI評価まで進めます。
           </p>
-        </div>
+        </section>
 
-        <div className="space-y-5">
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-start gap-3">
-              <StepBadge step={1} />
+        <section style={styles.sectionCard}>
+          <div style={styles.stepRow}>
+            <div style={styles.stepBadge}>1</div>
+            <div>
+              <div style={styles.stepLabel}>STEP 1</div>
+              <h2 style={styles.sectionTitle}>言いたいことを入れる</h2>
+              <p style={styles.sectionText}>
+                母国語で入力すると、日本語候補を2つ作ります。
+              </p>
+            </div>
+          </div>
+
+          <SpeakingInput onGenerate={generate} loading={loading} />
+        </section>
+
+        {error ? <div style={styles.errorBox}>{error}</div> : null}
+
+        {candidates.length > 0 ? (
+          <section style={styles.sectionCard}>
+            <div style={styles.stepRow}>
+              <div style={styles.stepBadge}>2</div>
               <div>
-                <div className="text-sm font-bold text-slate-500">STEP 1</div>
-                <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                  言いたいことを入れる
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  母国語で入力すると、すぐに日本語候補を2つ作ります。
+                <div style={styles.stepLabel}>STEP 2</div>
+                <h2 style={styles.sectionTitle}>日本語候補をえらぶ</h2>
+                <p style={styles.sectionText}>
+                  言いやすい方を1つ選んで、次へ進みます。
                 </p>
               </div>
             </div>
 
-            <SpeakingInput onGenerate={generate} loading={loading} />
-          </section>
-
-          {error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {error}
+            <div style={styles.stack}>
+              {candidates.map((candidate, index) => (
+                <CandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  ranking={index + 1}
+                  selected={selected?.id === candidate.id}
+                  onSelect={() => {
+                    setSelected(candidate)
+                    setTranscript("")
+                    setEvaluation(null)
+                    setError("")
+                  }}
+                />
+              ))}
             </div>
-          ) : null}
+          </section>
+        ) : null}
 
-          {candidates.length > 0 ? (
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-start gap-3">
-                <StepBadge step={2} />
-                <div>
-                  <div className="text-sm font-bold text-slate-500">STEP 2</div>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                    日本語候補をえらぶ
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    言いやすい方を1つ選んで、次へ進みます。
-                  </p>
-                </div>
+        {selected ? (
+          <section style={styles.sectionCard}>
+            <div style={styles.stepRow}>
+              <div style={styles.stepBadge}>3</div>
+              <div>
+                <div style={styles.stepLabel}>STEP 3</div>
+                <h2 style={styles.sectionTitle}>話してみよう</h2>
+                <p style={styles.sectionText}>
+                  ボタンを押して話し始め、終わったらもう一度押して停止します。
+                </p>
               </div>
+            </div>
 
-              <div className="space-y-4">
-                {candidates.map((c, index) => (
-                  <CandidateCard
-                    key={c.id}
-                    candidate={c}
-                    selected={selectedId === c.id}
-                    ranking={index + 1}
-                    onSelect={() => {
-                      setSelected(c)
-                      setTranscript("")
-                      setEvaluation(null)
-                      setError("")
-                    }}
-                  />
-                ))}
+            <SpeakingRecorder
+              key={selected.id}
+              target={selected.japanese}
+              reading={selected.reading}
+              note={selected.note}
+              onTranscript={(value) => {
+                setTranscript(value)
+                void evaluate(value)
+              }}
+              onError={(message) => setError(message)}
+            />
+          </section>
+        ) : null}
+
+        {transcript ? (
+          <section style={styles.sectionCard}>
+            <div style={styles.stepRow}>
+              <div style={styles.stepBadge}>4</div>
+              <div>
+                <div style={styles.stepLabel}>STEP 4</div>
+                <h2 style={styles.sectionTitle}>認識結果とAI評価</h2>
+                <p style={styles.sectionText}>
+                  自分の発話がどう聞こえたかを確認します。
+                </p>
               </div>
-            </section>
-          ) : null}
+            </div>
 
-          {selected ? (
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-start gap-3">
-                <StepBadge step={3} />
-                <div>
-                  <div className="text-sm font-bold text-slate-500">STEP 3</div>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                    話してみよう
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    ボタンを押して話し始め、終わったらもう一度押して停止します。
-                  </p>
-                </div>
-              </div>
+            <div style={styles.transcriptCard}>
+              <div style={styles.transcriptLabel}>認識された日本語</div>
+              <div style={styles.transcriptText}>{transcript}</div>
+            </div>
 
-              <SpeakingRecorder
-                key={selected.id}
-                target={selected.japanese}
-                reading={selected.reading}
-                note={selected.note}
-                onTranscript={(t: string) => {
-                  setTranscript(t)
-                  void evaluate(t)
-                }}
-                onError={(message: string) => setError(message)}
-              />
-            </section>
-          ) : null}
+            {evaluation ? (
+              <EvaluationCard result={evaluation} />
+            ) : (
+              <div style={styles.infoBox}>AI評価を作成中です...</div>
+            )}
 
-          {transcript ? (
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-start gap-3">
-                <StepBadge step={4} />
-                <div>
-                  <div className="text-sm font-bold text-slate-500">STEP 4</div>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                    認識結果とAI評価
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    自分の発話がどう聞こえたかを確認し、次に活かします。
-                  </p>
-                </div>
-              </div>
+            <div style={styles.actionRow}>
+              <button type="button" onClick={resetForRetry} style={styles.subButton}>
+                もう一回練習する
+              </button>
 
-              <div className="mb-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-2 text-xs font-bold text-slate-500">認識された日本語</div>
-                <div className="text-lg font-bold text-slate-900">{transcript}</div>
-              </div>
-
-              {evaluation ? (
-                <EvaluationCard result={evaluation} />
-              ) : (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-600">
-                  AI評価を作成中です...
-                </div>
-              )}
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={resetForRetry}
-                  className="flex h-14 items-center justify-center rounded-2xl border border-slate-300 bg-white text-base font-bold text-slate-900 transition hover:bg-slate-50"
-                >
-                  もう一回練習する
-                </button>
-
-                <Link
-                  href="/"
-                  className="flex h-14 items-center justify-center rounded-2xl bg-slate-900 text-base font-bold text-white transition hover:bg-slate-800"
-                >
-                  TOPに戻る
-                </Link>
-              </div>
-            </section>
-          ) : null}
-        </div>
+              <Link href="/" style={styles.darkButton}>
+                TOPに戻る
+              </Link>
+            </div>
+          </section>
+        ) : null}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        <div className="mx-auto max-w-2xl">
-          <Link
-            href="/"
-            className="flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 text-base font-bold text-white shadow-sm transition hover:bg-slate-800"
-          >
+      <div style={styles.bottomBar}>
+        <div style={styles.bottomBarInner}>
+          <Link href="/" style={styles.bottomBarButton}>
             TOPに戻る
           </Link>
         </div>
       </div>
     </>
   )
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  main: {
+    maxWidth: 880,
+    margin: "0 auto",
+    padding: "16px 16px 168px",
+  },
+  heroCard: {
+    background: "#ffffff",
+    border: "1px solid #d9e0ea",
+    borderRadius: 28,
+    padding: 20,
+    boxShadow: "0 2px 10px rgba(15,23,42,0.05)",
+    marginBottom: 16,
+  },
+  eyebrow: {
+    fontSize: 14,
+    fontWeight: 800,
+    color: "#64748b",
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontSize: 36,
+    lineHeight: 1.15,
+    fontWeight: 900,
+    color: "#0f172a",
+    margin: "0 0 12px",
+  },
+  heroText: {
+    fontSize: 16,
+    lineHeight: 1.8,
+    color: "#475569",
+    margin: 0,
+  },
+  sectionCard: {
+    background: "#ffffff",
+    border: "1px solid #d9e0ea",
+    borderRadius: 28,
+    padding: 20,
+    boxShadow: "0 2px 10px rgba(15,23,42,0.05)",
+    marginBottom: 16,
+  },
+  stepRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 16,
+  },
+  stepBadge: {
+    minWidth: 38,
+    height: 38,
+    borderRadius: 999,
+    background: "#0f172a",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 16,
+    fontWeight: 900,
+    flexShrink: 0,
+  },
+  stepLabel: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#64748b",
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 26,
+    lineHeight: 1.2,
+    fontWeight: 900,
+    color: "#0f172a",
+    margin: 0,
+  },
+  sectionText: {
+    fontSize: 14,
+    lineHeight: 1.7,
+    color: "#64748b",
+    margin: "8px 0 0",
+  },
+  errorBox: {
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
+    borderRadius: 18,
+    padding: "14px 16px",
+    fontSize: 14,
+    fontWeight: 700,
+    marginBottom: 16,
+  },
+  stack: {
+    display: "grid",
+    gap: 14,
+  },
+  transcriptCard: {
+    background: "#f8fafc",
+    border: "1px solid #d9e0ea",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 16,
+  },
+  transcriptLabel: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#64748b",
+    marginBottom: 8,
+  },
+  transcriptText: {
+    fontSize: 20,
+    fontWeight: 800,
+    color: "#0f172a",
+    lineHeight: 1.5,
+  },
+  infoBox: {
+    background: "#f8fafc",
+    border: "1px solid #d9e0ea",
+    color: "#475569",
+    borderRadius: 18,
+    padding: "16px 18px",
+    fontSize: 14,
+    fontWeight: 700,
+  },
+  actionRow: {
+    display: "grid",
+    gap: 12,
+    gridTemplateColumns: "1fr",
+    marginTop: 16,
+  },
+  subButton: {
+    height: 56,
+    borderRadius: 18,
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 16,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  darkButton: {
+    height: 56,
+    borderRadius: 18,
+    background: "#0f172a",
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: 800,
+    textDecoration: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bottomBar: {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
+    borderTop: "1px solid #d9e0ea",
+    background: "rgba(255,255,255,0.96)",
+    backdropFilter: "blur(8px)",
+    padding: "12px 16px calc(env(safe-area-inset-bottom) + 12px)",
+  },
+  bottomBarInner: {
+    maxWidth: 880,
+    margin: "0 auto",
+  },
+  bottomBarButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: 56,
+    borderRadius: 18,
+    background: "#0f172a",
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: 900,
+    textDecoration: "none",
+    boxShadow: "0 4px 12px rgba(15,23,42,0.14)",
+  },
 }
