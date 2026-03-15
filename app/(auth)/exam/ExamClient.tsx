@@ -13,7 +13,8 @@ import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
 import { arrayUnion, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { stopSpeak } from '@/app/lib/tts'
-import { getBadgeLabelFromBadgeId, getPerfectBadgeId } from '@/app/lib/badges'
+import { getBadgeMeta, getBadgeLabelFromBadgeId, getPerfectBadgeId } from '@/app/lib/badges'
+import { enqueueAchievementToasts } from '@/app/lib/achievementToastQueue'
 
 const EXAM_TIME_SEC = 20 * 60
 const STORAGE_WRONG_KEY = 'wrong'
@@ -131,7 +132,10 @@ export default function ExamClient({ quiz }: Props) {
       if (!byTimeout && questions.length > 0 && scoreRef.current === questions.length) {
         const badgeId = getPerfectBadgeId(quizType)
         await setDoc(doc(db, 'users', user.uid), { badges: arrayUnion(badgeId) }, { merge: true })
-        setEarnedBadgeLabel(getBadgeLabelFromBadgeId(badgeId))
+        const badgeLabel = getBadgeLabelFromBadgeId(badgeId)
+        setEarnedBadgeLabel(badgeLabel)
+        const badgeMeta = getBadgeMeta(badgeId)
+        enqueueAchievementToasts([{ id: badgeId, icon: badgeMeta.icon, label: badgeLabel, rarity: badgeMeta.rarity }])
       }
     }
 

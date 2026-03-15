@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
 import { ensureUserProfile } from "@/app/lib/firestore"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
+import AchievementUnlockViewport from "@/app/components/achievements/AchievementUnlockViewport"
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -85,15 +86,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   // ✅ /game は未ログインOK
   if (!user && !isGame) return null
 
-  if (!user && isGame) return <>{children}</>
+  if (!user && isGame) return <><>{children}</><AchievementUnlockViewport /></>
 
   if (!stateLoaded) return <p style={{ textAlign: "center" }}>読み込み中…</p>
 
   if (isSelectQuizzes || isAdmin) {
-    return <>{children}</>
+    return <><>{children}</><AchievementUnlockViewport /></>
   }
 
   if (selectedLen === 0) return null
 
-  return <>{children}</>
+  return <><>{children}</><AchievementUnlockViewport /></>
 }

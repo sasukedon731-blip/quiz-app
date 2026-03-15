@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QuizLayout from '@/app/components/QuizLayout'
 import Button from '@/app/components/Button'
@@ -8,6 +8,9 @@ import QuestionImage from '@/app/components/QuestionImage'
 import type { Question, Quiz, QuizType } from '@/app/data/types'
 import { formatCorrectAnswerLabels, getCorrectIndexes, isCorrectSelection, isMultiAnswerQuestion, isSelectionComplete, requiredAnswerCount, stripLeadingAnswerLabel } from '@/app/lib/questionAnswer'
 import { canSpeak, speak, stopSpeak } from '@/app/lib/tts'
+import { useAuth } from '@/app/lib/useAuth'
+import { unlockAchievementsForUser } from '@/app/lib/achievementUnlock'
+import { enqueueAchievementToasts } from '@/app/lib/achievementToastQueue'
 
 const STORAGE_WRONG_KEY = 'wrong'
 
@@ -32,6 +35,7 @@ function uniqById(list: Question[]) {
 
 export default function ReviewClient({ quiz }: Props) {
   const router = useRouter()
+  const { user } = useAuth()
   const quizType: QuizType = quiz.id
   const storageKey = `${STORAGE_WRONG_KEY}-${quizType}`
 
@@ -39,6 +43,7 @@ export default function ReviewClient({ quiz }: Props) {
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number[]>([])
   const [submitted, setSubmitted] = useState(false)
+  const achievementHandledRef = useRef(false)
 
   const goModeSelect = () => {
     stopSpeak()
@@ -87,6 +92,30 @@ export default function ReviewClient({ quiz }: Props) {
   useEffect(() => {
     return () => stopSpeak()
   }, [])
+
+  useEffect(() => {
+    if (!user || achievementHandledRef.current || !questions.length) return
+    achievementHandledRef.current = true
+
+    ;(async () => {
+      try {
+        const unlocked = await unlockAchievementsForUser(user.uid, { reviewPlays: 1 })
+        if (unlocked.length) {
+          enqueueAchievementToasts(
+            unlocked.map((b) => ({
+              id: b.id,
+              icon: b.icon,
+              label: b.label,
+              rarity: b.rarity,
+            }))
+          )
+        }
+      } catch (e) {
+        console.error('review achievement unlock failed:', e)
+      }
+    })()
+  }, [user, questions.length])
+
 
   const current = questions[index]
   const answered = submitted

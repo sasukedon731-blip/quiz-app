@@ -13,6 +13,8 @@ import { formatCorrectAnswerLabels, getCorrectIndexes, isCorrectSelection, isMul
 import { useAuth } from '@/app/lib/useAuth'
 import { db } from '@/app/lib/firebase'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { unlockAchievementsForUser } from '@/app/lib/achievementUnlock'
+import { enqueueAchievementToasts } from '@/app/lib/achievementToastQueue'
 
 // ✅ 離脱/中断で読み上げ停止
 import { stopSpeak } from '@/app/lib/tts'
@@ -181,6 +183,7 @@ export default function NormalClient({ quiz }: Props) {
   const [correct, setCorrect] = useState(false)
   const [correctCount, setCorrectCount] = useState(0)
   const [finished, setFinished] = useState(false)
+  const achievementHandledRef = useRef(false)
 
   // ✅ 続きから/はじめから選択
   const [startChoice, setStartChoice] = useState<'continue' | 'restart' | null>('restart')
@@ -215,6 +218,17 @@ export default function NormalClient({ quiz }: Props) {
   const goModeSelect = () => {
     router.push(`/select-mode?type=${quizType}`)
   }
+
+  const industryCountsForCurrentQuiz = (count: number) => {
+    const id = String(quizType)
+    return {
+      construction: id.includes('sekou') || id.includes('construction') || id.includes('genba') ? count : 0,
+      manufacturing: id.includes('manufacturing') ? count : 0,
+      care: id.includes('care') || id.includes('kaigo') ? count : 0,
+      driver: id.includes('license') || id.includes('gaikoku') ? count : 0,
+    }
+  }
+
 
   const startSession = (mode: 'continue' | 'restart', sectionId: string | null) => {
     // wrong は常に最新を保持
@@ -389,6 +403,40 @@ export default function NormalClient({ quiz }: Props) {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [questions.length, progressKey, wrongKey, correctCount])
+
+
+  useEffect(() => {
+    if (!finished || !user || achievementHandledRef.current) return
+    achievementHandledRef.current = true
+
+    ;(async () => {
+      try {
+        const totalCount = questions.length
+        const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+        const progress = readProgress(quizType)
+
+        const unlocked = await unlockAchievementsForUser(user.uid, {
+          totalAnswers: totalCount,
+          maxScore: accuracy,
+          streak: progress.streak,
+          industryCounts: industryCountsForCurrentQuiz(totalCount),
+        })
+
+        if (unlocked.length) {
+          enqueueAchievementToasts(
+            unlocked.map((b) => ({
+              id: b.id,
+              icon: b.icon,
+              label: b.label,
+              rarity: b.rarity,
+            }))
+          )
+        }
+      } catch (e) {
+        console.error('normal achievement unlock failed:', e)
+      }
+    })()
+  }, [finished, user, questions.length, correctCount, quizType])
 
   // ✅ 続き/最初
   if (startChoice === null) {

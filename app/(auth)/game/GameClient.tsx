@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import type { QuizType } from "@/app/data/types"
@@ -15,6 +15,10 @@ import { useAuth } from "@/app/lib/useAuth"
 import { canGuestPlayToday, markGuestPlayedToday } from "./guestLimit"
 import { canUserPlayToday, markUserPlayedToday } from "./userLimit"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
+import { db } from "@/app/lib/firebase"
+import { arrayUnion, doc, getDoc, setDoc } from "firebase/firestore"
+import { enqueueAchievementToasts } from "@/app/lib/achievementToastQueue"
+import { getBadgeMeta } from "@/app/lib/badges"
 import type { PlanId } from "@/app/lib/plan"
 
 function isQuizType(v: any): v is QuizType {
@@ -137,6 +141,8 @@ export default function GameClient() {
 
   const modeParam = rawMode === "attack" ? "attack" : "normal"
 
+  const awardOnceRef = useRef(false)
+
   const kind: GameKind = useMemo(() => {
     // ✅ 何らかの導線で kind がクエリに乗ってこないケースがある。
     // その場合でも直前に選んだゲームへ確実に戻すため sessionStorage をフォールバックに使う。
@@ -233,6 +239,39 @@ export default function GameClient() {
   if (user && !userOk) {
     return <UserBlocked onGoPlans={() => router.push("/plans")} onGoHome={() => router.push("/")} />
   }
+
+  useEffect(() => {
+    if (!user || checkingUserLimit || !userOk || awardOnceRef.current) return
+    awardOnceRef.current = true
+
+    ;(async () => {
+      try {
+        const userRef = doc(db, "users", user.uid)
+        const snap = await getDoc(userRef)
+        const badges = Array.isArray(snap.data()?.badges)
+          ? snap.data()!.badges.filter((x: unknown): x is string => typeof x === "string")
+          : []
+
+        const nextIds: string[] = []
+        if (!badges.includes("battle-first-play")) nextIds.push("battle-first-play")
+        if (modeParam === "attack" && !badges.includes("battle-attack-first")) nextIds.push("battle-attack-first")
+
+        if (!nextIds.length) return
+
+        await setDoc(userRef, { badges: arrayUnion(...nextIds) }, { merge: true })
+
+        enqueueAchievementToasts(
+          nextIds.map((id) => {
+            const meta = getBadgeMeta(id)
+            return { id, icon: meta.icon, label: meta.label, rarity: meta.rarity }
+          })
+        )
+      } catch (e) {
+        console.error("game achievement award failed:", e)
+      }
+    })()
+  }, [user, checkingUserLimit, userOk, modeParam])
+
 
   if (kind === "speed-choice") {
     return <SpeedChoiceGame quizType={quizType} modeParam={modeParam} />
