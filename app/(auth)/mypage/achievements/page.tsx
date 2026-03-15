@@ -128,22 +128,37 @@ function BadgeCard({ badge }: { badge: BadgeView }) {
     <div
       style={{
         ...S.badgeCard,
-        border: `1px solid ${c.border}`,
-        background: c.bg,
-        boxShadow: `0 12px 24px ${c.glow}`,
-        opacity: isLocked ? 0.82 : 1,
+        border: `1px solid ${isLocked ? "#d1d5db" : c.border}`,
+        background: isLocked
+          ? "linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%)"
+          : c.bg,
+        boxShadow: isLocked
+          ? "0 10px 22px rgba(15,23,42,0.08)"
+          : `0 14px 28px ${c.glow}`,
       }}
     >
       <div
         style={{
           ...S.badgeIconWrap,
-          filter: isLocked ? "grayscale(1) brightness(0.72)" : "none",
           background: isLocked
-            ? "linear-gradient(135deg, #e5e7eb 0%, #cbd5e1 100%)"
-            : "rgba(255,255,255,0.68)",
+            ? "linear-gradient(135deg, #d1d5db 0%, #b8bec8 100%)"
+            : "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.78) 100%)",
+          boxShadow: isLocked
+            ? "inset 0 2px 6px rgba(255,255,255,0.35), inset 0 -6px 12px rgba(0,0,0,0.08)"
+            : "inset 0 2px 10px rgba(255,255,255,0.78), 0 8px 18px rgba(0,0,0,0.10)",
         }}
       >
-        <div style={S.badgeIcon}>{isLocked ? "◼" : badge.icon}</div>
+        <div
+          style={{
+            ...S.badgeIcon,
+            filter: isLocked
+              ? "grayscale(1) saturate(0) brightness(0.72) opacity(0.42)"
+              : "none",
+            transform: isLocked ? "scale(0.96)" : "scale(1.05)",
+          }}
+        >
+          {badge.icon}
+        </div>
       </div>
 
       <div style={S.badgeBody}>
@@ -151,8 +166,15 @@ function BadgeCard({ badge }: { badge: BadgeView }) {
           <span style={S.badgeTitle}>
             {isLocked && badge.hidden ? "？？？？？" : badge.label}
           </span>
-          <span style={S.badgeState(isLocked)}>
-            {isLocked ? "未獲得" : "獲得済み"}
+
+          <span
+            style={{
+              ...S.badgeState,
+              background: isLocked ? "rgba(15,23,42,0.08)" : "#111827",
+              color: isLocked ? "#64748b" : "#fff",
+            }}
+          >
+            {isLocked ? "LOCKED" : "GET"}
           </span>
         </div>
 
@@ -163,8 +185,7 @@ function BadgeCard({ badge }: { badge: BadgeView }) {
         </div>
 
         <div style={S.badgeHowTo}>
-          条件：
-          {isLocked && badge.hidden ? "？？？" : badge.howToUnlock}
+          条件：{isLocked && badge.hidden ? "？？？" : badge.howToUnlock}
         </div>
       </div>
     </div>
@@ -230,27 +251,28 @@ const S: Record<string, any> = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: 14,
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 16,
   },
   badgeCard: {
-    borderRadius: 20,
-    padding: 14,
+    borderRadius: 24,
+    padding: 16,
     display: "flex",
-    gap: 12,
+    gap: 14,
     alignItems: "flex-start",
+    transition: "all 0.2s ease",
   },
   badgeIconWrap: {
-    width: 72,
-    height: 72,
-    minWidth: 72,
-    borderRadius: 18,
+    width: 78,
+    height: 78,
+    minWidth: 78,
+    borderRadius: 22,
     display: "grid",
     placeItems: "center",
-    border: "1px solid rgba(255,255,255,0.65)",
+    border: "1px solid rgba(255,255,255,0.72)",
   },
   badgeIcon: {
-    fontSize: 34,
+    fontSize: 38,
     lineHeight: 1,
   },
   badgeBody: {
@@ -266,22 +288,22 @@ const S: Record<string, any> = {
   },
   badgeTitle: {
     fontWeight: 900,
-    fontSize: 16,
+    fontSize: 17,
+    letterSpacing: "0.02em",
   },
-  badgeState: (locked: boolean) => ({
+  badgeState: {
     padding: "6px 10px",
     borderRadius: 999,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 900,
-    background: locked ? "rgba(15,23,42,0.08)" : "#111827",
-    color: locked ? "#475569" : "#fff",
     whiteSpace: "nowrap",
-  }),
+    letterSpacing: "0.06em",
+  },
   badgeDesc: {
     marginTop: 8,
     fontSize: 13,
-    lineHeight: 1.6,
-    opacity: 0.86,
+    lineHeight: 1.65,
+    opacity: 0.88,
   },
   badgeHowTo: {
     marginTop: 8,
