@@ -157,15 +157,10 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     description: "話す練習・発話練習",
     quizIds: ["speaking-practice"],
   },
-  "kansai-listening": {
-    title: "関西弁を学ぶ",
-    description: "関西弁の聞き取りを学ぶ",
-    quizIds: ["kansai-listening"],
-  },
-  "dialect-meaning": {
+  "dialect-learning": {
     title: "全国の方言を学ぶ",
-    description: "各地の方言を意味当てで学ぶ",
-    quizIds: ["dialect-meaning"],
+    description: "関西弁リスニングと全国方言の意味当て",
+    quizIds: ["kansai-listening", "dialect-meaning"],
   },
 }
 

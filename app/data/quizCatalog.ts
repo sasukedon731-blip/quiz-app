@@ -139,7 +139,15 @@ export const quizCatalog: QuizDef[] = [
     order: 13,
     industries: ["undecided"],
     modes: ["normal", "review"],
-    sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
+    sections: [
+      { id: "all", title: "総合", enabled: true, order: 1 },
+      { id: "hokkaido-tohoku", title: "北海道・東北", enabled: true, order: 2 },
+      { id: "kanto", title: "関東", enabled: true, order: 3 },
+      { id: "chubu-hokuriku", title: "中部・北陸", enabled: true, order: 4 },
+      { id: "chugoku-shikoku", title: "中国・四国", enabled: true, order: 5 },
+      { id: "kyushu-okinawa", title: "九州・沖縄", enabled: true, order: 6 },
+      { id: "nationwide", title: "全国共通", enabled: true, order: 7 },
+    ],
   },
 
   {

@@ -66,7 +66,7 @@ const INDUSTRY_EXTRA: Record<IndustryId, QuizType[]> = {
   manufacturing: ["genba-listening", "genba-phrasebook"],
   care: [],
   driver: ["gaikoku-license"],
-  undecided: [],
+  undecided: ["kansai-listening", "dialect-meaning"],
 }
 
 function buildIndustryAllowed(industry: IndustryId | null): QuizType[] {
