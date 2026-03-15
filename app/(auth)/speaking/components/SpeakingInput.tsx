@@ -24,11 +24,11 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <div className="mb-2 text-sm font-semibold text-slate-700">言語</div>
+          <div className="mb-2 text-base font-bold text-slate-800">言語</div>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-lg text-slate-900 outline-none transition focus:border-slate-900"
+            className="h-16 w-full rounded-[22px] border border-slate-200 bg-slate-50 px-5 text-[18px] font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white"
           >
             <option value="en">English</option>
             <option value="id">Bahasa Indonesia</option>
@@ -37,11 +37,11 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
         </label>
 
         <label className="block">
-          <div className="mb-2 text-sm font-semibold text-slate-700">場面</div>
+          <div className="mb-2 text-base font-bold text-slate-800">場面</div>
           <select
             value={scene}
             onChange={(e) => setScene(e.target.value)}
-            className="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-lg text-slate-900 outline-none transition focus:border-slate-900"
+            className="h-16 w-full rounded-[22px] border border-slate-200 bg-slate-50 px-5 text-[18px] font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white"
           >
             <option value="work">Work</option>
             <option value="daily">Daily</option>
@@ -51,21 +51,21 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
       </div>
 
       <label className="block">
-        <div className="mb-2 text-sm font-semibold text-slate-700">言いたいこと</div>
+        <div className="mb-2 text-base font-bold text-slate-800">言いたいこと</div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="例: HELLO / Nice to meet you / I want to take a day off tomorrow"
-          className="min-h-[144px] w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+          className="min-h-[160px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-[22px] font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white"
         />
       </label>
 
       <label className="block">
-        <div className="mb-2 text-sm font-semibold text-slate-700">丁寧さ</div>
+        <div className="mb-2 text-base font-bold text-slate-800">丁寧さ</div>
         <select
           value={politeness}
           onChange={(e) => setPoliteness(e.target.value)}
-          className="h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-lg text-slate-900 outline-none transition focus:border-slate-900"
+          className="h-16 w-full rounded-[22px] border border-slate-200 bg-slate-50 px-5 text-[18px] font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white"
         >
           <option value="polite">ていねい</option>
           <option value="casual">ややカジュアル</option>
@@ -84,7 +84,7 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
             politeness,
           })
         }
-        className="flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 px-4 text-base font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="flex h-16 w-full items-center justify-center rounded-[24px] bg-blue-600 px-5 text-lg font-black text-white shadow-sm transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         {loading ? "日本語候補を作成中..." : "日本語候補を2つ作る"}
       </button>

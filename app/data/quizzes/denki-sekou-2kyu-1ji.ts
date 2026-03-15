@@ -10,10 +10,10 @@ export const denkiSekou2kyu1ji: Quiz = {
       "sectionId": "all",
       "question": "テレビ共同受信設備に用いる配線用図記号と名称の組合せとして、「日本産業規格（JIS）」上、不適当なものはどれか。",
       "choices": [
-        "1",
-        "2",
-        "3",
-        "4"
+        "1：４分配器",
+        "2：増幅器",
+        "3：パラボナアンテナ",
+        "4：直列ユニット"
       ],
       "correctIndex": 0,
       "choiceImageUrl": "/quiz-images/q1.png",
@@ -42,10 +42,10 @@ export const denkiSekou2kyu1ji: Quiz = {
       "sectionId": "all",
       "question": "電話・情報設備の配線用図記号と名称の組合せとして、「日本産業規格（JIS）」上、誤っているものはどれか。",
       "choices": [
-        "1",
-        "2",
-        "3",
-        "4"
+        "1：情報用アウトレット",
+        "2：通信用アウトレット",
+        "3：ルータ",
+        "4：交換機"
       ],
       "correctIndex": 3,
       "choiceImageUrl": "/quiz-images/q3.png",
@@ -61,10 +61,10 @@ export const denkiSekou2kyu1ji: Quiz = {
       "sectionId": "all",
       "question": "自動火災報知設備の配線用図記号と名称の組合せとして、「日本産業規格（JIS）」上、誤っているものはどれか。",
       "choices": [
-        "1",
-        "2",
-        "3",
-        "4"
+        "1：定温式スポット型感知器",
+        "2：煙感知器",
+        "3：P型発信器",
+        "4：警報ベル"
       ],
       "correctIndex": 0,
       "choiceImageUrl": "/quiz-images/q4.png",
@@ -118,12 +118,12 @@ export const denkiSekou2kyu1ji: Quiz = {
       "sectionId": "all",
       "question": "次のうち、チャイムを表す図記号として正しいものはどれか。",
       "choices": [
-        "Ⓒ",
-        "四角の中に音符のマーク",
-        "本配線盤の記号",
-        "端子盤の記号"
+        "1",
+        "2",
+        "3",
+        "4"
       ],
-      "correctIndex": 1,
+      "correctIndex": 3,
       "choiceImageUrl": "/quiz-images/q7.png",
       "choiceImageAlt": "選択画像（4枚）",
       "explanation": "チャイムの図記号は、四角の中に音符のマークです。Ⓒはチャイムの記号ではありません。",

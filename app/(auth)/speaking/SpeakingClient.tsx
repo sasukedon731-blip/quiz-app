@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
+
+import AppHeader from "@/app/components/AppHeader"
 import SpeakingInput from "./components/SpeakingInput"
 import CandidateCard from "./components/CandidateCard"
 import SpeakingRecorder from "./components/SpeakingRecorder"
 import EvaluationCard from "./components/EvaluationCard"
-import SpeakingTopBar from "./components/SpeakingTopBar"
-import SpeakingBottomNav from "./components/SpeakingBottomNav"
 
 type Candidate = {
   id: string
@@ -29,25 +29,10 @@ type EvaluationResult = {
   shortFeedback?: string
 }
 
-function StepHeader({
-  step,
-  title,
-  sub,
-}: {
-  step: number
-  title: string
-  sub: string
-}) {
+function StepBadge({ step }: { step: number }) {
   return (
-    <div className="mb-4 flex items-start gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
-        {step}
-      </div>
-      <div>
-        <div className="text-[11px] font-semibold tracking-wide text-slate-500">STEP {step}</div>
-        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">{sub}</p>
-      </div>
+    <div className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-slate-900 px-3 text-sm font-bold text-white">
+      {step}
     </div>
   )
 }
@@ -58,7 +43,6 @@ export default function SpeakingClient() {
   const [transcript, setTranscript] = useState("")
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState("")
 
   const selectedId = selected?.id ?? ""
@@ -118,7 +102,6 @@ export default function SpeakingClient() {
     try {
       setError("")
       setEvaluation(null)
-      setEvaluating(true)
 
       const res = await fetch("/api/speaking/evaluate", {
         method: "POST",
@@ -141,13 +124,10 @@ export default function SpeakingClient() {
     } catch (err) {
       console.error("evaluate error:", err)
       setError(err instanceof Error ? err.message : "評価中にエラーが発生しました")
-    } finally {
-      setEvaluating(false)
     }
   }
 
-  function resetPractice() {
-    setSelected(candidates[0] ?? null)
+  function resetForRetry() {
     setTranscript("")
     setEvaluation(null)
     setError("")
@@ -155,44 +135,59 @@ export default function SpeakingClient() {
 
   return (
     <>
-      <SpeakingTopBar />
+      <AppHeader title="スピーキング" />
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-5 pb-28 sm:px-6">
-        <div className="mb-5 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-sm">
-          <div className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
-            AI日本語スピーキング
-          </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">話す練習をしよう</h1>
-          <p className="mt-2 text-sm leading-6 text-white/90">
+      <main className="mx-auto w-full max-w-2xl px-4 pb-32 pt-6">
+        <div className="mb-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-2 text-sm font-bold text-slate-500">AI日本語トレーニング</div>
+          <h1 className="mb-3 text-[36px] font-black tracking-tight text-slate-900 sm:text-5xl">
+            話す練習をしよう
+          </h1>
+          <p className="text-base leading-8 text-slate-600">
             言いたいことを入れて、日本語候補を2つから選び、録音してAI評価まで進めます。
           </p>
         </div>
 
         <div className="space-y-5">
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <StepHeader
-              step={1}
-              title="言いたいことを入れる"
-              sub="母国語で入力すると、すぐに日本語候補を2つ作ります。"
-            />
+          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-start gap-3">
+              <StepBadge step={1} />
+              <div>
+                <div className="text-sm font-bold text-slate-500">STEP 1</div>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                  言いたいことを入れる
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  母国語で入力すると、すぐに日本語候補を2つ作ります。
+                </p>
+              </div>
+            </div>
+
             <SpeakingInput onGenerate={generate} loading={loading} />
           </section>
 
           {error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {error}
             </div>
           ) : null}
 
           {candidates.length > 0 ? (
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <StepHeader
-                step={2}
-                title="候補をえらぶ"
-                sub="おすすめ2つだけ表示します。言いやすい方を選んでください。"
-              />
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <StepBadge step={2} />
+                <div>
+                  <div className="text-sm font-bold text-slate-500">STEP 2</div>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                    日本語候補をえらぶ
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    言いやすい方を1つ選んで、次へ進みます。
+                  </p>
+                </div>
+              </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {candidates.map((c, index) => (
                   <CandidateCard
                     key={c.id}
@@ -212,12 +207,19 @@ export default function SpeakingClient() {
           ) : null}
 
           {selected ? (
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <StepHeader
-                step={3}
-                title="話してみよう"
-                sub="大きいボタンを押して話し、終わったらもう一度押して停止します。"
-              />
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <StepBadge step={3} />
+                <div>
+                  <div className="text-sm font-bold text-slate-500">STEP 3</div>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                    話してみよう
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    ボタンを押して話し始め、終わったらもう一度押して停止します。
+                  </p>
+                </div>
+              </div>
 
               <SpeakingRecorder
                 key={selected.id}
@@ -234,39 +236,45 @@ export default function SpeakingClient() {
           ) : null}
 
           {transcript ? (
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <StepHeader
-                step={4}
-                title="認識結果とAI評価"
-                sub="自分の発話がどう認識されたか、何を直せばよいかが分かります。"
-              />
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="mb-1 text-xs font-semibold text-slate-500">認識された日本語</div>
-                <div className="text-lg font-semibold text-slate-900">{transcript}</div>
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <StepBadge step={4} />
+                <div>
+                  <div className="text-sm font-bold text-slate-500">STEP 4</div>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                    認識結果とAI評価
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    自分の発話がどう聞こえたかを確認し、次に活かします。
+                  </p>
+                </div>
               </div>
 
-              {evaluating ? (
-                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  AIが評価中です...
-                </div>
-              ) : evaluation ? (
-                <div className="mt-4">
-                  <EvaluationCard result={evaluation} />
-                </div>
-              ) : null}
+              <div className="mb-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 text-xs font-bold text-slate-500">認識された日本語</div>
+                <div className="text-lg font-bold text-slate-900">{transcript}</div>
+              </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {evaluation ? (
+                <EvaluationCard result={evaluation} />
+              ) : (
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-600">
+                  AI評価を作成中です...
+                </div>
+              )}
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={resetPractice}
-                  className="flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-800"
+                  onClick={resetForRetry}
+                  className="flex h-14 items-center justify-center rounded-2xl border border-slate-300 bg-white text-base font-bold text-slate-900 transition hover:bg-slate-50"
                 >
                   もう一回練習する
                 </button>
+
                 <Link
                   href="/"
-                  className="flex h-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white"
+                  className="flex h-14 items-center justify-center rounded-2xl bg-slate-900 text-base font-bold text-white transition hover:bg-slate-800"
                 >
                   TOPに戻る
                 </Link>
@@ -276,7 +284,16 @@ export default function SpeakingClient() {
         </div>
       </main>
 
-      <SpeakingBottomNav />
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
+        <div className="mx-auto max-w-2xl">
+          <Link
+            href="/"
+            className="flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 text-base font-bold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            TOPに戻る
+          </Link>
+        </div>
+      </div>
     </>
   )
 }
