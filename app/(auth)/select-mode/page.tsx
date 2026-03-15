@@ -138,6 +138,11 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     description: "国家試験レベルの問題",
     quizIds: ["care-worker-exam"],
   },
+  "care-dialect": {
+    title: "全国の方言を学ぶ",
+    description: "関西弁リスニングと全国方言の意味当て",
+    quizIds: ["kansai-listening", "dialect-meaning"],
+  },
 
   // 運転
   "driver-license": {
@@ -149,6 +154,11 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
     title: "道路標識を学ぶ",
     description: "標識を集中して覚える",
     quizIds: ["road-signs"],
+  },
+  "driver-dialect": {
+    title: "全国の方言を学ぶ",
+    description: "関西弁リスニングと全国方言の意味当て",
+    quizIds: ["kansai-listening", "dialect-meaning"],
   },
 
   // 未定

@@ -127,7 +127,7 @@ export const quizCatalog: QuizDef[] = [
     description: "関西弁のあいさつ・日常表現・会話表現を音声で学ぶ",
     enabled: true,
     order: 12,
-    industries: ["undecided"],
+    industries: ["construction", "manufacturing", "care", "driver", "undecided"],
     modes: ["normal", "review"],
     sections: [{ id: "all", title: "総合", enabled: true, order: 1 }],
   },
@@ -137,7 +137,7 @@ export const quizCatalog: QuizDef[] = [
     description: "各地の方言の意味を4択で学ぶ",
     enabled: true,
     order: 13,
-    industries: ["undecided"],
+    industries: ["construction", "manufacturing", "care", "driver", "undecided"],
     modes: ["normal", "review"],
     sections: [
       { id: "all", title: "総合", enabled: true, order: 1 },

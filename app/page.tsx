@@ -86,7 +86,7 @@ export default function HomePage() {
         id: "construction",
         icon: "👷",
         title: "建設で働く方へ",
-        subtitle: "建設用語・施工管理試験・現場日本語・日本語N4〜N2・日本語バトル",
+        subtitle: "建設用語・施工管理試験・現場日本語・方言学習・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -105,6 +105,8 @@ export default function HomePage() {
           "doboku-sekou-2kyu-1ji",
           "denki-sekou-2kyu-1ji",
           "kanko-sekou-2kyu-1ji",
+          "kansai-listening",
+          "dialect-meaning",
         ],
         groups: [
           {
@@ -145,6 +147,12 @@ export default function HomePage() {
             quizIds: ["genba-listening", "genba-phrasebook"],
           },
           {
+            id: "construction-dialect",
+            title: "全国の方言を学ぶ",
+            description: "関西弁リスニングと全国方言の意味当て",
+            quizIds: ["kansai-listening", "dialect-meaning"],
+          },
+          {
             id: "construction-battle",
             title: "日本語バトルをプレイ",
             description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
@@ -158,7 +166,7 @@ export default function HomePage() {
         id: "manufacturing",
         icon: "🏭",
         title: "製造で働く方へ",
-        subtitle: "用語・現場会話・技能試験・日本語N4〜N2・日本語バトル",
+        subtitle: "用語・現場会話・技能試験・方言学習・日本語N4〜N2・日本語バトル",
         extraQuizIds: [
           "japanese-n4",
           "japanese-n3",
@@ -170,6 +178,8 @@ export default function HomePage() {
           "manufacturing-conversation",
           "manufacturing-conversation-50",
           "skill-test-machining",
+          "kansai-listening",
+          "dialect-meaning",
         ],
         groups: [
           {
@@ -197,6 +207,12 @@ export default function HomePage() {
             quizIds: ["skill-test-machining"],
           },
           {
+            id: "manufacturing-dialect",
+            title: "全国の方言を学ぶ",
+            description: "関西弁リスニングと全国方言の意味当て",
+            quizIds: ["kansai-listening", "dialect-meaning"],
+          },
+          {
             id: "manufacturing-battle",
             title: "日本語バトルをプレイ",
             description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
@@ -210,8 +226,8 @@ export default function HomePage() {
         id: "care",
         icon: "👵",
         title: "介護で働く方へ",
-        subtitle: "介護用語・現場会話・国家試験・日本語N4〜N2・日本語バトル",
-        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "care-terms", "care-listening", "care-conversation", "care-worker-exam"],
+        subtitle: "介護用語・現場会話・国家試験・方言学習・日本語N4〜N2・日本語バトル",
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "care-terms", "care-listening", "care-conversation", "care-worker-exam", "kansai-listening", "dialect-meaning"],
         groups: [
           {
             id: "care-jlpt",
@@ -232,6 +248,12 @@ export default function HomePage() {
   quizIds: ["care-worker-exam"],
 },
           {
+            id: "care-dialect",
+            title: "全国の方言を学ぶ",
+            description: "関西弁リスニングと全国方言の意味当て",
+            quizIds: ["kansai-listening", "dialect-meaning"],
+          },
+          {
             id: "care-battle",
             title: "日本語バトルをプレイ",
             description: "語彙・文法・判断・記憶ゲーム（非会員1日1回 / 会員無制限）",
@@ -245,8 +267,8 @@ export default function HomePage() {
         id: "driver",
         icon: "🚗",
         title: "運転・免許が必要な方へ",
-        subtitle: "交通ルール・道路標識・日本語N4〜N2・日本語バトル",
-        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "gaikoku-license", "road-signs"],
+        subtitle: "交通ルール・道路標識・方言学習・日本語N4〜N2・日本語バトル",
+        extraQuizIds: ["japanese-n4", "japanese-n3", "japanese-n2", "speaking-practice", "gaikoku-license", "road-signs", "kansai-listening", "dialect-meaning"],
         groups: [
           {
             id: "driver-jlpt",
@@ -259,6 +281,12 @@ export default function HomePage() {
             title: "交通ルール・道路標識を学ぶ",
             description: "外国免許切替・道路標識",
             quizIds: ["gaikoku-license", "road-signs"],
+          },
+          {
+            id: "driver-dialect",
+            title: "全国の方言を学ぶ",
+            description: "関西弁リスニングと全国方言の意味当て",
+            quizIds: ["kansai-listening", "dialect-meaning"],
           },
           {
             id: "driver-battle",
