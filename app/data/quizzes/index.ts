@@ -25,8 +25,8 @@ import electricTerms from "./electric-terms.quiz"
 import civilTerms from "./civil-terms.quiz"
 
 // ★ 製造教材
-import { manufacturingMeaning } from "./manufacturing-meaning-150"
-import { manufacturingWord } from "./manufacturing-word-100"
+import { manufacturingMeaningQuiz } from "./manufacturing-meaning-150"
+import { manufacturingWordQuiz } from "./manufacturing-word-100"
 import { manufacturingListeningQuiz } from "./manufacturing-listening"
 import { manufacturingConversationQuiz } from "./manufacturing-conversation"
 import { manufacturingConversation as manufacturingConversation50 } from "./manufacturing-conversation-50"
@@ -69,8 +69,8 @@ export const quizzes = {
   "electric-terms": electricTerms,
   "civil-terms": civilTerms,
 
-  "manufacturing-meaning": manufacturingMeaning,
-  "manufacturing-word": manufacturingWord,
+  "manufacturing-meaning": manufacturingMeaningQuiz,
+  "manufacturing-word": manufacturingWordQuiz,
   "manufacturing-listening": manufacturingListeningQuiz,
   "manufacturing-conversation": manufacturingConversationQuiz,
   "manufacturing-conversation-50": manufacturingConversation50,

@@ -93,15 +93,12 @@ const GROUP_CONFIG: Record<string, GroupConfig> = {
   },
 
   // 製造
-"manufacturing-terms": {
+"manufacturing-vocabulary": {
   title: "製造用語を学ぶ",
-  description: "製造用語・リスニング・現場会話を学ぶ",
+  description: "製造用語の基礎",
   quizIds: [
     "manufacturing-meaning",
     "manufacturing-word",
-    "manufacturing-listening",
-    "manufacturing-conversation",
-    "manufacturing-conversation-50",
   ],
 },
   "manufacturing-listening": {
