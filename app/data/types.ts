@@ -37,7 +37,6 @@ export type QuizType =
   | "care-conversation"
   | "care-terms"
   | "skill-test-machining"
-  | "dialect-listening"
   | "dialect-meaning"
   | "kansai-listening"
   | "confusing-japanese"

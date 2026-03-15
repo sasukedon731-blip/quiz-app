@@ -39,7 +39,6 @@ import { careConversationQuiz } from "./care-conversation"
 import { careWorkerExamQuiz } from "./care-worker-exam"
 
 // ★ 方言教材
-import { dialectListeningQuiz } from "./dialect-listening"
 import { dialectMeaningQuiz } from "./dialect-meaning"
 import { kansaiListeningQuiz } from "./kansai-listening"
 import { confusingJapaneseQuiz } from "./confusing-japanese"
@@ -82,7 +81,6 @@ export const quizzes = {
   "care-conversation": careConversationQuiz,
   "care-worker-exam": careWorkerExamQuiz,
 
-  "dialect-listening": dialectListeningQuiz,
   "dialect-meaning": dialectMeaningQuiz,
   "kansai-listening": kansaiListeningQuiz,
   "confusing-japanese": confusingJapaneseQuiz,
