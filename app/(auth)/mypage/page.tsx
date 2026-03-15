@@ -11,7 +11,12 @@ import { auth, db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import { fetchMyAttackRank } from "../game/firestore"
-import { getBadgeMeta } from "@/app/lib/badges"
+import {
+  getPreviewBadgeMeta,
+  getTotalBadgeCount,
+  getUnlockedBadgeCount,
+  getRarityColors,
+} from "@/app/lib/badges"
 
 type QuizResult = {
   score: number
@@ -437,8 +442,11 @@ export default function MyPage() {
   }, [industry, showAllCards, allowedSet])
 
   const badgeItems = useMemo(() => {
-    return badges.map((id) => getBadgeMeta(id))
-  }, [badges])
+  return getPreviewBadgeMeta(badges, 8)
+}, [badges])
+
+const unlockedBadgeCount = useMemo(() => getUnlockedBadgeCount(badges), [badges])
+const totalBadgeCount = useMemo(() => getTotalBadgeCount(), [badges])
 
   // =======================
   // summaries
@@ -594,36 +602,81 @@ export default function MyPage() {
         </section>
 
         <section style={S.card}>
-          <div style={S.cardHeadRow}>
-            <div style={S.cardTitle}>実績バッジ</div>
-            <div style={S.miniNote}>模擬試験で100点を取ると追加されます</div>
-          </div>
+  <div style={S.cardHeadRow}>
+    <div>
+      <div style={S.cardTitle}>実績バッジ</div>
+      <div style={S.miniNote}>
+        {unlockedBadgeCount} / {totalBadgeCount} 獲得
+      </div>
+    </div>
 
-          {badgeItems.length === 0 ? (
-            <div style={{ marginTop: 10, opacity: 0.75 }}>まだバッジはありません。まずは模擬試験で100点を目指そう！</div>
-          ) : (
-            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {badgeItems.map((b) => (
-                <div
-                  key={b.id}
-                  style={{
-                    border: "1px solid #fde68a",
-                    background: "#fffbeb",
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    fontWeight: 900,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span>{b.icon}</span>
-                  <span>{b.label}</span>
-                </div>
-              ))}
+    <button
+      style={S.linkBtn}
+      onClick={() => router.push("/mypage/achievements")}
+    >
+      実績一覧 →
+    </button>
+  </div>
+
+  {badgeItems.length === 0 ? (
+    <div style={{ marginTop: 10, opacity: 0.75 }}>
+      まだ獲得済みバッジはありません。学習やゲームを進めて集めよう！
+    </div>
+  ) : (
+    <div
+      style={{
+        marginTop: 14,
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+        gap: 12,
+      }}
+    >
+      {badgeItems.map((b) => {
+        const c = getRarityColors(b.rarity)
+
+        return (
+          <div
+            key={b.id}
+            style={{
+              border: `1px solid ${c.border}`,
+              background: c.bg,
+              borderRadius: 18,
+              padding: 12,
+              boxShadow: `0 10px 22px ${c.glow}`,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                margin: "0 auto",
+                borderRadius: 16,
+                display: "grid",
+                placeItems: "center",
+                background: "rgba(255,255,255,0.7)",
+                fontSize: 28,
+              }}
+            >
+              {b.icon}
             </div>
-          )}
-        </section>
+
+            <div
+              style={{
+                marginTop: 8,
+                fontWeight: 900,
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              {b.label}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )}
+</section>
 
         {/* 教材カード：業種で最適化（最強：行タップで詳細） */}
         <section style={S.card}>
