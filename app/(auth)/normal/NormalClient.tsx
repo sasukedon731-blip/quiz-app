@@ -774,6 +774,13 @@ export default function NormalClient({ quiz }: Props) {
       {stripLeadingAnswerLabel(current.explanation)}
     </div>
 
+    {current.explanationEn && (
+      <div style={{ marginTop: 12, padding: 12, border: '1px solid #bae6fd', background: '#f0f9ff', borderRadius: 12 }}>
+        <div style={{ fontWeight: 800, color: '#0369a1', marginBottom: 6 }}>English</div>
+        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.explanationEn}</div>
+      </div>
+    )}
+
     {current.point && (
       <div style={{ marginTop: 12 }}>
         <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 4 }}>

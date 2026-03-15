@@ -1,7 +1,7 @@
 import type { Quiz } from "@/app/data/types"
 
 export const manufacturingConversation: Quiz = {
-  id: "manufacturing-conversation",
+  id: "manufacturing-conversation-50",
   title: "製造現場 会話",
   description: "会話から言葉を選ぶ",
   questions: [
@@ -12,6 +12,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["3K", "安全第一", "5S", "KY"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「3K」です。きつい・きたない・危険の 3つの 「K」のことです",
+      explanationEn: "Correct answer: 3K. In this conversation, the missing word is 3K. It means: きつい・きたない・危険の 3つの 「K」のことです.",
     },
     {
       id: 2,
@@ -20,6 +21,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["5S", "KY", "ヒヤリハット", "報連相"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「5S」です。整理・整頓・清掃・清潔・躾の 5つの活動です",
+      explanationEn: "Correct answer: 5S. In this conversation, the missing word is 5S. It means: 整理・整頓・清掃・清潔・躾の 5つの活動です.",
     },
     {
       id: 3,
@@ -28,6 +30,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["AGV", "フォークリフト", "コンベア", "クレーン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「AGV」です。自動で動く搬送の車です（自動搬送車）",
+      explanationEn: "Correct answer: AGV. In this conversation, the missing word is AGV. It means: 自動で動く搬送の車です（自動搬送車）.",
     },
     {
       id: 4,
@@ -36,6 +39,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["DX", "IoT", "QC", "改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「DX」です。デジタル技術を使って仕事を変えることです（デジタルトランスフォーメーション）",
+      explanationEn: "Correct answer: DX. In this conversation, the missing word is DX. It means: デジタル技術を使って仕事を変えることです（デジタルトランスフォーメーション）.",
     },
     {
       id: 5,
@@ -44,6 +48,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["IoT", "DX", "NC", "AGV"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「IoT」です。機械や道具をインターネットにつなげる技術です",
+      explanationEn: "Correct answer: IoT. In this conversation, the missing word is IoT. It means: 機械や道具をインターネットにつなげる技術です.",
     },
     {
       id: 6,
@@ -52,6 +57,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["KY", "5S", "ヒヤリハット", "指差呼称"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「KY」です。仕事を始める前に危険を見つける活動です（危険予知）",
+      explanationEn: "Correct answer: KY. In this conversation, the missing word is KY. It means: 仕事を始める前に危険を見つける活動です（危険予知）.",
     },
     {
       id: 7,
@@ -60,6 +66,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["NC", "AGV", "IoT", "プレス機"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「NC」です。コンピューターで自動的に機械を動かす方法です（数値制御）",
+      explanationEn: "Correct answer: NC. In this conversation, the missing word is NC. It means: コンピューターで自動的に機械を動かす方法です（数値制御）.",
     },
     {
       id: 8,
@@ -68,6 +75,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["QA", "QC", "5S", "検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「QA」です。製品の品質を保証する活動です（品質保証）",
+      explanationEn: "Correct answer: QA. In this conversation, the missing word is QA. It means: 製品の品質を保証する活動です（品質保証）.",
     },
     {
       id: 9,
@@ -76,6 +84,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["QC", "QA", "5S", "改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「QC」です。製品の品質を管理する活動です（品質管理）",
+      explanationEn: "Correct answer: QC. In this conversation, the missing word is QC. It means: 製品の品質を管理する活動です（品質管理）.",
     },
     {
       id: 10,
@@ -84,6 +93,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ばらつき", "欠陥", "不良品", "公差"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ばらつき」です。製品の大きさや品質がそろっていない状態です",
+      explanationEn: "Correct answer: ばらつき. In this conversation, the missing word is ばらつき. It means: 製品の大きさや品質がそろっていない状態です.",
     },
     {
       id: 11,
@@ -92,6 +102,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ウエス", "保護具", "養生", "清掃道具"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ウエス」です。機械や道具を拭くための布や切れ端です",
+      explanationEn: "Correct answer: ウエス. In this conversation, the missing word is ウエス. It means: 機械や道具を拭くための布や切れ端です.",
     },
     {
       id: 12,
@@ -100,6 +111,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["エラー", "故障", "停止", "トラブル"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「エラー」です。間違いや機械の故障が起きた状態です",
+      explanationEn: "Correct answer: エラー. In this conversation, the missing word is エラー. It means: 間違いや機械の故障が起きた状態です.",
     },
     {
       id: 13,
@@ -108,6 +120,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["オーバーホール", "定期点検", "修理", "設備保全"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「オーバーホール」です。機械を分解して丁寧に点検や修理をすることです",
+      explanationEn: "Correct answer: オーバーホール. In this conversation, the missing word is オーバーホール. It means: 機械を分解して丁寧に点検や修理をすることです.",
     },
     {
       id: 14,
@@ -116,6 +129,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["キズ", "汚れ", "変形", "欠陥"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「キズ」です。製品や道具の表面についた傷跡です",
+      explanationEn: "Correct answer: キズ. In this conversation, the missing word is キズ. It means: 製品や道具の表面についた傷跡です.",
     },
     {
       id: 15,
@@ -124,6 +138,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ギア", "ベアリング", "モーター", "ベルト"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ギア」です。機械の中で力を伝える歯車の部品です",
+      explanationEn: "Correct answer: ギア. In this conversation, the missing word is ギア. It means: 機械の中で力を伝える歯車の部品です.",
     },
     {
       id: 16,
@@ -132,6 +147,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["クレーン", "フォークリフト", "AGV", "コンベア"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「クレーン」です。重いものを吊り上げて運ぶ機械です",
+      explanationEn: "Correct answer: クレーン. In this conversation, the missing word is クレーン. It means: 重いものを吊り上げて運ぶ機械です.",
     },
     {
       id: 17,
@@ -140,6 +156,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["グラインダー", "ニッパー", "ペンチ", "ハンマー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「グラインダー」です。砥石を回して金属を削る道具です",
+      explanationEn: "Correct answer: グラインダー. In this conversation, the missing word is グラインダー. It means: 砥石を回して金属を削る道具です.",
     },
     {
       id: 18,
@@ -148,6 +165,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["コスト削減", "改善", "生産性向上", "作業効率"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「コスト削減」です。仕事にかかるお金を減らすことです",
+      explanationEn: "Correct answer: コスト削減. In this conversation, the missing word is コスト削減. It means: 仕事にかかるお金を減らすことです.",
     },
     {
       id: 19,
@@ -156,6 +174,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["コンプレッサー", "モーター", "センサー", "制御盤"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「コンプレッサー」です。空気を集めて圧縮する機械です",
+      explanationEn: "Correct answer: コンプレッサー. In this conversation, the missing word is コンプレッサー. It means: 空気を集めて圧縮する機械です.",
     },
     {
       id: 20,
@@ -164,6 +183,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["コンベア", "AGV", "クレーン", "フォークリフト"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「コンベア」です。ものを自動で移動させる流れ送りの機械です",
+      explanationEn: "Correct answer: コンベア. In this conversation, the missing word is コンベア. It means: ものを自動で移動させる流れ送りの機械です.",
     },
     {
       id: 21,
@@ -172,6 +192,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ショート", "感電", "引火", "停電"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ショート」です。電気が間違ったルートに流れる事故です（短絡）",
+      explanationEn: "Correct answer: ショート. In this conversation, the missing word is ショート. It means: 電気が間違ったルートに流れる事故です（短絡）.",
     },
     {
       id: 22,
@@ -180,6 +201,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["スイッチ", "ボタン", "センサー", "制御盤"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「スイッチ」です。機械の電気を入れたり切ったりする道具です",
+      explanationEn: "Correct answer: スイッチ. In this conversation, the missing word is スイッチ. It means: 機械の電気を入れたり切ったりする道具です.",
     },
     {
       id: 23,
@@ -188,6 +210,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["スパナ", "レンチ", "ドライバー", "ニッパー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「スパナ」です。ボルトやナットを回して締める道具です",
+      explanationEn: "Correct answer: スパナ. In this conversation, the missing word is スパナ. It means: ボルトやナットを回して締める道具です.",
     },
     {
       id: 24,
@@ -196,6 +219,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["センサー", "スイッチ", "モーター", "制御盤"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「センサー」です。温度・圧力・位置などを感知する機器です",
+      explanationEn: "Correct answer: センサー. In this conversation, the missing word is センサー. It means: 温度・圧力・位置などを感知する機器です.",
     },
     {
       id: 25,
@@ -204,6 +228,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["タクトタイム", "リードタイム", "残業時間", "作業時間"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「タクトタイム」です。1つの製品を作るのにかかる目安の時間です",
+      explanationEn: "Correct answer: タクトタイム. In this conversation, the missing word is タクトタイム. It means: 1つの製品を作るのにかかる目安の時間です.",
     },
     {
       id: 26,
@@ -212,6 +237,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["チョコ停", "故障", "異常停止", "ライン停止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「チョコ停」です。機械がすこしの時間止まることです（ちょっとした停止）",
+      explanationEn: "Correct answer: チョコ停. In this conversation, the missing word is チョコ停. It means: 機械がすこしの時間止まることです（ちょっとした停止）.",
     },
     {
       id: 27,
@@ -220,6 +246,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["トラブル", "エラー", "故障", "異常"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「トラブル」です。問題や事故が起きた状態です",
+      explanationEn: "Correct answer: トラブル. In this conversation, the missing word is トラブル. It means: 問題や事故が起きた状態です.",
     },
     {
       id: 28,
@@ -228,6 +255,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["トルクレンチ", "スパナ", "レンチ", "六角レンチ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「トルクレンチ」です。締める力を測りながらボルトを締める道具です",
+      explanationEn: "Correct answer: トルクレンチ. In this conversation, the missing word is トルクレンチ. It means: 締める力を測りながらボルトを締める道具です.",
     },
     {
       id: 29,
@@ -236,6 +264,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ドライバー", "スパナ", "レンチ", "ニッパー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ドライバー」です。ネジを回して締めたりゆるめたりする道具です",
+      explanationEn: "Correct answer: ドライバー. In this conversation, the missing word is ドライバー. It means: ネジを回して締めたりゆるめたりする道具です.",
     },
     {
       id: 30,
@@ -244,6 +273,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ナット", "ボルト", "ワッシャー", "ベアリング"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ナット」です。ボルトにはめて締める六角の部品です",
+      explanationEn: "Correct answer: ナット. In this conversation, the missing word is ナット. It means: ボルトにはめて締める六角の部品です.",
     },
     {
       id: 31,
@@ -252,6 +282,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ニコイチ", "修理", "部品交換", "手直し"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ニコイチ」です。2つの壊れたものから1つの使えるものを作ることです",
+      explanationEn: "Correct answer: ニコイチ. In this conversation, the missing word is ニコイチ. It means: 2つの壊れたものから1つの使えるものを作ることです.",
     },
     {
       id: 32,
@@ -260,6 +291,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ニッパー", "ペンチ", "ドライバー", "スパナ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ニッパー」です。針金や電線を切る道具です",
+      explanationEn: "Correct answer: ニッパー. In this conversation, the missing word is ニッパー. It means: 針金や電線を切る道具です.",
     },
     {
       id: 33,
@@ -268,6 +300,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ノギス", "測定器", "温度計", "圧力計"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ノギス」です。ものの大きさを細かく測る道具です",
+      explanationEn: "Correct answer: ノギス. In this conversation, the missing word is ノギス. It means: ものの大きさを細かく測る道具です.",
     },
     {
       id: 34,
@@ -276,6 +309,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ハンマー", "スパナ", "ニッパー", "グラインダー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ハンマー」です。ものを叩いたり釘を打ったりする道具です",
+      explanationEn: "Correct answer: ハンマー. In this conversation, the missing word is ハンマー. It means: ものを叩いたり釘を打ったりする道具です.",
     },
     {
       id: 35,
@@ -284,6 +318,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["バリ", "キズ", "欠陥", "変形"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「バリ」です。金属を加工したときにできるとがった余りの部分です",
+      explanationEn: "Correct answer: バリ. In this conversation, the missing word is バリ. It means: 金属を加工したときにできるとがった余りの部分です.",
     },
     {
       id: 36,
@@ -292,6 +327,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["バリ取り", "研磨", "仕上げ", "清掃"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「バリ取り」です。加工した金属のとがった余りを取り除く作業です",
+      explanationEn: "Correct answer: バリ取り. In this conversation, the missing word is バリ取り. It means: 加工した金属のとがった余りを取り除く作業です.",
     },
     {
       id: 37,
@@ -300,6 +336,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["パレット", "台車", "部品箱", "梱包材"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「パレット」です。荷物を乗せて運ぶ平たい台です",
+      explanationEn: "Correct answer: パレット. In this conversation, the missing word is パレット. It means: 荷物を乗せて運ぶ平たい台です.",
     },
     {
       id: 38,
@@ -308,6 +345,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ヒヤリハット", "KY", "異常報告", "トラブル"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ヒヤリハット」です。事故にはならなかったが危なかった出来事のことです",
+      explanationEn: "Correct answer: ヒヤリハット. In this conversation, the missing word is ヒヤリハット. It means: 事故にはならなかったが危なかった出来事のことです.",
     },
     {
       id: 39,
@@ -316,6 +354,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["フォークリフト", "クレーン", "AGV", "台車"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「フォークリフト」です。重い荷物をフォークですくい上げて運ぶ車です",
+      explanationEn: "Correct answer: フォークリフト. In this conversation, the missing word is フォークリフト. It means: 重い荷物をフォークですくい上げて運ぶ車です.",
     },
     {
       id: 40,
@@ -324,6 +363,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["プレス加工", "溶接", "切削", "曲げ加工"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「プレス加工」です。金属を金型で押して形を作る加工方法です",
+      explanationEn: "Correct answer: プレス加工. In this conversation, the missing word is プレス加工. It means: 金属を金型で押して形を作る加工方法です.",
     },
     {
       id: 41,
@@ -332,6 +372,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["プレス機", "旋盤", "グラインダー", "切断機"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「プレス機」です。金属を押して形を作る機械です",
+      explanationEn: "Correct answer: プレス機. In this conversation, the missing word is プレス機. It means: 金属を押して形を作る機械です.",
     },
     {
       id: 42,
@@ -340,6 +381,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ベアリング", "ギア", "ベルト", "モーター"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ベアリング」です。軸をなめらかに回す部品です（軸受け）",
+      explanationEn: "Correct answer: ベアリング. In this conversation, the missing word is ベアリング. It means: 軸をなめらかに回す部品です（軸受け）.",
     },
     {
       id: 43,
@@ -348,6 +390,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ベルト", "ギア", "ベアリング", "チェーン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ベルト」です。機械の中で動力を伝える帯状の部品です",
+      explanationEn: "Correct answer: ベルト. In this conversation, the missing word is ベルト. It means: 機械の中で動力を伝える帯状の部品です.",
     },
     {
       id: 44,
@@ -356,6 +399,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ペンチ", "ニッパー", "スパナ", "ドライバー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ペンチ」です。針金を曲げたり切ったりする道具です",
+      explanationEn: "Correct answer: ペンチ. In this conversation, the missing word is ペンチ. It means: 針金を曲げたり切ったりする道具です.",
     },
     {
       id: 45,
@@ -364,6 +408,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ボタン", "スイッチ", "センサー", "停止ボタン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ボタン」です。押して機械を動かしたり止めたりする装置です",
+      explanationEn: "Correct answer: ボタン. In this conversation, the missing word is ボタン. It means: 押して機械を動かしたり止めたりする装置です.",
     },
     {
       id: 46,
@@ -372,6 +417,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ボルト", "ナット", "ネジ", "ピン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ボルト」です。部品をしっかりつなぐネジ状の金属の棒です",
+      explanationEn: "Correct answer: ボルト. In this conversation, the missing word is ボルト. It means: 部品をしっかりつなぐネジ状の金属の棒です.",
     },
     {
       id: 47,
@@ -380,6 +426,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ポカヨケ", "5S", "KY", "標準作業"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ポカヨケ」です。間違いを防止するための仕組みや道具です",
+      explanationEn: "Correct answer: ポカヨケ. In this conversation, the missing word is ポカヨケ. It means: 間違いを防止するための仕組みや道具です.",
     },
     {
       id: 48,
@@ -388,6 +435,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["モーター", "コンプレッサー", "センサー", "ギア"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「モーター」です。電気を動きに変える機械です（電動機）",
+      explanationEn: "Correct answer: モーター. In this conversation, the missing word is モーター. It means: 電気を動きに変える機械です（電動機）.",
     },
     {
       id: 49,
@@ -396,6 +444,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ライン", "工程", "コンベア", "生産計画"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ライン」です。製品を順に加工する作業の流れです",
+      explanationEn: "Correct answer: ライン. In this conversation, the missing word is ライン. It means: 製品を順に加工する作業の流れです.",
     },
     {
       id: 50,
@@ -404,6 +453,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ライン停止", "チョコ停", "故障", "異常停止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ライン停止」です。生産の流れが止まることです",
+      explanationEn: "Correct answer: ライン停止. In this conversation, the missing word is ライン停止. It means: 生産の流れが止まることです.",
     },
     {
       id: 51,
@@ -412,6 +462,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ライン再開", "本稼働", "試運転", "生産開始"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ライン再開」です。止まっていた生産の流れを再び始めることです",
+      explanationEn: "Correct answer: ライン再開. In this conversation, the missing word is ライン再開. It means: 止まっていた生産の流れを再び始めることです.",
     },
     {
       id: 52,
@@ -420,6 +471,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["リードタイム", "タクトタイム", "納期", "作業時間"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「リードタイム」です。注文を受けてから製品を渡すまでの時間です",
+      explanationEn: "Correct answer: リードタイム. In this conversation, the missing word is リードタイム. It means: 注文を受けてから製品を渡すまでの時間です.",
     },
     {
       id: 53,
@@ -428,6 +480,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["レンチ", "スパナ", "トルクレンチ", "ドライバー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「レンチ」です。ボルトやナットを締める大きな道具です",
+      explanationEn: "Correct answer: レンチ. In this conversation, the missing word is レンチ. It means: ボルトやナットを締める大きな道具です.",
     },
     {
       id: 54,
@@ -436,6 +489,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["レーザー加工", "プレス加工", "切削加工", "溶接"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「レーザー加工」です。レーザー光線を使って金属を切ったり穴を開けたりする加工方法です",
+      explanationEn: "Correct answer: レーザー加工. In this conversation, the missing word is レーザー加工. It means: レーザー光線を使って金属を切ったり穴を開けたりする加工方法です.",
     },
     {
       id: 55,
@@ -444,6 +498,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["ロット", "品番", "型番", "生産数"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「ロット」です。一度に作る製品のまとまった数です",
+      explanationEn: "Correct answer: ロット. In this conversation, the missing word is ロット. It means: 一度に作る製品のまとまった数です.",
     },
     {
       id: 56,
@@ -452,6 +507,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["不合格", "不良品", "欠陥品", "再検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「不合格」です。検査に通らなかった状態です",
+      explanationEn: "Correct answer: 不合格. In this conversation, the missing word is 不合格. It means: 検査に通らなかった状態です.",
     },
     {
       id: 57,
@@ -460,6 +516,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["不良品", "良品", "半製品", "完成品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「不良品」です。基準に合わない品質の悪い製品です",
+      explanationEn: "Correct answer: 不良品. In this conversation, the missing word is 不良品. It means: 基準に合わない品質の悪い製品です.",
     },
     {
       id: 58,
@@ -468,6 +525,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["不良品箱", "部品箱", "完成品置場", "廃棄箱"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「不良品箱」です。検査で問題が見つかった製品を入れる箱です",
+      explanationEn: "Correct answer: 不良品箱. In this conversation, the missing word is 不良品箱. It means: 検査で問題が見つかった製品を入れる箱です.",
     },
     {
       id: 59,
@@ -476,6 +534,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["不足", "欠品", "余剰", "在庫切れ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「不足」です。必要な数や量が足りない状態です",
+      explanationEn: "Correct answer: 不足. In this conversation, the missing word is 不足. It means: 必要な数や量が足りない状態です.",
     },
     {
       id: 60,
@@ -484,6 +543,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["亀裂", "キズ", "欠陥", "変形"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「亀裂」です。ものの表面に入った裂け目です",
+      explanationEn: "Correct answer: 亀裂. In this conversation, the missing word is 亀裂. It means: ものの表面に入った裂け目です.",
     },
     {
       id: 61,
@@ -492,6 +552,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["予備品", "消耗品", "部品在庫", "補充品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「予備品」です。壊れたときのために用意している予備の部品です",
+      explanationEn: "Correct answer: 予備品. In this conversation, the missing word is 予備品. It means: 壊れたときのために用意している予備の部品です.",
     },
     {
       id: 62,
@@ -500,6 +561,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["交代制", "残業制度", "フレックス制", "シフト制"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「交代制」です。時間を分けて交互に仕事をする制度です",
+      explanationEn: "Correct answer: 交代制. In this conversation, the missing word is 交代制. It means: 時間を分けて交互に仕事をする制度です.",
     },
     {
       id: 63,
@@ -508,6 +570,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["交換", "修理", "補修", "手直し"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「交換」です。古いものを新しいものに取り替えることです",
+      explanationEn: "Correct answer: 交換. In this conversation, the missing word is 交換. It means: 古いものを新しいものに取り替えることです.",
     },
     {
       id: 64,
@@ -516,6 +579,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["仕上げ", "バリ取り", "研磨", "清掃"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「仕上げ」です。最後に製品をきれいに整える作業です",
+      explanationEn: "Correct answer: 仕上げ. In this conversation, the missing word is 仕上げ. It means: 最後に製品をきれいに整える作業です.",
     },
     {
       id: 65,
@@ -524,6 +588,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["仕分け", "検品", "梱包", "棚卸し"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「仕分け」です。製品や部品を種類ごとに分けることです",
+      explanationEn: "Correct answer: 仕分け. In this conversation, the missing word is 仕分け. It means: 製品や部品を種類ごとに分けることです.",
     },
     {
       id: 66,
@@ -532,6 +597,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["仕様書", "図面", "手順書", "作業指示書"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「仕様書」です。製品の基準や詳細を書いた書類です",
+      explanationEn: "Correct answer: 仕様書. In this conversation, the missing word is 仕様書. It means: 製品の基準や詳細を書いた書類です.",
     },
     {
       id: 67,
@@ -540,6 +606,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["仕込み", "段取り", "準備作業", "材料投入"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「仕込み」です。作業を始める前に材料や道具を準備することです",
+      explanationEn: "Correct answer: 仕込み. In this conversation, the missing word is 仕込み. It means: 作業を始める前に材料や道具を準備することです.",
     },
     {
       id: 68,
@@ -548,6 +615,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["余剰", "不足", "在庫過多", "欠品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「余剰」です。必要より多く余っている状態です",
+      explanationEn: "Correct answer: 余剰. In this conversation, the missing word is 余剰. It means: 必要より多く余っている状態です.",
     },
     {
       id: 69,
@@ -556,6 +624,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業割当", "作業指示", "作業教育", "担当者決め"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業割当」です。誰がどの作業をするかを決めることです",
+      explanationEn: "Correct answer: 作業割当. In this conversation, the missing word is 作業割当. It means: 誰がどの作業をするかを決めることです.",
     },
     {
       id: 70,
@@ -564,6 +633,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業効率", "生産性", "タクトタイム", "稼働率"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業効率」です。少ない時間や力で多くの仕事をこなすことです",
+      explanationEn: "Correct answer: 作業効率. In this conversation, the missing word is 作業効率. It means: 少ない時間や力で多くの仕事をこなすことです.",
     },
     {
       id: 71,
@@ -572,6 +642,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業区域", "危険区域", "通路", "保管場所"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業区域」です。作業をするために決められた場所です",
+      explanationEn: "Correct answer: 作業区域. In this conversation, the missing word is 作業区域. It means: 作業をするために決められた場所です.",
     },
     {
       id: 72,
@@ -580,6 +651,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業台", "測定台", "工具棚", "パレット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業台」です。作業をするときに使う台です",
+      explanationEn: "Correct answer: 作業台. In this conversation, the missing word is 作業台. It means: 作業をするときに使う台です.",
     },
     {
       id: 73,
@@ -588,6 +660,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業手順", "手順書", "作業指示", "標準作業"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業手順」です。作業をする順番ややり方です",
+      explanationEn: "Correct answer: 作業手順. In this conversation, the missing word is 作業手順. It means: 作業をする順番ややり方です.",
     },
     {
       id: 74,
@@ -596,6 +669,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業指示", "作業手順", "仕様書", "図面"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業指示」です。どんな作業をするかを伝える指示のことです",
+      explanationEn: "Correct answer: 作業指示. In this conversation, the missing word is 作業指示. It means: どんな作業をするかを伝える指示のことです.",
     },
     {
       id: 75,
@@ -604,6 +678,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業改善", "改善提案", "生産改善", "工程改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業改善」です。作業のやり方をよりよくすることです",
+      explanationEn: "Correct answer: 作業改善. In this conversation, the missing word is 作業改善. It means: 作業のやり方をよりよくすることです.",
     },
     {
       id: 76,
@@ -612,6 +687,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業教育", "新人教育", "安全教育", "OJT"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業教育」です。作業のやり方を教えることです",
+      explanationEn: "Correct answer: 作業教育. In this conversation, the missing word is 作業教育. It means: 作業のやり方を教えることです.",
     },
     {
       id: 77,
@@ -620,6 +696,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業日報", "作業記録", "報告書", "品質記録"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業日報」です。その日の作業の結果をまとめた日誌のことです",
+      explanationEn: "Correct answer: 作業日報. In this conversation, the missing word is 作業日報. It means: その日の作業の結果をまとめた日誌のことです.",
     },
     {
       id: 78,
@@ -628,6 +705,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業時間", "タクトタイム", "残業時間", "リードタイム"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業時間」です。作業をする時間のことです",
+      explanationEn: "Correct answer: 作業時間. In this conversation, the missing word is 作業時間. It means: 作業をする時間のことです.",
     },
     {
       id: 79,
@@ -636,6 +714,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業服", "保護具", "安全靴", "作業着"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業服」です。作業をするときに着る専用の服です",
+      explanationEn: "Correct answer: 作業服. In this conversation, the missing word is 作業服. It means: 作業をするときに着る専用の服です.",
     },
     {
       id: 80,
@@ -644,6 +723,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業標準", "標準作業", "手順書", "仕様書"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業標準」です。作業の正しいやり方を定めた基準です",
+      explanationEn: "Correct answer: 作業標準. In this conversation, the missing word is 作業標準. It means: 作業の正しいやり方を定めた基準です.",
     },
     {
       id: 81,
@@ -652,6 +732,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["作業記録", "作業日報", "品質記録", "設備記録"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「作業記録」です。作業の内容や結果を書いた記録です",
+      explanationEn: "Correct answer: 作業記録. In this conversation, the missing word is 作業記録. It means: 作業の内容や結果を書いた記録です.",
     },
     {
       id: 82,
@@ -660,6 +741,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["保管場所", "材料置場", "完成品置場", "工具棚"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「保管場所」です。ものを大切にしまっておく場所です",
+      explanationEn: "Correct answer: 保管場所. In this conversation, the missing word is 保管場所. It means: ものを大切にしまっておく場所です.",
     },
     {
       id: 83,
@@ -668,6 +750,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["保護メガネ", "防塵マスク", "保護手袋", "安全帯"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「保護メガネ」です。作業中に目を守るためのメガネです",
+      explanationEn: "Correct answer: 保護メガネ. In this conversation, the missing word is 保護メガネ. It means: 作業中に目を守るためのメガネです.",
     },
     {
       id: 84,
@@ -676,6 +759,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["保護具", "安全靴", "保護メガネ", "作業服"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「保護具」です。作業中に体を守る道具のまとめた呼び方です",
+      explanationEn: "Correct answer: 保護具. In this conversation, the missing word is 保護具. It means: 作業中に体を守る道具のまとめた呼び方です.",
     },
     {
       id: 85,
@@ -684,6 +768,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["保護手袋", "安全靴", "保護メガネ", "安全帯"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「保護手袋」です。作業中に手を守る手袋です",
+      explanationEn: "Correct answer: 保護手袋. In this conversation, the missing word is 保護手袋. It means: 作業中に手を守る手袋です.",
     },
     {
       id: 86,
@@ -692,6 +777,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["修理", "交換", "手直し", "オーバーホール"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「修理」です。壊れたものを直すことです",
+      explanationEn: "Correct answer: 修理. In this conversation, the missing word is 修理. It means: 壊れたものを直すことです.",
     },
     {
       id: 87,
@@ -700,6 +786,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["停止", "ライン停止", "故障", "チョコ停"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「停止」です。機械やラインが止まることです",
+      explanationEn: "Correct answer: 停止. In this conversation, the missing word is 停止. It means: 機械やラインが止まることです.",
     },
     {
       id: 88,
@@ -708,6 +795,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["停止ボタン", "非常停止", "スイッチ", "起動ボタン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「停止ボタン」です。機械をすぐに止めるためのボタンです",
+      explanationEn: "Correct answer: 停止ボタン. In this conversation, the missing word is 停止ボタン. It means: 機械をすぐに止めるためのボタンです.",
     },
     {
       id: 89,
@@ -716,6 +804,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["全数検査", "抜き取り検査", "外観検査", "目視検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「全数検査」です。作った製品全部を検査することです",
+      explanationEn: "Correct answer: 全数検査. In this conversation, the missing word is 全数検査. It means: 作った製品全部を検査することです.",
     },
     {
       id: 90,
@@ -724,6 +813,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["公差", "寸法", "ばらつき", "検査基準"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「公差」です。製品の大きさの許されるズレの範囲です",
+      explanationEn: "Correct answer: 公差. In this conversation, the missing word is 公差. It means: 製品の大きさの許されるズレの範囲です.",
     },
     {
       id: 91,
@@ -732,6 +822,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["公称", "寸法", "公差", "規格値"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「公称」です。製品の名目上（表示）の大きさや値です",
+      explanationEn: "Correct answer: 公称. In this conversation, the missing word is 公称. It means: 製品の名目上（表示）の大きさや値です.",
     },
     {
       id: 92,
@@ -740,6 +831,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["六角レンチ", "レンチ", "スパナ", "トルクレンチ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「六角レンチ」です。六角の穴のボルトを締めるL字形の道具です",
+      explanationEn: "Correct answer: 六角レンチ. In this conversation, the missing word is 六角レンチ. It means: 六角の穴のボルトを締めるL字形の道具です.",
     },
     {
       id: 93,
@@ -748,6 +840,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["再検査", "全数検査", "抜き取り検査", "外観検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「再検査」です。一度検査した製品をもう一度検査することです",
+      explanationEn: "Correct answer: 再検査. In this conversation, the missing word is 再検査. It means: 一度検査した製品をもう一度検査することです.",
     },
     {
       id: 94,
@@ -756,6 +849,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["出荷", "搬送", "積み込み", "納品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「出荷」です。完成した製品をお客様に送ることです",
+      explanationEn: "Correct answer: 出荷. In this conversation, the missing word is 出荷. It means: 完成した製品をお客様に送ることです.",
     },
     {
       id: 95,
@@ -764,6 +858,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["出荷予定", "生産計画", "納期", "配送計画"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「出荷予定」です。製品を送る予定のことです",
+      explanationEn: "Correct answer: 出荷予定. In this conversation, the missing word is 出荷予定. It means: 製品を送る予定のことです.",
     },
     {
       id: 96,
@@ -772,6 +867,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["出荷場", "完成品置場", "搬出口", "材料置場"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「出荷場」です。製品を送り出すための場所です",
+      explanationEn: "Correct answer: 出荷場. In this conversation, the missing word is 出荷場. It means: 製品を送り出すための場所です.",
     },
     {
       id: 97,
@@ -780,6 +876,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["切削", "曲げ加工", "溶接", "プレス加工"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「切削」です。金属を削って形にする加工方法です",
+      explanationEn: "Correct answer: 切削. In this conversation, the missing word is 切削. It means: 金属を削って形にする加工方法です.",
     },
     {
       id: 98,
@@ -788,6 +885,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["切断", "切削", "削り加工", "バリ取り"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「切断」です。ものを切って二つに分けることです",
+      explanationEn: "Correct answer: 切断. In this conversation, the missing word is 切断. It means: ものを切って二つに分けることです.",
     },
     {
       id: 99,
@@ -796,6 +894,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["切断機", "プレス機", "旋盤", "グラインダー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「切断機」です。ものを切るための機械です",
+      explanationEn: "Correct answer: 切断機. In this conversation, the missing word is 切断機. It means: ものを切るための機械です.",
     },
     {
       id: 100,
@@ -804,6 +903,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["制御盤", "操作盤", "分電盤", "センサーボックス"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「制御盤」です。機械の動きを管理する装置が入った箱です",
+      explanationEn: "Correct answer: 制御盤. In this conversation, the missing word is 制御盤. It means: 機械の動きを管理する装置が入った箱です.",
     },
     {
       id: 101,
@@ -812,6 +912,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["削る", "切削", "研磨", "バリ取り"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「削る」です。表面を削って薄くしたり形を整えたりすることです",
+      explanationEn: "Correct answer: 削る. In this conversation, the missing word is 削る. It means: 表面を削って薄くしたり形を整えたりすることです.",
     },
     {
       id: 102,
@@ -820,6 +921,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["加工", "組立", "切削", "成形"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「加工」です。原料や部品に手を加えて別の形や製品にすることです",
+      explanationEn: "Correct answer: 加工. In this conversation, the missing word is 加工. It means: 原料や部品に手を加えて別の形や製品にすることです.",
     },
     {
       id: 103,
@@ -828,6 +930,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["加工ライン", "組立ライン", "検査ライン", "溶接ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「加工ライン」です。加工作業を行う生産の流れです",
+      explanationEn: "Correct answer: 加工ライン. In this conversation, the missing word is 加工ライン. It means: 加工作業を行う生産の流れです.",
     },
     {
       id: 104,
@@ -836,6 +939,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["劣化", "摩耗", "破損", "亀裂"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「劣化」です。機械や部品が時間とともに古くなって品質が下がることです",
+      explanationEn: "Correct answer: 劣化. In this conversation, the missing word is 劣化. It means: 機械や部品が時間とともに古くなって品質が下がることです.",
     },
     {
       id: 105,
@@ -844,6 +948,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["動力", "電動工具", "モーター", "コンプレッサー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「動力」です。機械を動かすための力の源です",
+      explanationEn: "Correct answer: 動力. In this conversation, the missing word is 動力. It means: 機械を動かすための力の源です.",
     },
     {
       id: 106,
@@ -852,6 +957,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["半製品", "完成品", "不良品", "材料"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「半製品」です。加工の途中でまだ完成していない製品です",
+      explanationEn: "Correct answer: 半製品. In this conversation, the missing word is 半製品. It means: 加工の途中でまだ完成していない製品です.",
     },
     {
       id: 107,
@@ -860,6 +966,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["危険区域", "立入禁止", "作業区域", "通路"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「危険区域」です。危険で立ち入ってはいけない場所です",
+      explanationEn: "Correct answer: 危険区域. In this conversation, the missing word is 危険区域. It means: 危険で立ち入ってはいけない場所です.",
     },
     {
       id: 108,
@@ -868,6 +975,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["危険箇所", "危険区域", "KY活動", "立入禁止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「危険箇所」です。危険な場所やポイントのことです",
+      explanationEn: "Correct answer: 危険箇所. In this conversation, the missing word is 危険箇所. It means: 危険な場所やポイントのことです.",
     },
     {
       id: 109,
@@ -876,6 +984,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["原料", "材料", "部材", "半製品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「原料」です。製品を作るための元になる材料です",
+      explanationEn: "Correct answer: 原料. In this conversation, the missing word is 原料. It means: 製品を作るための元になる材料です.",
     },
     {
       id: 110,
@@ -884,6 +993,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["受注", "発注", "出荷", "納品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「受注」です。お客様から注文を受けることです",
+      explanationEn: "Correct answer: 受注. In this conversation, the missing word is 受注. It means: お客様から注文を受けることです.",
     },
     {
       id: 111,
@@ -892,6 +1002,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["台車", "フォークリフト", "パレット", "AGV"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「台車」です。荷物を乗せて押して運ぶ道具です",
+      explanationEn: "Correct answer: 台車. In this conversation, the missing word is 台車. It means: 荷物を乗せて押して運ぶ道具です.",
     },
     {
       id: 112,
@@ -900,6 +1011,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["合格", "良品", "不合格", "基準内"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「合格」です。検査に通った状態です",
+      explanationEn: "Correct answer: 合格. In this conversation, the missing word is 合格. It means: 検査に通った状態です.",
     },
     {
       id: 113,
@@ -908,6 +1020,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品番", "型番", "ロット番号", "シリアル番号"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品番」です。製品を見分けるための番号です",
+      explanationEn: "Correct answer: 品番. In this conversation, the missing word is 品番. It means: 製品を見分けるための番号です.",
     },
     {
       id: 114,
@@ -916,6 +1029,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質", "品質管理", "検査", "良品率"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質」です。製品のよさや基準への適合性です",
+      explanationEn: "Correct answer: 品質. In this conversation, the missing word is 品質. It means: 製品のよさや基準への適合性です.",
     },
     {
       id: 115,
@@ -924,6 +1038,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質チェック", "検品", "外観検査", "全数検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質チェック」です。製品が基準を満たしているか確かめることです",
+      explanationEn: "Correct answer: 品質チェック. In this conversation, the missing word is 品質チェック. It means: 製品が基準を満たしているか確かめることです.",
     },
     {
       id: 116,
@@ -932,6 +1047,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質会議", "朝礼", "報告会", "改善提案会"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質会議」です。品質の問題や改善を話し合う会議です",
+      explanationEn: "Correct answer: 品質会議. In this conversation, the missing word is 品質会議. It means: 品質の問題や改善を話し合う会議です.",
     },
     {
       id: 117,
@@ -940,6 +1056,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質保証", "QA", "品質管理", "検査体制"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質保証」です。製品が基準を満たすことを保証することです",
+      explanationEn: "Correct answer: 品質保証. In this conversation, the missing word is 品質保証. It means: 製品が基準を満たすことを保証することです.",
     },
     {
       id: 118,
@@ -948,6 +1065,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質基準", "仕様書", "検査基準", "作業標準"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質基準」です。製品が満たさなければいけない基準です",
+      explanationEn: "Correct answer: 品質基準. In this conversation, the missing word is 品質基準. It means: 製品が満たさなければいけない基準です.",
     },
     {
       id: 119,
@@ -956,6 +1074,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質改善", "改善活動", "生産改善", "作業改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質改善」です。製品の品質をよりよくすることです",
+      explanationEn: "Correct answer: 品質改善. In this conversation, the missing word is 品質改善. It means: 製品の品質をよりよくすることです.",
     },
     {
       id: 120,
@@ -964,6 +1083,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質管理", "QC", "品質保証", "検査管理"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質管理」です。製品の品質を維持して管理することです",
+      explanationEn: "Correct answer: 品質管理. In this conversation, the missing word is 品質管理. It means: 製品の品質を維持して管理することです.",
     },
     {
       id: 121,
@@ -972,6 +1092,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["品質記録", "作業記録", "設備記録", "作業日報"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「品質記録」です。検査や品質管理の結果を残した記録です",
+      explanationEn: "Correct answer: 品質記録. In this conversation, the missing word is 品質記録. It means: 検査や品質管理の結果を残した記録です.",
     },
     {
       id: 122,
@@ -980,6 +1101,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["図面", "仕様書", "手順書", "作業指示書"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「図面」です。製品の形や大きさを絵で表した書類です",
+      explanationEn: "Correct answer: 図面. In this conversation, the missing word is 図面. It means: 製品の形や大きさを絵で表した書類です.",
     },
     {
       id: 123,
@@ -988,6 +1110,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["圧力計", "温度計", "ノギス", "流量計"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「圧力計」です。気体や液体の圧力を測る機器です",
+      explanationEn: "Correct answer: 圧力計. In this conversation, the missing word is 圧力計. It means: 気体や液体の圧力を測る機器です.",
     },
     {
       id: 124,
@@ -996,6 +1119,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["圧延", "鍛造", "鋳造", "プレス加工"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「圧延」です。金属をロールではさんで薄く延ばす加工方法です",
+      explanationEn: "Correct answer: 圧延. In this conversation, the missing word is 圧延. It means: 金属をロールではさんで薄く延ばす加工方法です.",
     },
     {
       id: 125,
@@ -1004,6 +1128,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["在庫", "完成品", "予備品", "半製品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「在庫」です。使うまで保管している部品や製品です",
+      explanationEn: "Correct answer: 在庫. In this conversation, the missing word is 在庫. It means: 使うまで保管している部品や製品です.",
     },
     {
       id: 126,
@@ -1012,6 +1137,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["在庫管理", "棚卸し", "発注管理", "生産計画"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「在庫管理」です。在庫の数や状態を管理することです",
+      explanationEn: "Correct answer: 在庫管理. In this conversation, the missing word is 在庫管理. It means: 在庫の数や状態を管理することです.",
     },
     {
       id: 127,
@@ -1020,6 +1146,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["型番", "品番", "ロット番号", "製造番号"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「型番」です。機械や部品を見分けるための番号です",
+      explanationEn: "Correct answer: 型番. In this conversation, the missing word is 型番. It means: 機械や部品を見分けるための番号です.",
     },
     {
       id: 128,
@@ -1028,6 +1155,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["報告", "報連相", "連絡", "相談"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「報告」です。上司やチームに情報を伝えることです",
+      explanationEn: "Correct answer: 報告. In this conversation, the missing word is 報告. It means: 上司やチームに情報を伝えることです.",
     },
     {
       id: 129,
@@ -1036,6 +1164,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["報連相", "報告", "連絡", "相談"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「報連相」です。報告・連絡・相談の 3つをまとめた言葉です",
+      explanationEn: "Correct answer: 報連相. In this conversation, the missing word is 報連相. It means: 報告・連絡・相談の 3つをまとめた言葉です.",
     },
     {
       id: 130,
@@ -1044,6 +1173,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["塗装", "仕上げ作業", "養生", "バリ取り"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「塗装」です。製品の表面に塗料を塗る作業です",
+      explanationEn: "Correct answer: 塗装. In this conversation, the missing word is 塗装. It means: 製品の表面に塗料を塗る作業です.",
     },
     {
       id: 131,
@@ -1052,6 +1182,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["塗装ライン", "組立ライン", "検査ライン", "梱包ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「塗装ライン」です。製品に塗料を塗る作業の流れです",
+      explanationEn: "Correct answer: 塗装ライン. In this conversation, the missing word is 塗装ライン. It means: 製品に塗料を塗る作業の流れです.",
     },
     {
       id: 132,
@@ -1060,6 +1191,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["墜落", "転落", "転倒", "挟まれ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「墜落」です。高いところから落ちる事故です",
+      explanationEn: "Correct answer: 墜落. In this conversation, the missing word is 墜落. It means: 高いところから落ちる事故です.",
     },
     {
       id: 133,
@@ -1068,6 +1200,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["変形", "歪み", "亀裂", "破損"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「変形」です。製品や部品が曲がったりゆがんだりすることです",
+      explanationEn: "Correct answer: 変形. In this conversation, the missing word is 変形. It means: 製品や部品が曲がったりゆがんだりすることです.",
     },
     {
       id: 134,
@@ -1076,6 +1209,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["変色", "汚れ", "劣化", "錆"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「変色」です。製品や部品の色が変わることです",
+      explanationEn: "Correct answer: 変色. In this conversation, the missing word is 変色. It means: 製品や部品の色が変わることです.",
     },
     {
       id: 135,
@@ -1084,6 +1218,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["外観検査", "目視検査", "全数検査", "寸法検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「外観検査」です。製品の見た目（表面）を見て検査することです",
+      explanationEn: "Correct answer: 外観検査. In this conversation, the missing word is 外観検査. It means: 製品の見た目（表面）を見て検査することです.",
     },
     {
       id: 136,
@@ -1092,6 +1227,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全帯", "保護具", "安全靴", "保護手袋"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全帯」です。高いところで作業するとき体をつなぎ止めるベルトです",
+      explanationEn: "Correct answer: 安全帯. In this conversation, the missing word is 安全帯. It means: 高いところで作業するとき体をつなぎ止めるベルトです.",
     },
     {
       id: 137,
@@ -1100,6 +1236,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全教育", "作業教育", "新人教育", "KY活動"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全教育」です。安全に作業するための教育です",
+      explanationEn: "Correct answer: 安全教育. In this conversation, the missing word is 安全教育. It means: 安全に作業するための教育です.",
     },
     {
       id: 138,
@@ -1108,6 +1245,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全柵", "危険区域表示", "立入禁止", "通路"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全柵」です。危険な場所への立ち入りを防ぐ柵です",
+      explanationEn: "Correct answer: 安全柵. In this conversation, the missing word is 安全柵. It means: 危険な場所への立ち入りを防ぐ柵です.",
     },
     {
       id: 139,
@@ -1116,6 +1254,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全確認", "KY活動", "指差呼称", "ヒヤリハット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全確認」です。作業の前や途中に安全を確かめることです",
+      explanationEn: "Correct answer: 安全確認. In this conversation, the missing word is 安全確認. It means: 作業の前や途中に安全を確かめることです.",
     },
     {
       id: 140,
@@ -1124,6 +1263,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全第一", "5S活動", "KY活動", "ヒヤリハット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全第一」です。安全を一番大切にするという考え方です",
+      explanationEn: "Correct answer: 安全第一. In this conversation, the missing word is 安全第一. It means: 安全を一番大切にするという考え方です.",
     },
     {
       id: 141,
@@ -1132,6 +1272,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["安全靴", "保護具", "安全帯", "作業服"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「安全靴」です。作業中に足を守る丈夫な靴です",
+      explanationEn: "Correct answer: 安全靴. In this conversation, the missing word is 安全靴. It means: 作業中に足を守る丈夫な靴です.",
     },
     {
       id: 142,
@@ -1140,6 +1281,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["完成品", "半製品", "良品", "不良品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「完成品」です。すべての作業が終わってできあがった製品です",
+      explanationEn: "Correct answer: 完成品. In this conversation, the missing word is 完成品. It means: すべての作業が終わってできあがった製品です.",
     },
     {
       id: 143,
@@ -1148,6 +1290,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["完成品置場", "材料置場", "保管場所", "出荷場"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「完成品置場」です。できあがった製品を置く場所です",
+      explanationEn: "Correct answer: 完成品置場. In this conversation, the missing word is 完成品置場. It means: できあがった製品を置く場所です.",
     },
     {
       id: 144,
@@ -1156,6 +1299,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["定期点検", "日常点検", "設備点検", "オーバーホール"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「定期点検」です。決められた時間に機械や設備を点検することです",
+      explanationEn: "Correct answer: 定期点検. In this conversation, the missing word is 定期点検. It means: 決められた時間に機械や設備を点検することです.",
     },
     {
       id: 145,
@@ -1164,6 +1308,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["寸法", "公差", "ばらつき", "測定値"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「寸法」です。製品の大きさ（縦・横・高さなど）です",
+      explanationEn: "Correct answer: 寸法. In this conversation, the missing word is 寸法. It means: 製品の大きさ（縦・横・高さなど）です.",
     },
     {
       id: 146,
@@ -1172,6 +1317,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["寸法検査", "外観検査", "全数検査", "目視検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「寸法検査」です。製品の大きさが基準どおりか確かめる検査です",
+      explanationEn: "Correct answer: 寸法検査. In this conversation, the missing word is 寸法検査. It means: 製品の大きさが基準どおりか確かめる検査です.",
     },
     {
       id: 147,
@@ -1180,6 +1326,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工具", "電動工具", "測定器", "治具"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工具」です。作業に使う道具のまとめた呼び方です",
+      explanationEn: "Correct answer: 工具. In this conversation, the missing word is 工具. It means: 作業に使う道具のまとめた呼び方です.",
     },
     {
       id: 148,
@@ -1188,6 +1335,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工具棚", "部品棚", "工具箱", "保管棚"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工具棚」です。道具をしまっておく棚です",
+      explanationEn: "Correct answer: 工具棚. In this conversation, the missing word is 工具棚. It means: 道具をしまっておく棚です.",
     },
     {
       id: 149,
@@ -1196,6 +1344,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工具箱", "部品箱", "工具棚", "パレット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工具箱」です。道具を入れて持ち運ぶ箱です",
+      explanationEn: "Correct answer: 工具箱. In this conversation, the missing word is 工具箱. It means: 道具を入れて持ち運ぶ箱です.",
     },
     {
       id: 150,
@@ -1204,6 +1353,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工程", "作業手順", "ライン", "工程表"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工程」です。生産の流れの中のそれぞれの作業の段階です",
+      explanationEn: "Correct answer: 工程. In this conversation, the missing word is 工程. It means: 生産の流れの中のそれぞれの作業の段階です.",
     },
     {
       id: 151,
@@ -1212,6 +1362,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工程改善", "改善活動", "作業改善", "生産改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工程改善」です。生産の段階をよりよくすることです",
+      explanationEn: "Correct answer: 工程改善. In this conversation, the missing word is 工程改善. It means: 生産の段階をよりよくすることです.",
     },
     {
       id: 152,
@@ -1220,6 +1371,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["工程管理", "生産管理", "品質管理", "在庫管理"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「工程管理」です。生産の段階を管理して順調に進めることです",
+      explanationEn: "Correct answer: 工程管理. In this conversation, the missing word is 工程管理. It means: 生産の段階を管理して順調に進めることです.",
     },
     {
       id: 153,
@@ -1228,6 +1380,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["巻き込まれ", "挟まれ", "墜落", "転倒"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「巻き込まれ」です。動いている機械やベルトに体が入ってしまう事故です",
+      explanationEn: "Correct answer: 巻き込まれ. In this conversation, the missing word is 巻き込まれ. It means: 動いている機械やベルトに体が入ってしまう事故です.",
     },
     {
       id: 154,
@@ -1236,6 +1389,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["引火", "感電", "粉塵爆発", "ショート"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「引火」です。簡単に燃えるものに火が移って燃えることです",
+      explanationEn: "Correct answer: 引火. In this conversation, the missing word is 引火. It means: 簡単に燃えるものに火が移って燃えることです.",
     },
     {
       id: 155,
@@ -1244,6 +1398,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["待ちロス", "歩行ロス", "タクトタイム超過", "手待ち"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「待ちロス」です。作業ができずに待っている無駄な時間です",
+      explanationEn: "Correct answer: 待ちロス. In this conversation, the missing word is 待ちロス. It means: 作業ができずに待っている無駄な時間です.",
     },
     {
       id: 156,
@@ -1252,6 +1407,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["感電", "ショート", "引火", "墜落"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「感電」です。電気が体に流れる事故です",
+      explanationEn: "Correct answer: 感電. In this conversation, the missing word is 感電. It means: 電気が体に流れる事故です.",
     },
     {
       id: 157,
@@ -1260,6 +1416,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["成形", "鋳造", "プレス加工", "鍛造"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「成形」です。材料を型に入れて形を作ることです",
+      explanationEn: "Correct answer: 成形. In this conversation, the missing word is 成形. It means: 材料を型に入れて形を作ることです.",
     },
     {
       id: 158,
@@ -1268,6 +1425,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["手直し", "修理", "仕上げ", "再加工"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「手直し」です。できあがったものを直してよくすることです",
+      explanationEn: "Correct answer: 手直し. In this conversation, the missing word is 手直し. It means: できあがったものを直してよくすることです.",
     },
     {
       id: 159,
@@ -1276,6 +1434,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["手順書", "仕様書", "図面", "作業標準"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「手順書」です。作業の流れややり方を書いた書類です",
+      explanationEn: "Correct answer: 手順書. In this conversation, the missing word is 手順書. It means: 作業の流れややり方を書いた書類です.",
     },
     {
       id: 160,
@@ -1284,6 +1443,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["抜き取り検査", "全数検査", "外観検査", "目視検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「抜き取り検査」です。一部の製品を無作為に選んで検査することです",
+      explanationEn: "Correct answer: 抜き取り検査. In this conversation, the missing word is 抜き取り検査. It means: 一部の製品を無作為に選んで検査することです.",
     },
     {
       id: 161,
@@ -1292,6 +1452,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["担当者", "班長", "職長", "責任者"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「担当者」です。その仕事を責任を持って受け持つ人です",
+      explanationEn: "Correct answer: 担当者. In this conversation, the missing word is 担当者. It means: その仕事を責任を持って受け持つ人です.",
     },
     {
       id: 162,
@@ -1300,6 +1461,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["指差呼称", "KY活動", "安全確認", "5S"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「指差呼称」です。指で差して声に出して確認する安全活動です",
+      explanationEn: "Correct answer: 指差呼称. In this conversation, the missing word is 指差呼称. It means: 指で差して声に出して確認する安全活動です.",
     },
     {
       id: 163,
@@ -1308,6 +1470,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["挟まれ", "巻き込まれ", "転倒", "墜落"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「挟まれ」です。2つのものの間に体が挟まれる事故です",
+      explanationEn: "Correct answer: 挟まれ. In this conversation, the missing word is 挟まれ. It means: 2つのものの間に体が挟まれる事故です.",
     },
     {
       id: 164,
@@ -1316,6 +1479,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["換気", "粉塵対策", "防塵マスク着用", "空調管理"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「換気」です。きれいな外の空気を入れて汚い空気を出すことです",
+      explanationEn: "Correct answer: 換気. In this conversation, the missing word is 換気. It means: きれいな外の空気を入れて汚い空気を出すことです.",
     },
     {
       id: 165,
@@ -1324,6 +1488,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["搬入口", "搬出口", "出荷場", "通路"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「搬入口」です。材料や部品を工場に運び入れる入口です",
+      explanationEn: "Correct answer: 搬入口. In this conversation, the missing word is 搬入口. It means: 材料や部品を工場に運び入れる入口です.",
     },
     {
       id: 166,
@@ -1332,6 +1497,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["搬出口", "搬入口", "出荷場", "通用口"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「搬出口」です。製品や材料を工場から持ち出す出口です",
+      explanationEn: "Correct answer: 搬出口. In this conversation, the missing word is 搬出口. It means: 製品や材料を工場から持ち出す出口です.",
     },
     {
       id: 167,
@@ -1340,6 +1506,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["搬送", "積み込み", "荷受け", "出荷"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「搬送」です。ものをある場所から別の場所へ運ぶことです",
+      explanationEn: "Correct answer: 搬送. In this conversation, the missing word is 搬送. It means: ものをある場所から別の場所へ運ぶことです.",
     },
     {
       id: 168,
@@ -1348,6 +1515,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["摩耗", "劣化", "錆", "亀裂"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「摩耗」です。機械や部品が使うにつれてすり減ることです",
+      explanationEn: "Correct answer: 摩耗. In this conversation, the missing word is 摩耗. It means: 機械や部品が使うにつれてすり減ることです.",
     },
     {
       id: 169,
@@ -1356,6 +1524,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["操作盤", "制御盤", "分電盤", "センサーパネル"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「操作盤」です。機械を操作するためのボタンやスイッチが並んだ盤です",
+      explanationEn: "Correct answer: 操作盤. In this conversation, the missing word is 操作盤. It means: 機械を操作するためのボタンやスイッチが並んだ盤です.",
     },
     {
       id: 170,
@@ -1364,6 +1533,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["改善", "作業改善", "工程改善", "改善提案"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「改善」です。仕事のやり方をよりよくすることです",
+      explanationEn: "Correct answer: 改善. In this conversation, the missing word is 改善. It means: 仕事のやり方をよりよくすることです.",
     },
     {
       id: 171,
@@ -1372,6 +1542,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["改善提案", "改善活動", "報告", "品質改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「改善提案」です。仕事をよりよくするためのアイデアを提出することです",
+      explanationEn: "Correct answer: 改善提案. In this conversation, the missing word is 改善提案. It means: 仕事をよりよくするためのアイデアを提出することです.",
     },
     {
       id: 172,
@@ -1380,6 +1551,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["故障", "チョコ停", "停止", "異常停止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「故障」です。機械が壊れて動かなくなることです",
+      explanationEn: "Correct answer: 故障. In this conversation, the missing word is 故障. It means: 機械が壊れて動かなくなることです.",
     },
     {
       id: 173,
@@ -1388,6 +1560,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["故障原因", "故障対策", "異常報告", "設備記録"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「故障原因」です。機械が壊れた理由のことです",
+      explanationEn: "Correct answer: 故障原因. In this conversation, the missing word is 故障原因. It means: 機械が壊れた理由のことです.",
     },
     {
       id: 174,
@@ -1396,6 +1569,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["新人教育", "安全教育", "作業教育", "OJT"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「新人教育」です。新しく入った社員に作業や安全を教えることです",
+      explanationEn: "Correct answer: 新人教育. In this conversation, the missing word is 新人教育. It means: 新しく入った社員に作業や安全を教えることです.",
     },
     {
       id: 175,
@@ -1404,6 +1578,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["旋盤", "プレス機", "グラインダー", "切断機"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「旋盤」です。材料を回しながら削って丸い形にする機械です",
+      explanationEn: "Correct answer: 旋盤. In this conversation, the missing word is 旋盤. It means: 材料を回しながら削って丸い形にする機械です.",
     },
     {
       id: 176,
@@ -1412,6 +1587,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["日常点検", "定期点検", "設備点検", "点検作業"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「日常点検」です。毎日機械や設備を点検することです",
+      explanationEn: "Correct answer: 日常点検. In this conversation, the missing word is 日常点検. It means: 毎日機械や設備を点検することです.",
     },
     {
       id: 177,
@@ -1420,6 +1596,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["曲げ", "プレス加工", "切削加工", "溶接"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「曲げ」です。金属を曲げて形を作る加工方法です",
+      explanationEn: "Correct answer: 曲げ. In this conversation, the missing word is 曲げ. It means: 金属を曲げて形を作る加工方法です.",
     },
     {
       id: 178,
@@ -1428,6 +1605,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["朝礼", "申し送り", "報告会", "品質会議"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「朝礼」です。仕事を始める前にチームで集まって話し合うことです",
+      explanationEn: "Correct answer: 朝礼. In this conversation, the missing word is 朝礼. It means: 仕事を始める前にチームで集まって話し合うことです.",
     },
     {
       id: 179,
@@ -1436,6 +1614,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["本稼働", "試運転", "ライン再開", "生産開始"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「本稼働」です。機械やラインが本格的に動き始めることです",
+      explanationEn: "Correct answer: 本稼働. In this conversation, the missing word is 本稼働. It means: 機械やラインが本格的に動き始めることです.",
     },
     {
       id: 180,
@@ -1444,6 +1623,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["材料", "原料", "部材", "半製品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「材料」です。製品を作るために使うもとのものです",
+      explanationEn: "Correct answer: 材料. In this conversation, the missing word is 材料. It means: 製品を作るために使うもとのものです.",
     },
     {
       id: 181,
@@ -1452,6 +1632,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["材料投入", "仕込み", "段取り", "搬送"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「材料投入」です。材料を生産のラインに入れることです",
+      explanationEn: "Correct answer: 材料投入. In this conversation, the missing word is 材料投入. It means: 材料を生産のラインに入れることです.",
     },
     {
       id: 182,
@@ -1460,6 +1641,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["材料置場", "完成品置場", "保管場所", "部品棚"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「材料置場」です。材料を置いておく場所です",
+      explanationEn: "Correct answer: 材料置場. In this conversation, the missing word is 材料置場. It means: 材料を置いておく場所です.",
     },
     {
       id: 183,
@@ -1468,6 +1650,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["校正", "調整", "設備点検", "測定確認"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「校正」です。測る道具の正確さを正しく調整することです",
+      explanationEn: "Correct answer: 校正. In this conversation, the missing word is 校正. It means: 測る道具の正確さを正しく調整することです.",
     },
     {
       id: 184,
@@ -1476,6 +1659,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["梱包", "養生", "積み込み", "出荷作業"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「梱包」です。製品を運ぶために箱や材料で包むことです",
+      explanationEn: "Correct answer: 梱包. In this conversation, the missing word is 梱包. It means: 製品を運ぶために箱や材料で包むことです.",
     },
     {
       id: 185,
@@ -1484,6 +1668,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["梱包ライン", "組立ライン", "塗装ライン", "検査ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「梱包ライン」です。製品を包む作業をする流れです",
+      explanationEn: "Correct answer: 梱包ライン. In this conversation, the missing word is 梱包ライン. It means: 製品を包む作業をする流れです.",
     },
     {
       id: 186,
@@ -1492,6 +1677,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["棚卸し", "在庫管理", "仕分け", "発注"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「棚卸し」です。在庫の数を数えて記録することです",
+      explanationEn: "Correct answer: 棚卸し. In this conversation, the missing word is 棚卸し. It means: 在庫の数を数えて記録することです.",
     },
     {
       id: 187,
@@ -1500,6 +1686,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検収", "荷受け", "受注", "発注"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検収」です。届いた部品や材料を確認して受け取ることです",
+      explanationEn: "Correct answer: 検収. In this conversation, the missing word is 検収. It means: 届いた部品や材料を確認して受け取ることです.",
     },
     {
       id: 188,
@@ -1508,6 +1695,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検品", "検査", "品質チェック", "外観検査"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検品」です。製品や部品を詳しく調べることです",
+      explanationEn: "Correct answer: 検品. In this conversation, the missing word is 検品. It means: 製品や部品を詳しく調べることです.",
     },
     {
       id: 189,
@@ -1516,6 +1704,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検査", "検品", "品質チェック", "測定"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検査」です。製品が基準を満たしているか確かめることです",
+      explanationEn: "Correct answer: 検査. In this conversation, the missing word is 検査. It means: 製品が基準を満たしているか確かめることです.",
     },
     {
       id: 190,
@@ -1524,6 +1713,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検査ライン", "組立ライン", "梱包ライン", "塗装ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検査ライン」です。製品の検査を行う流れです",
+      explanationEn: "Correct answer: 検査ライン. In this conversation, the missing word is 検査ライン. It means: 製品の検査を行う流れです.",
     },
     {
       id: 191,
@@ -1532,6 +1722,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検査基準", "品質基準", "仕様書", "作業標準"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検査基準」です。検査で使う基準やきまりです",
+      explanationEn: "Correct answer: 検査基準. In this conversation, the missing word is 検査基準. It means: 検査で使う基準やきまりです.",
     },
     {
       id: 192,
@@ -1540,6 +1731,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["検査票", "現品票", "品質記録", "作業日報"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「検査票」です。検査の結果を記録する票です",
+      explanationEn: "Correct answer: 検査票. In this conversation, the missing word is 検査票. It means: 検査の結果を記録する票です.",
     },
     {
       id: 193,
@@ -1548,6 +1740,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["標準作業", "作業標準", "作業手順", "手順書"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「標準作業」です。決められた正しい手順で行う作業です",
+      explanationEn: "Correct answer: 標準作業. In this conversation, the missing word is 標準作業. It means: 決められた正しい手順で行う作業です.",
     },
     {
       id: 194,
@@ -1556,6 +1749,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["欠品", "不足", "在庫なし", "品切れ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「欠品」です。必要な部品や材料が足りなくてない状態です",
+      explanationEn: "Correct answer: 欠品. In this conversation, the missing word is 欠品. It means: 必要な部品や材料が足りなくてない状態です.",
     },
     {
       id: 195,
@@ -1564,6 +1758,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["欠陥", "不良品", "亀裂", "キズ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「欠陥」です。製品に問題のある不具合です",
+      explanationEn: "Correct answer: 欠陥. In this conversation, the missing word is 欠陥. It means: 製品に問題のある不具合です.",
     },
     {
       id: 196,
@@ -1572,6 +1767,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["歩留まり", "稼働率", "生産性", "良品率"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「歩留まり」です。使った材料に対してよい製品ができた割合です",
+      explanationEn: "Correct answer: 歩留まり. In this conversation, the missing word is 歩留まり. It means: 使った材料に対してよい製品ができた割合です.",
     },
     {
       id: 197,
@@ -1580,6 +1776,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["歩行ロス", "待ちロス", "動作ロス", "手待ち"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「歩行ロス」です。作業中に歩くための無駄な時間や距離です",
+      explanationEn: "Correct answer: 歩行ロス. In this conversation, the missing word is 歩行ロス. It means: 作業中に歩くための無駄な時間や距離です.",
     },
     {
       id: 198,
@@ -1588,6 +1785,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["歪み", "変形", "亀裂", "欠陥"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「歪み」です。製品や部品がゆがんでいる状態です",
+      explanationEn: "Correct answer: 歪み. In this conversation, the missing word is 歪み. It means: 製品や部品がゆがんでいる状態です.",
     },
     {
       id: 199,
@@ -1596,6 +1794,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["残業", "交代制", "作業時間延長", "時間外作業"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「残業」です。決まった仕事時間を過ぎて働くことです",
+      explanationEn: "Correct answer: 残業. In this conversation, the missing word is 残業. It means: 決まった仕事時間を過ぎて働くことです.",
     },
     {
       id: 200,
@@ -1604,6 +1803,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["段取り", "仕込み", "準備作業", "材料投入"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「段取り」です。作業を始める前に道具や機械を準備することです",
+      explanationEn: "Correct answer: 段取り. In this conversation, the missing word is 段取り. It means: 作業を始める前に道具や機械を準備することです.",
     },
     {
       id: 201,
@@ -1612,6 +1812,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["汚れ", "キズ", "錆", "変色"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「汚れ」です。製品や場所についた汚れです",
+      explanationEn: "Correct answer: 汚れ. In this conversation, the missing word is 汚れ. It means: 製品や場所についた汚れです.",
     },
     {
       id: 202,
@@ -1620,6 +1821,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["油煙", "粉塵", "有毒ガス", "排気"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「油煙」です。機械の油や金属の加工で出る煙のことです",
+      explanationEn: "Correct answer: 油煙. In this conversation, the missing word is 油煙. It means: 機械の油や金属の加工で出る煙のことです.",
     },
     {
       id: 203,
@@ -1628,6 +1830,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["治具", "工具", "ポカヨケ", "測定器"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「治具」です。作業をやりやすくするために作られた専用の道具です",
+      explanationEn: "Correct answer: 治具. In this conversation, the missing word is 治具. It means: 作業をやりやすくするために作られた専用の道具です.",
     },
     {
       id: 204,
@@ -1636,6 +1839,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["注意", "警告", "警報", "危険"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「注意」です。危険や問題に気をつけることです",
+      explanationEn: "Correct answer: 注意. In this conversation, the missing word is 注意. It means: 危険や問題に気をつけることです.",
     },
     {
       id: 205,
@@ -1644,6 +1848,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["消耗品", "予備品", "部品", "部材"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「消耗品」です。使うと減ったりなくなったりする頻繁に交換する部品です",
+      explanationEn: "Correct answer: 消耗品. In this conversation, the missing word is 消耗品. It means: 使うと減ったりなくなったりする頻繁に交換する部品です.",
     },
     {
       id: 206,
@@ -1652,6 +1857,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["清掃", "5S活動", "日常点検", "養生"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「清掃」です。機械や場所をきれいに掃除することです",
+      explanationEn: "Correct answer: 清掃. In this conversation, the missing word is 清掃. It means: 機械や場所をきれいに掃除することです.",
     },
     {
       id: 207,
@@ -1660,6 +1866,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["温度計", "圧力計", "測定器", "センサー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「温度計」です。温度を測る機器です",
+      explanationEn: "Correct answer: 温度計. In this conversation, the missing word is 温度計. It means: 温度を測る機器です.",
     },
     {
       id: 208,
@@ -1668,6 +1875,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["測定", "検査", "寸法確認", "測量"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「測定」です。機械や道具を使って大きさや値を測ることです",
+      explanationEn: "Correct answer: 測定. In this conversation, the missing word is 測定. It means: 機械や道具を使って大きさや値を測ることです.",
     },
     {
       id: 209,
@@ -1676,6 +1884,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["測定台", "作業台", "パレット", "検査台"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「測定台」です。ものを測るときに置く台です",
+      explanationEn: "Correct answer: 測定台. In this conversation, the missing word is 測定台. It means: ものを測るときに置く台です.",
     },
     {
       id: 210,
@@ -1684,6 +1893,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["測定器", "ノギス", "工具", "治具"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「測定器」です。大きさや値を測る道具や機器です",
+      explanationEn: "Correct answer: 測定器. In this conversation, the missing word is 測定器. It means: 大きさや値を測る道具や機器です.",
     },
     {
       id: 211,
@@ -1692,6 +1902,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["溶接", "切削", "プレス加工", "鍛造"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「溶接」です。金属を熱で溶かしてくっつける作業です",
+      explanationEn: "Correct answer: 溶接. In this conversation, the missing word is 溶接. It means: 金属を熱で溶かしてくっつける作業です.",
     },
     {
       id: 212,
@@ -1700,6 +1911,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["溶接ライン", "組立ライン", "加工ライン", "検査ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「溶接ライン」です。溶接作業を行う流れです",
+      explanationEn: "Correct answer: 溶接ライン. In this conversation, the missing word is 溶接ライン. It means: 溶接作業を行う流れです.",
     },
     {
       id: 213,
@@ -1708,6 +1920,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["点検", "定期点検", "日常点検", "設備点検"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「点検」です。機械や設備の状態を確認することです",
+      explanationEn: "Correct answer: 点検. In this conversation, the missing word is 点検. It means: 機械や設備の状態を確認することです.",
     },
     {
       id: 214,
@@ -1716,6 +1929,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["焼入れ", "焼戻し", "熱処理", "鍛造"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「焼入れ」です。鋼を温度を上げてから急に冷却して硬くする方法です",
+      explanationEn: "Correct answer: 焼入れ. In this conversation, the missing word is 焼入れ. It means: 鋼を温度を上げてから急に冷却して硬くする方法です.",
     },
     {
       id: 215,
@@ -1724,6 +1938,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["焼戻し", "焼入れ", "熱処理", "鋳造"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「焼戻し」です。焼入れした鋼を再び温めて粘りをつける方法です",
+      explanationEn: "Correct answer: 焼戻し. In this conversation, the missing word is 焼戻し. It means: 焼入れした鋼を再び温めて粘りをつける方法です.",
     },
     {
       id: 216,
@@ -1732,6 +1947,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["熱処理", "焼入れ", "焼戻し", "鍛造"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「熱処理」です。金属を加熱や冷却して性質を変える方法です",
+      explanationEn: "Correct answer: 熱処理. In this conversation, the missing word is 熱処理. It means: 金属を加熱や冷却して性質を変える方法です.",
     },
     {
       id: 217,
@@ -1740,6 +1956,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["班長", "職長", "担当者", "工場長"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「班長」です。作業班のリーダーです",
+      explanationEn: "Correct answer: 班長. In this conversation, the missing word is 班長. It means: 作業班のリーダーです.",
     },
     {
       id: 218,
@@ -1748,6 +1965,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["現品票", "検査票", "品番ラベル", "ロットシール"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「現品票」です。製品や部品につける情報の札です",
+      explanationEn: "Correct answer: 現品票. In this conversation, the missing word is 現品票. It means: 製品や部品につける情報の札です.",
     },
     {
       id: 219,
@@ -1756,6 +1974,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["現場", "作業区域", "工場エリア", "ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「現場」です。実際に作業が行われる場所です",
+      explanationEn: "Correct answer: 現場. In this conversation, the missing word is 現場. It means: 実際に作業が行われる場所です.",
     },
     {
       id: 220,
@@ -1764,6 +1983,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["現物", "現場", "完成品", "サンプル品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「現物」です。実際のものや製品です",
+      explanationEn: "Correct answer: 現物. In this conversation, the missing word is 現物. It means: 実際のものや製品です.",
     },
     {
       id: 221,
@@ -1772,6 +1992,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["生産ライン", "ライン", "加工ライン", "組立ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「生産ライン」です。製品を作る作業の流れ全体です",
+      explanationEn: "Correct answer: 生産ライン. In this conversation, the missing word is 生産ライン. It means: 製品を作る作業の流れ全体です.",
     },
     {
       id: 222,
@@ -1780,6 +2001,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["生産性", "作業効率", "稼働率", "歩留まり"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「生産性」です。一定の時間や力でどのくらい製品が作れるかです",
+      explanationEn: "Correct answer: 生産性. In this conversation, the missing word is 生産性. It means: 一定の時間や力でどのくらい製品が作れるかです.",
     },
     {
       id: 223,
@@ -1788,6 +2010,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["生産改善", "改善活動", "工程改善", "品質改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「生産改善」です。生産のやり方をよりよくすることです",
+      explanationEn: "Correct answer: 生産改善. In this conversation, the missing word is 生産改善. It means: 生産のやり方をよりよくすることです.",
     },
     {
       id: 224,
@@ -1796,6 +2019,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["生産数", "稼働率", "ロット数", "在庫数"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「生産数」です。作った製品の数です",
+      explanationEn: "Correct answer: 生産数. In this conversation, the missing word is 生産数. It means: 作った製品の数です.",
     },
     {
       id: 225,
@@ -1804,6 +2028,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["生産計画", "出荷予定", "納期", "作業スケジュール"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「生産計画」です。いつどのくらい製品を作るかの予定です",
+      explanationEn: "Correct answer: 生産計画. In this conversation, the missing word is 生産計画. It means: いつどのくらい製品を作るかの予定です.",
     },
     {
       id: 226,
@@ -1812,6 +2037,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["申し送り", "報連相", "朝礼", "引き継ぎ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「申し送り」です。交代するときに情報を次の人に伝えることです",
+      explanationEn: "Correct answer: 申し送り. In this conversation, the missing word is 申し送り. It means: 交代するときに情報を次の人に伝えることです.",
     },
     {
       id: 227,
@@ -1820,6 +2046,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["異常", "故障", "トラブル", "エラー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「異常」です。機械や製品がふつうとは違うおかしい状態です",
+      explanationEn: "Correct answer: 異常. In this conversation, the missing word is 異常. It means: 機械や製品がふつうとは違うおかしい状態です.",
     },
     {
       id: 228,
@@ -1828,6 +2055,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["異常停止", "チョコ停", "ライン停止", "非常停止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「異常停止」です。問題が起きて機械が突然止まることです",
+      explanationEn: "Correct answer: 異常停止. In this conversation, the missing word is 異常停止. It means: 問題が起きて機械が突然止まることです.",
     },
     {
       id: 229,
@@ -1836,6 +2064,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["異常報告", "報告", "連絡", "ヒヤリハット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「異常報告」です。おかしいことや問題を上司やチームに伝えることです",
+      explanationEn: "Correct answer: 異常報告. In this conversation, the missing word is 異常報告. It means: おかしいことや問題を上司やチームに伝えることです.",
     },
     {
       id: 230,
@@ -1844,6 +2073,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["異物混入", "欠陥", "不良品", "汚染"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「異物混入」です。製品に入ってはいけないものが入ってしまうことです",
+      explanationEn: "Correct answer: 異物混入. In this conversation, the missing word is 異物混入. It means: 製品に入ってはいけないものが入ってしまうことです.",
     },
     {
       id: 231,
@@ -1852,6 +2082,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["発注", "受注", "検収", "荷受け"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「発注」です。必要な部品や材料を注文することです",
+      explanationEn: "Correct answer: 発注. In this conversation, the missing word is 発注. It means: 必要な部品や材料を注文することです.",
     },
     {
       id: 232,
@@ -1860,6 +2091,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["目視検査", "外観検査", "全数検査", "品質チェック"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「目視検査」です。目で見て製品を検査することです",
+      explanationEn: "Correct answer: 目視検査. In this conversation, the missing word is 目視検査. It means: 目で見て製品を検査することです.",
     },
     {
       id: 233,
@@ -1868,6 +2100,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["相談", "報告", "連絡", "問い合わせ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「相談」です。わからないことや問題を人に話して意見をもらうことです",
+      explanationEn: "Correct answer: 相談. In this conversation, the missing word is 相談. It means: わからないことや問題を人に話して意見をもらうことです.",
     },
     {
       id: 234,
@@ -1876,6 +2109,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["研磨", "バリ取り", "仕上げ", "削り"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「研磨」です。表面を磨いてなめらかにしたり光沢を出したりすることです",
+      explanationEn: "Correct answer: 研磨. In this conversation, the missing word is 研磨. It means: 表面を磨いてなめらかにしたり光沢を出したりすることです.",
     },
     {
       id: 235,
@@ -1884,6 +2118,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["研磨機", "グラインダー", "切断機", "プレス機"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「研磨機」です。表面を磨くための機械です",
+      explanationEn: "Correct answer: 研磨機. In this conversation, the missing word is 研磨機. It means: 表面を磨くための機械です.",
     },
     {
       id: 236,
@@ -1892,6 +2127,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["破損", "欠陥", "変形", "亀裂"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「破損」です。部品や製品が壊れた状態です",
+      explanationEn: "Correct answer: 破損. In this conversation, the missing word is 破損. It means: 部品や製品が壊れた状態です.",
     },
     {
       id: 237,
@@ -1900,6 +2136,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["秤", "ノギス", "温度計", "測定器"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「秤」です。ものの重さを測る道具です",
+      explanationEn: "Correct answer: 秤. In this conversation, the missing word is 秤. It means: ものの重さを測る道具です.",
     },
     {
       id: 238,
@@ -1908,6 +2145,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["稼働率", "生産性", "歩留まり", "タクトタイム"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「稼働率」です。機械が実際に動いている時間の割合です",
+      explanationEn: "Correct answer: 稼働率. In this conversation, the missing word is 稼働率. It means: 機械が実際に動いている時間の割合です.",
     },
     {
       id: 239,
@@ -1916,6 +2154,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["積み込み", "搬送", "出荷作業", "梱包"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「積み込み」です。荷物をトラックやコンテナに乗せることです",
+      explanationEn: "Correct answer: 積み込み. In this conversation, the missing word is 積み込み. It means: 荷物をトラックやコンテナに乗せることです.",
     },
     {
       id: 240,
@@ -1924,6 +2163,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["穴あけ", "切削加工", "バリ取り", "加工"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「穴あけ」です。金属や部品に穴を開ける加工です",
+      explanationEn: "Correct answer: 穴あけ. In this conversation, the missing word is 穴あけ. It means: 金属や部品に穴を開ける加工です.",
     },
     {
       id: 241,
@@ -1932,6 +2172,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["立入禁止", "危険区域", "安全柵内", "制限区域"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「立入禁止」です。入ってはいけない場所を示す言葉です",
+      explanationEn: "Correct answer: 立入禁止. In this conversation, the missing word is 立入禁止. It means: 入ってはいけない場所を示す言葉です.",
     },
     {
       id: 242,
@@ -1940,6 +2181,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["粉塵", "油煙", "有毒ガス", "排気"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「粉塵」です。作業中に出る細かいちりやほこりです",
+      explanationEn: "Correct answer: 粉塵. In this conversation, the missing word is 粉塵. It means: 作業中に出る細かいちりやほこりです.",
     },
     {
       id: 243,
@@ -1948,6 +2190,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["納期", "リードタイム", "出荷日", "生産完了日"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「納期」です。製品をお客様に渡す決められた日にちです",
+      explanationEn: "Correct answer: 納期. In this conversation, the missing word is 納期. It means: 製品をお客様に渡す決められた日にちです.",
     },
     {
       id: 244,
@@ -1956,6 +2199,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["組立", "加工", "仕上げ", "溶接"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「組立」です。部品を組み合わせて製品を作ることです",
+      explanationEn: "Correct answer: 組立. In this conversation, the missing word is 組立. It means: 部品を組み合わせて製品を作ることです.",
     },
     {
       id: 245,
@@ -1964,6 +2208,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["組立ライン", "加工ライン", "溶接ライン", "検査ライン"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「組立ライン」です。部品を組み合わせる作業の流れです",
+      explanationEn: "Correct answer: 組立ライン. In this conversation, the missing word is 組立ライン. It means: 部品を組み合わせる作業の流れです.",
     },
     {
       id: 246,
@@ -1972,6 +2217,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["給油", "日常点検", "設備保全", "修理"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「給油」です。機械に油をさして動きをなめらかにすることです",
+      explanationEn: "Correct answer: 給油. In this conversation, the missing word is 給油. It means: 機械に油をさして動きをなめらかにすることです.",
     },
     {
       id: 247,
@@ -1980,6 +2226,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["締め付け", "緩み確認", "交換", "点検"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「締め付け」です。ボルトやナットをしっかり締めることです",
+      explanationEn: "Correct answer: 締め付け. In this conversation, the missing word is 締め付け. It means: ボルトやナットをしっかり締めることです.",
     },
     {
       id: 248,
@@ -1988,6 +2235,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["緩み", "締め付け不足", "破損", "亀裂"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「緩み」です。ボルトやナットがしっかり締まっていない状態です",
+      explanationEn: "Correct answer: 緩み. In this conversation, the missing word is 緩み. It means: ボルトやナットがしっかり締まっていない状態です.",
     },
     {
       id: 249,
@@ -1996,6 +2244,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["職長", "班長", "担当者", "工場長"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「職長」です。作業者をまとめて指導するリーダーです",
+      explanationEn: "Correct answer: 職長. In this conversation, the missing word is 職長. It means: 作業者をまとめて指導するリーダーです.",
     },
     {
       id: 250,
@@ -2004,6 +2253,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["良品", "合格品", "完成品", "不良品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「良品」です。検査に合格した品質のよい製品です",
+      explanationEn: "Correct answer: 良品. In this conversation, the missing word is 良品. It means: 検査に合格した品質のよい製品です.",
     },
     {
       id: 251,
@@ -2012,6 +2262,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["荷受け", "検収", "発注", "搬送"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「荷受け」です。外から届いた荷物を受け取ることです",
+      explanationEn: "Correct answer: 荷受け. In this conversation, the missing word is 荷受け. It means: 外から届いた荷物を受け取ることです.",
     },
     {
       id: 252,
@@ -2020,6 +2271,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["装置", "設備", "工具", "治具"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「装置」です。特定の働きをする機械や設備です",
+      explanationEn: "Correct answer: 装置. In this conversation, the missing word is 装置. It means: 特定の働きをする機械や設備です.",
     },
     {
       id: 253,
@@ -2028,6 +2280,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["補充", "交換", "発注", "在庫補填"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「補充」です。減ったものを足して増やすことです",
+      explanationEn: "Correct answer: 補充. In this conversation, the missing word is 補充. It means: 減ったものを足して増やすことです.",
     },
     {
       id: 254,
@@ -2036,6 +2289,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["設備", "装置", "工具", "機械"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「設備」です。工場で仕事をするために使う機械や施設です",
+      explanationEn: "Correct answer: 設備. In this conversation, the missing word is 設備. It means: 工場で仕事をするために使う機械や施設です.",
     },
     {
       id: 255,
@@ -2044,6 +2298,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["設備保全", "定期点検", "修理", "設備改善"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「設備保全」です。機械や設備が壊れないように守って管理することです",
+      explanationEn: "Correct answer: 設備保全. In this conversation, the missing word is 設備保全. It means: 機械や設備が壊れないように守って管理することです.",
     },
     {
       id: 256,
@@ -2052,6 +2307,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["設備改善", "改善活動", "工程改善", "設備保全"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「設備改善」です。機械や設備をよりよくすることです",
+      explanationEn: "Correct answer: 設備改善. In this conversation, the missing word is 設備改善. It means: 機械や設備をよりよくすることです.",
     },
     {
       id: 257,
@@ -2060,6 +2316,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["設備点検", "日常点検", "定期点検", "オーバーホール"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「設備点検」です。機械や設備の状態を点検することです",
+      explanationEn: "Correct answer: 設備点検. In this conversation, the missing word is 設備点検. It means: 機械や設備の状態を点検することです.",
     },
     {
       id: 258,
@@ -2068,6 +2325,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["設備記録", "作業記録", "品質記録", "点検票"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「設備記録」です。機械や設備の状態や点検の記録です",
+      explanationEn: "Correct answer: 設備記録. In this conversation, the missing word is 設備記録. It means: 機械や設備の状態や点検の記録です.",
     },
     {
       id: 259,
@@ -2076,6 +2334,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["試運転", "本稼働", "ライン再開", "設備点検"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「試運転」です。機械を本格的に動かす前にテストで動かすことです",
+      explanationEn: "Correct answer: 試運転. In this conversation, the missing word is 試運転. It means: 機械を本格的に動かす前にテストで動かすことです.",
     },
     {
       id: 260,
@@ -2084,6 +2343,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["調整", "修理", "校正", "設備保全"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「調整」です。機械や装置の設定を正しく直すことです",
+      explanationEn: "Correct answer: 調整. In this conversation, the missing word is 調整. It means: 機械や装置の設定を正しく直すことです.",
     },
     {
       id: 261,
@@ -2092,6 +2352,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["警告", "注意", "警報", "異常表示"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「警告」です。危険や問題を知らせる強い注意の言葉です",
+      explanationEn: "Correct answer: 警告. In this conversation, the missing word is 警告. It means: 危険や問題を知らせる強い注意の言葉です.",
     },
     {
       id: 262,
@@ -2100,6 +2361,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["警告灯", "センサー", "スイッチランプ", "パトライト"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「警告灯」です。危険や問題を光で知らせるランプです",
+      explanationEn: "Correct answer: 警告灯. In this conversation, the missing word is 警告灯. It means: 危険や問題を光で知らせるランプです.",
     },
     {
       id: 263,
@@ -2108,6 +2370,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["警報", "警告", "警告灯", "非常停止"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「警報」です。大きな音や光で危険を知らせることです",
+      explanationEn: "Correct answer: 警報. In this conversation, the missing word is 警報. It means: 大きな音や光で危険を知らせることです.",
     },
     {
       id: 264,
@@ -2116,6 +2379,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["転倒", "転落", "墜落", "挟まれ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「転倒」です。人が倒れる事故です",
+      explanationEn: "Correct answer: 転倒. In this conversation, the missing word is 転倒. It means: 人が倒れる事故です.",
     },
     {
       id: 265,
@@ -2124,6 +2388,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["転落", "墜落", "転倒", "滑落"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「転落」です。人がころびながら落ちる事故です",
+      explanationEn: "Correct answer: 転落. In this conversation, the missing word is 転落. It means: 人がころびながら落ちる事故です.",
     },
     {
       id: 266,
@@ -2132,6 +2397,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["通路", "作業区域", "安全柵内", "避難経路"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「通路」です。工場の中を歩くための道です",
+      explanationEn: "Correct answer: 通路. In this conversation, the missing word is 通路. It means: 工場の中を歩くための道です.",
     },
     {
       id: 267,
@@ -2140,6 +2406,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["連絡", "報告", "相談", "申し送り"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「連絡」です。情報をほかの人に伝えることです",
+      explanationEn: "Correct answer: 連絡. In this conversation, the missing word is 連絡. It means: 情報をほかの人に伝えることです.",
     },
     {
       id: 268,
@@ -2148,6 +2415,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["避難", "立入禁止", "警報対応", "安全確認"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「避難」です。危険な場所から逃げて安全な場所へ行くことです",
+      explanationEn: "Correct answer: 避難. In this conversation, the missing word is 避難. It means: 危険な場所から逃げて安全な場所へ行くことです.",
     },
     {
       id: 269,
@@ -2156,6 +2424,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部品", "部材", "消耗品", "原料"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部品」です。製品を組み立てるための一つ一つの部分です",
+      explanationEn: "Correct answer: 部品. In this conversation, the missing word is 部品. It means: 製品を組み立てるための一つ一つの部分です.",
     },
     {
       id: 270,
@@ -2164,6 +2433,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部品交換", "交換作業", "修理", "設備保全"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部品交換」です。傷んだ部品を新しい部品に替えることです",
+      explanationEn: "Correct answer: 部品交換. In this conversation, the missing word is 部品交換. It means: 傷んだ部品を新しい部品に替えることです.",
     },
     {
       id: 271,
@@ -2172,6 +2442,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部品供給", "補充", "発注", "搬送"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部品供給」です。作業に必要な部品を送ることです",
+      explanationEn: "Correct answer: 部品供給. In this conversation, the missing word is 部品供給. It means: 作業に必要な部品を送ることです.",
     },
     {
       id: 272,
@@ -2180,6 +2451,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部品棚", "工具棚", "材料置場", "在庫棚"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部品棚」です。部品を並べてしまう棚です",
+      explanationEn: "Correct answer: 部品棚. In this conversation, the missing word is 部品棚. It means: 部品を並べてしまう棚です.",
     },
     {
       id: 273,
@@ -2188,6 +2460,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部品箱", "工具箱", "不良品箱", "パレット"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部品箱」です。部品を入れる箱です",
+      explanationEn: "Correct answer: 部品箱. In this conversation, the missing word is 部品箱. It means: 部品を入れる箱です.",
     },
     {
       id: 274,
@@ -2196,6 +2469,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["部材", "材料", "原料", "部品"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「部材」です。製品を作るために使う元の材料や部品です",
+      explanationEn: "Correct answer: 部材. In this conversation, the missing word is 部材. It means: 製品を作るために使う元の材料や部品です.",
     },
     {
       id: 275,
@@ -2204,6 +2478,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["金型", "治具", "工具", "プレス機"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「金型」です。製品の形を作るための型です",
+      explanationEn: "Correct answer: 金型. In this conversation, the missing word is 金型. It means: 製品の形を作るための型です.",
     },
     {
       id: 276,
@@ -2212,6 +2487,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["鋳造", "鍛造", "プレス加工", "溶接"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「鋳造」です。金属を溶かして型に流し込んで形を作る方法です",
+      explanationEn: "Correct answer: 鋳造. In this conversation, the missing word is 鋳造. It means: 金属を溶かして型に流し込んで形を作る方法です.",
     },
     {
       id: 277,
@@ -2220,6 +2496,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["錆", "汚れ", "変色", "劣化"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「錆」です。金属が湿気と反応してできる赤色や黒色の腐食です",
+      explanationEn: "Correct answer: 錆. In this conversation, the missing word is 錆. It means: 金属が湿気と反応してできる赤色や黒色の腐食です.",
     },
     {
       id: 278,
@@ -2228,6 +2505,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["鍛造", "鋳造", "プレス加工", "切削"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「鍛造」です。金属を叩いたり押したりして形を作る方法です",
+      explanationEn: "Correct answer: 鍛造. In this conversation, the missing word is 鍛造. It means: 金属を叩いたり押したりして形を作る方法です.",
     },
     {
       id: 279,
@@ -2236,6 +2514,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["防塵マスク", "保護メガネ", "安全帯", "防毒マスク"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「防塵マスク」です。細かいちりやほこりを吸い込まないためのマスクです",
+      explanationEn: "Correct answer: 防塵マスク. In this conversation, the missing word is 防塵マスク. It means: 細かいちりやほこりを吸い込まないためのマスクです.",
     },
     {
       id: 280,
@@ -2244,6 +2523,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["電動ドライバー", "ドライバー", "電動工具", "トルクレンチ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「電動ドライバー」です。電気で自動的にネジを回す道具です",
+      explanationEn: "Correct answer: 電動ドライバー. In this conversation, the missing word is 電動ドライバー. It means: 電気で自動的にネジを回す道具です.",
     },
     {
       id: 281,
@@ -2252,6 +2532,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["電動工具", "電動ドライバー", "工具", "グラインダー"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「電動工具」です。電気で動く道具のまとめた呼び方です",
+      explanationEn: "Correct answer: 電動工具. In this conversation, the missing word is 電動工具. It means: 電気で動く道具のまとめた呼び方です.",
     },
     {
       id: 282,
@@ -2260,6 +2541,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["非常停止", "停止ボタン", "異常停止ボタン", "スイッチ"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「非常停止」です。危険なときに機械をすぐに止める装置です",
+      explanationEn: "Correct answer: 非常停止. In this conversation, the missing word is 非常停止. It means: 危険なときに機械をすぐに止める装置です.",
     },
     {
       id: 283,
@@ -2268,6 +2550,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["養生", "保護具着用", "梱包", "清掃"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「養生」です。作業中に近くの場所や部品を汚れやキズから守ることです",
+      explanationEn: "Correct answer: 養生. In this conversation, the missing word is 養生. It means: 作業中に近くの場所や部品を汚れやキズから守ることです.",
     },
     {
       id: 284,
@@ -2276,6 +2559,7 @@ export const manufacturingConversation: Quiz = {
       choices: ["騒音", "粉塵", "油煙", "振動"],
       correctIndex: 0,
       explanation: "会話の中の「○○」は「騒音」です。工場で気になる大きな音のことです",
+      explanationEn: "Correct answer: 騒音. In this conversation, the missing word is 騒音. It means: 工場で気になる大きな音のことです.",
     },
   ],
 }

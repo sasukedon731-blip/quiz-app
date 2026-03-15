@@ -57,6 +57,7 @@ export type Question = {
   correctIndex?: number
   correctIndexes?: number[]
   explanation: string
+  explanationEn?: string
   point?: string
   trap?: string
   signId?: string

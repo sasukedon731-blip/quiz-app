@@ -246,6 +246,12 @@ export default function ReviewClient({ quiz }: Props) {
           <div style={{ fontWeight: 700, marginBottom: 8 }}>【正解】 {formatCorrectAnswerLabels(current)}</div>
           <QuestionImage q={current} purpose="explanation" />
           {current.explanation && <p className="explainText">{stripLeadingAnswerLabel(current.explanation)}</p>}
+          {current.explanationEn ? (
+            <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-7 text-slate-700">
+              <div className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-sky-700">English</div>
+              <div>{current.explanationEn}</div>
+            </div>
+          ) : null}
           {current.point && (
             <div style={{ marginTop: 12 }}>
               <div style={{ fontWeight: 700, color: '#16a34a' }}>ポイント</div>

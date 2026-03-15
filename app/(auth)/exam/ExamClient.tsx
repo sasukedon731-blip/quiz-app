@@ -30,6 +30,7 @@ type ExamAnswer = {
   question: string
   choices: string[]
   explanation?: string
+  explanationEn?: string
   audioUrl?: string
   listeningText?: string
 }
@@ -271,6 +272,7 @@ export default function ExamClient({ quiz }: Props) {
       question: current.question,
       choices: current.choices,
       explanation: current.explanation,
+      explanationEn: current.explanationEn,
       audioUrl: current.audioUrl,
       listeningText: current.listeningText,
     }
@@ -424,6 +426,12 @@ export default function ExamClient({ quiz }: Props) {
                 <div className="resultExplain">
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>【正解】 {formatCorrectAnswerLabels(q)}</div>
                   {q.explanation ? stripLeadingAnswerLabel(q.explanation) : ''}
+                  {q.explanationEn ? (
+                    <div style={{ marginTop: 12, padding: 12, border: '1px solid #bae6fd', background: '#f0f9ff', borderRadius: 12 }}>
+                      <div style={{ fontWeight: 800, color: '#0369a1', marginBottom: 6 }}>English</div>
+                      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{q.explanationEn}</div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )
