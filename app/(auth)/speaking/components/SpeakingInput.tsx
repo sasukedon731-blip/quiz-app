@@ -28,7 +28,7 @@ export default function SpeakingInput({ onGenerate, loading = false }: SpeakingI
         </div>
         <div>
           <h2 className="font-bold text-slate-900">母国語で入力する</h2>
-          <p className="text-sm text-slate-500">言いたいことを入力すると、日本語候補を3つ出します。</p>
+          <p className="text-sm text-slate-500">短く入力すると使いやすい日本語候補を2つ出します。</p>
         </div>
       </div>
 
@@ -53,9 +53,9 @@ export default function SpeakingInput({ onGenerate, loading = false }: SpeakingI
             onChange={(e) => setScene(e.target.value)}
             className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
           >
-            <option value="work">Work</option>
-            <option value="daily">Daily</option>
-            <option value="interview">Interview</option>
+            <option value="work">仕事</option>
+            <option value="daily">日常</option>
+            <option value="interview">面接</option>
           </select>
         </label>
       </div>
@@ -66,7 +66,7 @@ export default function SpeakingInput({ onGenerate, loading = false }: SpeakingI
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="例: I will be 10 minutes late because the train is delayed."
-          rows={5}
+          rows={4}
           className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
         />
       </label>
@@ -94,7 +94,7 @@ export default function SpeakingInput({ onGenerate, loading = false }: SpeakingI
             politeness,
           })
         }
-        className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-emerald-600 px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         {loading ? "日本語候補を作成中..." : "日本語候補を作る"}
       </button>

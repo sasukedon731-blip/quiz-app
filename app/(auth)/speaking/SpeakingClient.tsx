@@ -67,7 +67,7 @@ export default function SpeakingClient() {
         throw new Error("候補データの形式が正しくありません")
       }
 
-      setCandidates(json.candidates)
+      setCandidates(json.candidates.slice(0, 2))
     } catch (err) {
       console.error("generate error:", err)
       setError(err instanceof Error ? err.message : "エラーが発生しました")
@@ -112,16 +112,14 @@ export default function SpeakingClient() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
-      <div className="space-y-2">
-        <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-          AI日本語スピーキング
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-5 sm:px-6 sm:py-8">
+      <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-lg sm:p-6">
+        <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide">
+          AI SPEAKING
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          母国語から日本語を作って、話して、評価を受けよう
-        </h1>
-        <p className="text-sm leading-6 text-slate-600 sm:text-base">
-          ①入力 → ②候補選択 → ③話してみる → ④AI評価 の流れで練習できます。
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">AI日本語スピーキング</h1>
+        <p className="mt-2 text-sm leading-6 text-emerald-50 sm:text-base">
+          ①入力 → ②候補選択 → ③話す → ④AI評価 の流れで、実際に使う日本語を練習します。
         </p>
       </div>
 
@@ -141,15 +139,16 @@ export default function SpeakingClient() {
             </div>
             <div>
               <h2 className="font-bold text-slate-900">日本語候補をえらぶ</h2>
-              <p className="text-sm text-slate-500">一番言いやすい文を選んで練習します。</p>
+              <p className="text-sm text-slate-500">おすすめ2つだけ表示します。言いやすい方を選んでください。</p>
             </div>
           </div>
 
           <div className="grid gap-3">
-            {candidates.map((c) => (
+            {candidates.map((c, index) => (
               <CandidateCard
                 key={c.id}
                 candidate={c}
+                rank={index + 1}
                 selected={selected?.id === c.id}
                 onSelect={() => {
                   setSelected(c)
@@ -171,7 +170,7 @@ export default function SpeakingClient() {
             </div>
             <div>
               <h2 className="font-bold text-slate-900">話してみよう</h2>
-              <p className="text-sm text-slate-500">録音を開始して、文を読んだら停止してください。</p>
+              <p className="text-sm text-slate-500">iPhoneでも動きやすい方式に改善しました。押したあとに話してください。</p>
             </div>
           </div>
 

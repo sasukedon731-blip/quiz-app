@@ -29,14 +29,13 @@ export async function POST(req: Request) {
     const prompt = `
 You are a Japanese expression coach for foreign learners.
 
-Convert the user's text into 3 natural Japanese candidate sentences.
+Convert the user's text into 2 natural Japanese candidate sentences.
 
 Return JSON only in this exact format:
 {
   "candidates": [
     { "id": "c1", "japanese": "...", "reading": "...", "note": "..." },
-    { "id": "c2", "japanese": "...", "reading": "...", "note": "..." },
-    { "id": "c3", "japanese": "...", "reading": "...", "note": "..." }
+    { "id": "c2", "japanese": "...", "reading": "...", "note": "..." }
   ]
 }
 
@@ -79,7 +78,7 @@ ${sourceText}
       throw new Error("Candidates array is missing")
     }
 
-    return Response.json({ candidates })
+    return Response.json({ candidates: candidates.slice(0, 2) })
   } catch (error) {
     console.error("generate route error:", error)
     return Response.json(
