@@ -18,15 +18,10 @@ function formatDate(date: Date | null) {
   return `${y}/${m}/${d} ${hh}:${mm}`
 }
 
-function toFiveScaleNumber(value?: number | string) {
+function toDisplayScore(value?: number | string) {
   const num = typeof value === "number" ? value : Number(value)
   if (!Number.isFinite(num)) return 0
-  return Math.max(1, Math.min(5, num))
-}
-
-function toCategoryScore(value?: number | string) {
-  const five = toFiveScaleNumber(value)
-  return Math.round((five / 5) * 100)
+  return Math.max(0, Math.min(100, Math.round(num)))
 }
 
 export default function ConversationHistoryPage() {
@@ -257,19 +252,19 @@ export default function ConversationHistoryPage() {
                       >
                         <MiniStat
                           label="伝わりやすさ"
-                          value={`${toCategoryScore(item.evaluation?.clarity)}点`}
+                          value={`${toDisplayScore(item.evaluation?.clarity)}点`}
                         />
                         <MiniStat
                           label="自然さ"
-                          value={`${toCategoryScore(item.evaluation?.naturalness)}点`}
+                          value={`${toDisplayScore(item.evaluation?.naturalness)}点`}
                         />
                         <MiniStat
                           label="丁寧さ"
-                          value={`${toCategoryScore(item.evaluation?.politeness)}点`}
+                          value={`${toDisplayScore(item.evaluation?.politeness)}点`}
                         />
                         <MiniStat
                           label="会話継続力"
-                          value={`${toCategoryScore(item.evaluation?.continuity)}点`}
+                          value={`${toDisplayScore(item.evaluation?.continuity)}点`}
                         />
                       </div>
                     </div>

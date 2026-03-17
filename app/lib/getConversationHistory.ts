@@ -38,6 +38,11 @@ function toDate(value: unknown): Date | null {
   return null
 }
 
+function toNumber(value: unknown, fallback = 0) {
+  const num = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(num) ? num : fallback
+}
+
 export async function getConversationHistory(
   uid: string,
   maxCount = 30
@@ -57,7 +62,7 @@ export async function getConversationHistory(
       themeLabel: String(data.themeLabel || data.theme || ""),
       level: String(data.level || ""),
       levelLabel: String(data.levelLabel || data.level || ""),
-      totalScore: Number(data.totalScore || 0),
+      totalScore: toNumber(data.totalScore, 0),
       createdAt: toDate(data.createdAt),
       messages: Array.isArray(data.messages)
         ? data.messages.map((m: any) => ({
@@ -75,10 +80,10 @@ export async function getConversationHistory(
       evaluation:
         data.evaluation && typeof data.evaluation === "object"
           ? {
-              clarity: data.evaluation.clarity,
-              naturalness: data.evaluation.naturalness,
-              politeness: data.evaluation.politeness,
-              continuity: data.evaluation.continuity,
+              clarity: toNumber(data.evaluation.clarity, 0),
+              naturalness: toNumber(data.evaluation.naturalness, 0),
+              politeness: toNumber(data.evaluation.politeness, 0),
+              continuity: toNumber(data.evaluation.continuity, 0),
               goodPoints: Array.isArray(data.evaluation.goodPoints)
                 ? data.evaluation.goodPoints.map((v: unknown) => String(v))
                 : [],
