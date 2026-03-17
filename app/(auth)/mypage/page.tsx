@@ -600,7 +600,148 @@ const totalBadgeCount = useMemo(() => getTotalBadgeCount(), [badges])
             </div>
           </div>
         </section>
+        {/* AI学習履歴 */}
+        <section style={S.card}>
+          <div style={S.cardHeadRow}>
+            <div>
+              <div style={S.cardTitle}>AI学習履歴</div>
+              <div style={S.miniNote}>会話・スピーキングの結果を確認</div>
+            </div>
+          </div>
 
+          <div
+            style={{
+              marginTop: 12,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 12,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => router.push("/mypage/conversation-history")}
+              style={{
+                textAlign: "left",
+                background: "white",
+                border: "1px solid rgba(0,0,0,0.08)",
+                borderRadius: 16,
+                padding: 16,
+                cursor: "pointer",
+              }}
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 18,
+                  fontWeight: 900,
+                  marginBottom: 12,
+                }}
+              >
+                会
+              </div>
+
+              <div
+                style={{
+                  fontWeight: 900,
+                  fontSize: 17,
+                  color: "#111827",
+                  marginBottom: 8,
+                }}
+              >
+                AI会話履歴
+              </div>
+
+              <div
+                style={{
+                  fontSize: 13,
+                  opacity: 0.75,
+                  lineHeight: 1.7,
+                  marginBottom: 12,
+                }}
+              >
+                会話レッスンの履歴、スコア、会話ログを確認できます。
+              </div>
+
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#1d4ed8",
+                }}
+              >
+                履歴を見る →
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/mypage/speaking-history")}
+              style={{
+                textAlign: "left",
+                background: "white",
+                border: "1px solid rgba(0,0,0,0.08)",
+                borderRadius: 16,
+                padding: 16,
+                cursor: "pointer",
+              }}
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "#f0fdf4",
+                  color: "#15803d",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 18,
+                  fontWeight: 900,
+                  marginBottom: 12,
+                }}
+              >
+                話
+              </div>
+
+              <div
+                style={{
+                  fontWeight: 900,
+                  fontSize: 17,
+                  color: "#111827",
+                  marginBottom: 8,
+                }}
+              >
+                AIスピーキング履歴
+              </div>
+
+              <div
+                style={{
+                  fontSize: 13,
+                  opacity: 0.75,
+                  lineHeight: 1.7,
+                  marginBottom: 12,
+                }}
+              >
+                スピーキング練習の結果や評価の推移を確認できます。
+              </div>
+
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#15803d",
+                }}
+              >
+                履歴を見る →
+              </div>
+            </button>
+          </div>
+        </section>
         <section style={S.card}>
   <div style={S.cardHeadRow}>
     <div>
