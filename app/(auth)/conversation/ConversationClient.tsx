@@ -109,29 +109,10 @@ function getAudioExtensionFromMimeType(mimeType: string) {
   return "webm"
 }
 
-function toFiveScaleNumber(value?: number | string) {
+function toDisplayScore(value?: number | string) {
   const num = typeof value === "number" ? value : Number(value)
   if (!Number.isFinite(num)) return 0
-  return Math.max(1, Math.min(5, num))
-}
-
-function toHundredScore(evaluation: FinalEvaluation | null) {
-  if (!evaluation) return 0
-
-  const scores = [
-    toFiveScaleNumber(evaluation.clarity),
-    toFiveScaleNumber(evaluation.naturalness),
-    toFiveScaleNumber(evaluation.politeness),
-    toFiveScaleNumber(evaluation.continuity),
-  ]
-
-  const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
-  return Math.round((average / 5) * 100)
-}
-
-function toCategoryScore(value?: number | string) {
-  const five = toFiveScaleNumber(value)
-  return Math.round((five / 5) * 100)
+  return Math.max(0, Math.min(100, Math.round(num)))
 }
 
 export default function ConversationClient() {
@@ -154,6 +135,7 @@ export default function ConversationClient() {
   const [recognizedText, setRecognizedText] = useState("")
   const [error, setError] = useState("")
   const [finalEvaluation, setFinalEvaluation] = useState<FinalEvaluation | null>(null)
+  const [finalTotalScore, setFinalTotalScore] = useState<number>(0)
   const [finished, setFinished] = useState(false)
 
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
@@ -175,10 +157,6 @@ export default function ConversationClient() {
   const levelLabel = useMemo(() => {
     return LEVEL_OPTIONS.find((item) => item.id === level)?.label ?? level
   }, [level])
-
-  const totalScore = useMemo(() => {
-    return toHundredScore(finalEvaluation)
-  }, [finalEvaluation])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -230,7 +208,7 @@ export default function ConversationClient() {
             createdAt: m.createdAt,
           })),
           evaluation: finalEvaluation,
-          totalScore,
+          totalScore: finalTotalScore,
         })
 
         setSaveStatus("saved")
@@ -246,13 +224,13 @@ export default function ConversationClient() {
   }, [
     finished,
     finalEvaluation,
+    finalTotalScore,
     user?.uid,
     selectedTheme,
     selectedThemeLabel,
     level,
     levelLabel,
     messages,
-    totalScore,
   ])
 
   async function startConversation() {
@@ -263,6 +241,7 @@ export default function ConversationClient() {
     setStarted(false)
     setFinished(false)
     setFinalEvaluation(null)
+    setFinalTotalScore(0)
     setMessages([])
     setTurn(0)
     setRecognizedText("")
@@ -468,6 +447,7 @@ export default function ConversationClient() {
       const data = await res.json()
       const aiText = getTextFromApiResult(data)
       const evaluation = normalizeEvaluation(data)
+      const totalScore = toDisplayScore(data?.totalScore)
       const done = Boolean(data?.done) || turn + 1 >= maxTurns
 
       if (aiText) {
@@ -489,10 +469,12 @@ export default function ConversationClient() {
 
         if (evaluation) {
           setFinalEvaluation(evaluation)
+          setFinalTotalScore(totalScore)
         } else {
           setFinalEvaluation({
             comment: "3ターンの会話が完了しました。次はより自然な言い回しを意識してみましょう。",
           })
+          setFinalTotalScore(totalScore)
         }
       }
     } catch (e: any) {
@@ -569,6 +551,7 @@ export default function ConversationClient() {
     setStarted(false)
     setFinished(false)
     setFinalEvaluation(null)
+    setFinalTotalScore(0)
     setMessages([])
     setTurn(0)
     setRecognizedText("")
@@ -1059,7 +1042,7 @@ export default function ConversationClient() {
                         lineHeight: 1,
                       }}
                     >
-                      {totalScore}点
+                      {finalTotalScore}点
                     </div>
                     <div
                       style={{
@@ -1081,10 +1064,10 @@ export default function ConversationClient() {
                       marginBottom: 14,
                     }}
                   >
-                    <ScoreMiniCard title="伝わりやすさ" value={toCategoryScore(finalEvaluation.clarity)} />
-                    <ScoreMiniCard title="自然さ" value={toCategoryScore(finalEvaluation.naturalness)} />
-                    <ScoreMiniCard title="丁寧さ" value={toCategoryScore(finalEvaluation.politeness)} />
-                    <ScoreMiniCard title="会話継続力" value={toCategoryScore(finalEvaluation.continuity)} />
+                    <ScoreMiniCard title="伝わりやすさ" value={toDisplayScore(finalEvaluation.clarity)} />
+                    <ScoreMiniCard title="自然さ" value={toDisplayScore(finalEvaluation.naturalness)} />
+                    <ScoreMiniCard title="丁寧さ" value={toDisplayScore(finalEvaluation.politeness)} />
+                    <ScoreMiniCard title="会話継続力" value={toDisplayScore(finalEvaluation.continuity)} />
                   </div>
 
                   {saveStatus === "saving" ? (

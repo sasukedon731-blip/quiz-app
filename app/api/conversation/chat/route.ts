@@ -151,10 +151,10 @@ function normalizeArray(value: unknown): string[] {
     .slice(0, 5)
 }
 
-function clampScore(value: unknown) {
-  const num = typeof value === "number" ? value : Number(value)
-  if (!Number.isFinite(num)) return 3
-  return Math.max(1, Math.min(5, Math.round(num)))
+function normalizeScore(value: unknown, fallback = 70) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return fallback
+  return Math.max(0, Math.min(100, Math.round(num)))
 }
 
 function removeTextRecognitionRelatedFeedback(items: string[]): string[] {
@@ -164,8 +164,6 @@ function removeTextRecognitionRelatedFeedback(items: string[]): string[] {
     /変換/,
     /誤変換/,
     /文字起こし/,
-    /取り?ます/,
-    /撮り?ます/,
     /書き方/,
     /記載/,
     /同音異義語/,
@@ -266,59 +264,64 @@ ${userText}
       return NextResponse.json({
         reply,
         done: false,
+        evaluation: null,
+        totalScore: null,
       })
     }
 
     const evaluationPrompt = `
-あなたは日本語会話レッスンの評価AIです。
-以下の3ターン会話をもとに、学習者の会話を評価してください。
+あなたは日本語会話トレーナーです。
+以下の会話をもとに、学習者の日本語を評価してください。
 
 テーマ: ${themeLabel(theme)}
 レベル: ${level}
 
 重要:
 - この会話は音声入力を文字起こしした結果です
-- 文字起こしには漢字変換ミス、表記ゆれ、同音異義語の誤変換が含まれる場合があります
-- 漢字の正しさ、表記の正しさ、変換ミスは評価対象にしないでください
-- 発話の意味が自然に伝わるなら、漢字や表記の違いでは減点しないでください
+- 文字起こしには誤変換が含まれる場合があります
+- 漢字・表記・変換ミスは一切評価しないでください
+- 意味が自然に伝われば問題ありません
+- 発音や音響的な分析は行わないでください
+- あくまで会話としての伝わりやすさ・自然さ・丁寧さ・続けやすさを評価してください
 - ユーザー本人が修正できない文字起こし由来の問題を指摘しないでください
 - 「漢字を直しましょう」「表記を直しましょう」「変換を直しましょう」のような指摘は禁止です
+
+評価基準:
+- 90〜100点: 非常に自然で、ほぼ問題なく会話できる
+- 80〜89点: 自然で、実用上ほぼ問題なく通じる
+- 70〜79点: 多少違和感はあるが、十分通じる
+- 60〜69点: 伝わるが、不自然さや広がり不足がある
+- 0〜59点: 伝わりにくい部分がある
 
 会話履歴:
 ${buildHistoryText([
   ...safeHistory,
-  {
-    role: "user",
-    text: userText,
-  },
-  {
-    role: "assistant",
-    text: reply,
-  },
+  { role: "user", text: userText },
+  { role: "assistant", text: reply },
 ])}
 
-評価観点:
-- 伝わりやすさ
-- 自然さ
-- 丁寧さ
-- 会話継続力
+評価項目:
+- clarity（伝わりやすさ）
+- naturalness（自然さ）
+- politeness（丁寧さ）
+- continuity（会話継続力）
 
-採点ルール:
-- 各項目は 1〜5 の整数
-- goodPoints は良かった点を2〜3個
-- nextTips は次に意識することを2〜3個
+出力ルール:
+- 各項目は 0〜100点
+- goodPoints は2〜3個
+- nextTips は2〜3個
 - nextTips は話し方、表現、受け答えの広げ方だけにする
-- 漢字、表記、変換ミスについては一切触れない
-- comment は学習者を励ます自然な日本語の短いコメント
+- 漢字、表記、変換ミスには絶対に触れない
+- comment は短く前向きに
 
-必ず次のJSON形式のみで返してください。
+JSONのみで返してください。
 {
-  "clarity": 4,
-  "naturalness": 4,
-  "politeness": 4,
-  "continuity": 3,
-  "goodPoints": ["...","..."],
-  "nextTips": ["...","..."],
+  "clarity": 78,
+  "naturalness": 74,
+  "politeness": 82,
+  "continuity": 70,
+  "goodPoints": ["..."],
+  "nextTips": ["..."],
   "comment": "..."
 }
 `
@@ -330,7 +333,7 @@ ${buildHistoryText([
         {
           role: "system",
           content:
-            "あなたは日本語会話レッスンの評価AIです。必ずJSONのみを返してください。音声認識の漢字変換や表記ミスを指摘してはいけません。",
+            "あなたは日本語会話レッスンの評価AIです。必ずJSONのみを返してください。音声認識の漢字変換や表記ミスを指摘してはいけません。音響解析ではなく、会話品質のみを評価してください。",
         },
         {
           role: "user",
@@ -356,16 +359,16 @@ ${buildHistoryText([
     )
 
     const evaluation = {
-      clarity: clampScore(parsed?.clarity),
-      naturalness: clampScore(parsed?.naturalness),
-      politeness: clampScore(parsed?.politeness),
-      continuity: clampScore(parsed?.continuity),
+      clarity: normalizeScore(parsed?.clarity, 75),
+      naturalness: normalizeScore(parsed?.naturalness, 72),
+      politeness: normalizeScore(parsed?.politeness, 78),
+      continuity: normalizeScore(parsed?.continuity, 70),
       goodPoints:
         filteredGoodPoints.length > 0
           ? filteredGoodPoints
           : [
               "会話の内容がしっかり伝わっていました。",
-              "短くても受け答えの形ができていました。",
+              "受け答えの形ができていました。",
             ],
       nextTips:
         filteredNextTips.length > 0
@@ -377,10 +380,18 @@ ${buildHistoryText([
       comment: sanitizeComment(parsed?.comment),
     }
 
+    const totalScore = Math.round(
+      (evaluation.clarity +
+        evaluation.naturalness +
+        evaluation.politeness +
+        evaluation.continuity) / 4
+    )
+
     return NextResponse.json({
       reply,
       done: true,
       evaluation,
+      totalScore,
     })
   } catch (error) {
     console.error("conversation/chat error:", error)
