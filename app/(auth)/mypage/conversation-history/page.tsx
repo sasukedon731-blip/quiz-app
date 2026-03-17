@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
+import { calcGrowth } from "@/app/lib/calcGrowth"
 import {
   ConversationHistoryItem,
   getConversationHistory,
@@ -32,6 +33,10 @@ export default function ConversationHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [openId, setOpenId] = useState<string | null>(null)
+
+  const growth = useMemo(() => {
+  return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
+}, [items])
 
   useEffect(() => {
     async function load() {
@@ -137,6 +142,35 @@ export default function ConversationHistoryPage() {
           <SummaryCard title="会話回数" value={`${items.length}回`} />
           <SummaryCard title="平均スコア" value={`${averageScore}点`} />
         </div>
+        {growth ? (
+  <Panel>
+    <div
+      style={{
+        fontSize: 16,
+        fontWeight: 800,
+        color: "#111827",
+        marginBottom: 10,
+      }}
+    >
+      最近の成長
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 10,
+      }}
+    >
+      <MiniStat label="直近平均" value={`${growth.avgRecent}点`} />
+      <MiniStat label="その前の平均" value={`${growth.avgPrev}点`} />
+      <MiniStat
+        label="変化"
+        value={`${growth.diff >= 0 ? "+" : ""}${growth.diff}点`}
+      />
+    </div>
+  </Panel>
+) : null}
 
         {loading ? (
           <Panel>

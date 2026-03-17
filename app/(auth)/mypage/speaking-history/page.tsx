@@ -7,6 +7,7 @@ import {
   SpeakingHistoryItem,
   getSpeakingHistory,
 } from "@/app/lib/getSpeakingHistory"
+import { calcGrowth } from "@/app/lib/calcGrowth"
 
 function formatDate(date: Date | null) {
   if (!date) return "-"
@@ -27,6 +28,10 @@ export default function SpeakingHistoryPage() {
   const [error, setError] = useState("")
   const [openId, setOpenId] = useState<string | null>(null)
 
+  const growth = useMemo(() => {
+    return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
+  }, [items])
+
   useEffect(() => {
     async function load() {
       if (!user?.uid) {
@@ -37,7 +42,7 @@ export default function SpeakingHistoryPage() {
       try {
         setLoading(true)
         setError("")
-        const rows = await getSpeakingHistory(user.uid, 50)
+        const rows = await getSpeakingHistory(user.uid)
         setItems(rows)
       } catch (e: any) {
         console.error(e)
@@ -132,6 +137,36 @@ export default function SpeakingHistoryPage() {
           <SummaryCard title="平均スコア" value={`${averageScore}点`} />
         </div>
 
+        {growth ? (
+          <Panel>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: 10,
+              }}
+            >
+              最近の成長
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <MiniStat label="直近平均" value={`${growth.avgRecent}点`} />
+              <MiniStat label="その前の平均" value={`${growth.avgPrev}点`} />
+              <MiniStat
+                label="変化"
+                value={`${growth.diff >= 0 ? "+" : ""}${growth.diff}点`}
+              />
+            </div>
+          </Panel>
+        ) : null}
+
         {loading ? (
           <Panel>
             <div
@@ -220,7 +255,7 @@ export default function SpeakingHistoryPage() {
                           marginBottom: 10,
                         }}
                       >
-                        {item.mode ? <Badge>{item.mode}</Badge> : null}
+                        <Badge>スピーキング</Badge>
                         <BadgeDark>{item.totalScore}点</BadgeDark>
                       </div>
 
@@ -244,16 +279,16 @@ export default function SpeakingHistoryPage() {
                         }}
                       >
                         <MiniStat
-                          label="発音"
-                          value={`${item.pronunciationScore}点`}
+                          label="意味"
+                          value={`${item.evaluation?.meaning ?? 0}点`}
                         />
                         <MiniStat
                           label="自然さ"
-                          value={`${item.naturalnessScore}点`}
+                          value={`${item.evaluation?.naturalness ?? 0}点`}
                         />
                         <MiniStat
-                          label="完成度"
-                          value={`${item.completionScore}点`}
+                          label="丁寧さ"
+                          value={`${item.evaluation?.politeness ?? 0}点`}
                         />
                       </div>
                     </div>
@@ -284,21 +319,21 @@ export default function SpeakingHistoryPage() {
                         </SectionBlock>
                       ) : null}
 
-                      {item.candidateText ? (
+                      {item.candidate ? (
                         <SectionBlock title="日本語候補">
-                          <PlainBox>{item.candidateText}</PlainBox>
+                          <PlainBox>{item.candidate}</PlainBox>
                         </SectionBlock>
                       ) : null}
 
-                      {item.recognizedText ? (
+                      {item.transcript ? (
                         <SectionBlock title="文字起こし結果">
-                          <PlainBox>{item.recognizedText}</PlainBox>
+                          <PlainBox>{item.transcript}</PlainBox>
                         </SectionBlock>
                       ) : null}
 
-                      {item.feedback ? (
+                      {item.evaluation?.comment ? (
                         <SectionBlock title="AIフィードバック">
-                          <PlainBox>{item.feedback}</PlainBox>
+                          <PlainBox>{item.evaluation.comment}</PlainBox>
                         </SectionBlock>
                       ) : null}
                     </div>

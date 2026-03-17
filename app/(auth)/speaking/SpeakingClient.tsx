@@ -8,6 +8,8 @@ import SpeakingInput from "./components/SpeakingInput"
 import CandidateCard from "./components/CandidateCard"
 import SpeakingRecorder from "./components/SpeakingRecorder"
 import EvaluationCard from "./components/EvaluationCard"
+import { saveSpeakingHistory } from "@/app/lib/saveSpeakingHistory"
+import { useAuth } from "@/app/lib/useAuth"
 
 type Candidate = {
   id: string
@@ -30,6 +32,8 @@ type EvaluationResult = {
 }
 
 export default function SpeakingClient() {
+  const { user } = useAuth()
+
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [selected, setSelected] = useState<Candidate | null>(null)
   const [transcript, setTranscript] = useState("")
@@ -63,8 +67,12 @@ export default function SpeakingClient() {
         throw new Error(json?.error || "日本語候補の作成に失敗しました")
       }
 
-      const nextCandidates = Array.isArray(json?.candidates) ? json.candidates : []
+      const nextCandidates = Array.isArray(json?.candidates)
+        ? json.candidates
+        : []
+
       setCandidates(nextCandidates)
+
       if (nextCandidates.length > 0) {
         setSelected(nextCandidates[0])
       }
@@ -98,7 +106,31 @@ export default function SpeakingClient() {
         throw new Error(json?.error || "評価に失敗しました")
       }
 
-      setEvaluation(json)
+      const nextEvaluation = json as EvaluationResult
+      setEvaluation(nextEvaluation)
+
+      if (user?.uid && spoken) {
+        const totalScore = Math.round(
+          ((nextEvaluation.scores?.meaning ?? 0) +
+            (nextEvaluation.scores?.naturalness ?? 0) +
+            (nextEvaluation.scores?.politeness ?? 0)) /
+            3
+        )
+
+        await saveSpeakingHistory({
+          uid: user.uid,
+          prompt: selected.japanese,
+          candidate: selected.japanese,
+          transcript: spoken,
+          evaluation: {
+            meaning: nextEvaluation.scores?.meaning ?? 0,
+            naturalness: nextEvaluation.scores?.naturalness ?? 0,
+            politeness: nextEvaluation.scores?.politeness ?? 0,
+            totalScore,
+            comment: nextEvaluation.shortFeedback,
+          },
+        })
+      }
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "評価に失敗しました")
@@ -225,7 +257,11 @@ export default function SpeakingClient() {
             )}
 
             <div style={styles.actionRow}>
-              <button type="button" onClick={resetForRetry} style={styles.subButton}>
+              <button
+                type="button"
+                onClick={resetForRetry}
+                style={styles.subButton}
+              >
                 もう一回練習する
               </button>
 
@@ -291,60 +327,61 @@ const styles: Record<string, React.CSSProperties> = {
   },
   stepRow: {
     display: "flex",
-    alignItems: "flex-start",
     gap: 12,
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   stepBadge: {
-    minWidth: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 999,
-    background: "#0f172a",
+    background: "#16a34a",
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 16,
     fontWeight: 900,
+    fontSize: 16,
     flexShrink: 0,
   },
   stepLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 800,
-    color: "#64748b",
+    color: "#16a34a",
     marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 26,
-    lineHeight: 1.2,
+    fontSize: 24,
+    lineHeight: 1.3,
     fontWeight: 900,
     color: "#0f172a",
-    margin: 0,
+    margin: "0 0 8px",
   },
   sectionText: {
     fontSize: 14,
     lineHeight: 1.7,
     color: "#64748b",
-    margin: "8px 0 0",
-  },
-  errorBox: {
-    background: "#fef2f2",
-    border: "1px solid #fecaca",
-    color: "#b91c1c",
-    borderRadius: 18,
-    padding: "14px 16px",
-    fontSize: 14,
-    fontWeight: 700,
-    marginBottom: 16,
+    margin: 0,
   },
   stack: {
     display: "grid",
     gap: 14,
   },
+  errorBox: {
+    background: "#fef2f2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: 18,
+    padding: 16,
+    fontSize: 14,
+    fontWeight: 700,
+    marginBottom: 16,
+    whiteSpace: "pre-wrap",
+  },
   transcriptCard: {
     background: "#f8fafc",
-    border: "1px solid #d9e0ea",
-    borderRadius: 22,
+    border: "1px solid #dbe3ee",
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
   },
@@ -356,74 +393,80 @@ const styles: Record<string, React.CSSProperties> = {
   },
   transcriptText: {
     fontSize: 20,
-    fontWeight: 800,
+    lineHeight: 1.7,
     color: "#0f172a",
-    lineHeight: 1.5,
+    fontWeight: 800,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   infoBox: {
-    background: "#f8fafc",
-    border: "1px solid #d9e0ea",
-    color: "#475569",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
     borderRadius: 18,
-    padding: "16px 18px",
+    padding: 16,
     fontSize: 14,
     fontWeight: 700,
-  },
-  actionRow: {
-    display: "grid",
-    gap: 12,
-    gridTemplateColumns: "1fr",
     marginTop: 16,
   },
+  actionRow: {
+    display: "flex",
+    gap: 12,
+    flexWrap: "wrap",
+    marginTop: 18,
+  },
   subButton: {
-    height: 56,
-    borderRadius: 18,
-    border: "1px solid #cbd5e1",
+    border: "1px solid #d1d5db",
     background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 16,
+    color: "#111827",
+    borderRadius: 16,
+    padding: "14px 18px",
+    fontSize: 15,
     fontWeight: 800,
     cursor: "pointer",
+    textDecoration: "none",
   },
   darkButton: {
-    height: 56,
-    borderRadius: 18,
-    background: "#0f172a",
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: 800,
-    textDecoration: "none",
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
+    border: "none",
+    background: "#111827",
+    color: "#ffffff",
+    borderRadius: 16,
+    padding: "14px 18px",
+    fontSize: 15,
+    fontWeight: 800,
+    cursor: "pointer",
+    textDecoration: "none",
   },
   bottomBar: {
     position: "fixed",
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 50,
-    borderTop: "1px solid #d9e0ea",
-    background: "rgba(255,255,255,0.96)",
-    backdropFilter: "blur(8px)",
-    padding: "12px 16px calc(env(safe-area-inset-bottom) + 12px)",
+    padding: "12px 16px 16px",
+    background:
+      "linear-gradient(to top, rgba(244,247,251,0.98), rgba(244,247,251,0.88), rgba(244,247,251,0))",
+    pointerEvents: "none",
   },
   bottomBarInner: {
     maxWidth: 880,
     margin: "0 auto",
+    pointerEvents: "auto",
   },
   bottomBarButton: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    height: 56,
+    minHeight: 56,
     borderRadius: 18,
     background: "#0f172a",
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 900,
     textDecoration: "none",
-    boxShadow: "0 4px 12px rgba(15,23,42,0.14)",
+    boxShadow: "0 12px 24px rgba(15,23,42,0.18)",
   },
 }
