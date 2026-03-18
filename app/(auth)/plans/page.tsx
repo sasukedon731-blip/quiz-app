@@ -217,6 +217,10 @@ export default function PlansPage() {
   if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
 
   const months = monthsFromDays(durationDays)
+  const currentPlanBase30 = currentPlan === "3" || currentPlan === "5" || currentPlan === "7" ? PRICE_YEN_30D[currentPlan] : 0
+  const selectedPlanTotal = currentPlanBase30 ? calcTotal(currentPlanBase30, durationDays) : 0
+  const aiOptionTotal = addAiConversation ? calcTotal(500, durationDays) : 0
+  const grandTotal = selectedPlanTotal + aiOptionTotal
 
   return (
     <main style={styles.main}>
@@ -393,7 +397,7 @@ export default function PlansPage() {
         <div style={{ fontWeight: 900, fontSize: 18 }}>AI会話オプション</div>
         <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, opacity: 0.88 }}>
           AI会話は通常の選べる教材には含まれません。
-          <br />3教材・5教材・7教材プランに <b>+¥500</b> で追加できます。
+          <br />3教材・5教材・7教材プランに <b>+¥{formatYen(calcTotal(500, durationDays))}</b> / {periodLabel(durationDays)} で追加できます。
           <br />教材数には含まれない、別枠の実践トレーニングです。
         </div>
 
@@ -419,6 +423,36 @@ export default function PlansPage() {
           </div>
         ) : null}
       </section>
+      <section style={{ ...styles.card, marginTop: 16, borderColor: "rgba(37,99,235,.22)", background: "#f8fafc" }}>
+        <div style={{ fontWeight: 900, fontSize: 18 }}>お支払い合計</div>
+        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+          <div style={styles.totalRow}>
+            <span>{PLAN_LABEL[currentPlan]}（{periodLabel(durationDays)}）</span>
+            <b>{currentPlan === "3" || currentPlan === "5" || currentPlan === "7" ? `¥${formatYen(selectedPlanTotal)}` : "¥0"}</b>
+          </div>
+          <div style={styles.totalRow}>
+            <span>AI会話オプション（{periodLabel(durationDays)}）</span>
+            <b>{addAiConversation ? `¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
+          </div>
+        </div>
+
+        <div style={styles.totalDivider} />
+
+        <div style={styles.totalBottom}>
+          <div>
+            <div style={styles.totalLabel}>今回のお支払い</div>
+            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"}</div>
+          </div>
+          <div style={styles.totalPrice}>¥{formatYen(grandTotal)}</div>
+        </div>
+
+        {currentPlan !== "3" && currentPlan !== "5" && currentPlan !== "7" ? (
+          <div style={{ marginTop: 10, fontSize: 12, color: "#b45309", fontWeight: 800 }}>
+            ※ 合計金額は有料プラン選択時に確定します
+          </div>
+        ) : null}
+      </section>
+
 
     </main>
   )
@@ -640,5 +674,48 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     color: "#fff",
     fontWeight: 900,
+  },
+
+  totalRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    fontSize: 14,
+    lineHeight: 1.5,
+  },
+
+  totalDivider: {
+    height: 1,
+    background: "rgba(17,24,39,.10)",
+    marginTop: 12,
+    marginBottom: 12,
+  },
+
+  totalBottom: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  totalLabel: {
+    fontSize: 13,
+    fontWeight: 900,
+    opacity: 0.8,
+  },
+
+  totalHint: {
+    marginTop: 4,
+    fontSize: 12,
+    opacity: 0.72,
+  },
+
+  totalPrice: {
+    fontSize: 32,
+    fontWeight: 900,
+    lineHeight: 1,
+    color: "#2563eb",
   },
 }
