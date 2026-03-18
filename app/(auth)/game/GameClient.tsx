@@ -23,7 +23,6 @@ import type { PlanId } from "@/app/lib/plan"
 
 function isQuizType(v: any): v is QuizType {
   if (typeof v !== "string") return false
-  // quizzes は { [id]: Quiz } のオブジェクトなので keys で判定
   return v in quizzes
 }
 
@@ -132,33 +131,28 @@ export default function GameClient() {
   const { user } = useAuth()
 
   const rawType = params.get("type")
-  const rawMode = params.get("mode") // "normal" | "attack"
-  const rawKind = params.get("kind") // "tile-drop" | "speed-choice"
+  const rawMode = params.get("mode")
+  const rawKind = params.get("kind")
 
   const quizType: QuizType = useMemo(() => {
     return isQuizType(rawType) ? rawType : "japanese-n4"
   }, [rawType])
 
   const modeParam = rawMode === "attack" ? "attack" : "normal"
-
   const awardOnceRef = useRef(false)
 
   const kind: GameKind = useMemo(() => {
-    // ✅ 何らかの導線で kind がクエリに乗ってこないケースがある。
-    // その場合でも直前に選んだゲームへ確実に戻すため sessionStorage をフォールバックに使う。
     if (isGameKind(rawKind)) return rawKind
     const stored = readStoredKind()
     return stored ?? "tile-drop"
   }, [rawKind])
 
-  // ✅ どこから来ても「最後に選んだゲーム」を維持する
   useEffect(() => {
     try {
       sessionStorage.setItem("lastGameKind", kind)
     } catch {}
   }, [kind])
 
-  // ===== Guest: 1/day (normal only) =====
   const [guestOk, setGuestOk] = useState(true)
 
   useEffect(() => {
@@ -174,7 +168,6 @@ export default function GameClient() {
     markGuestPlayedToday()
   }, [modeParam, user, guestOk])
 
-  // ===== Logged-in Free/Trial: 1/day (all game modes) =====
   const [checkingUserLimit, setCheckingUserLimit] = useState(false)
   const [userOk, setUserOk] = useState(true)
 
@@ -203,7 +196,6 @@ export default function GameClient() {
         if (cancelled) return
         setUserOk(ok)
 
-        // Mark immediately to prevent reload-bypass, only when allowed
         if (ok) {
           await markUserPlayedToday(user.uid)
         }
@@ -218,28 +210,7 @@ export default function GameClient() {
     }
   }, [user])
 
-  if (modeParam === "normal" && !user && !guestOk) {
-    return <GuestBlocked onLogin={() => router.push("/login")} />
-  }
-
-  // While we check plan/limit, avoid flashing the game for blocked users
-  if (user && checkingUserLimit) {
-    return (
-      <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
-        <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 16 }}>
-          <div style={{ fontWeight: 900, fontSize: 16 }}>読み込み中…</div>
-          <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.6 }}>
-            プレイ制限を確認しているぜ。
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (user && !userOk) {
-    return <UserBlocked onGoPlans={() => router.push("/plans")} onGoHome={() => router.push("/")} />
-  }
-
+  // ここを return より前に置く
   useEffect(() => {
     if (!user || checkingUserLimit || !userOk || awardOnceRef.current) return
     awardOnceRef.current = true
@@ -254,7 +225,9 @@ export default function GameClient() {
 
         const nextIds: string[] = []
         if (!badges.includes("battle-first-play")) nextIds.push("battle-first-play")
-        if (modeParam === "attack" && !badges.includes("battle-attack-first")) nextIds.push("battle-attack-first")
+        if (modeParam === "attack" && !badges.includes("battle-attack-first")) {
+          nextIds.push("battle-attack-first")
+        }
 
         if (!nextIds.length) return
 
@@ -272,6 +245,26 @@ export default function GameClient() {
     })()
   }, [user, checkingUserLimit, userOk, modeParam])
 
+  if (modeParam === "normal" && !user && !guestOk) {
+    return <GuestBlocked onLogin={() => router.push("/login")} />
+  }
+
+  if (user && checkingUserLimit) {
+    return (
+      <main style={{ padding: 16, maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 16 }}>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>読み込み中…</div>
+          <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.6 }}>
+            プレイ制限を確認しているぜ。
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (user && !userOk) {
+    return <UserBlocked onGoPlans={() => router.push("/plans")} onGoHome={() => router.push("/")} />
+  }
 
   if (kind === "speed-choice") {
     return <SpeedChoiceGame quizType={quizType} modeParam={modeParam} />
