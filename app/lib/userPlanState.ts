@@ -30,7 +30,7 @@ export type UserPlanState = {
 }
 
 function isPlanId(v: any): v is PlanId {
-  return v === "trial" || v === "free" || v === "3" || v === "5" || v === "all"
+  return v === "trial" || v === "free" || v === "3" || v === "5" || v === "7"
 }
 
 function coercePlanId(v: any): PlanId | null {
@@ -40,12 +40,14 @@ function coercePlanId(v: any): PlanId | null {
     if (v === 1) return "trial"
     if (v === 3) return "3"
     if (v === 5) return "5"
+    if (v === 7) return "7"
   }
   if (typeof v === "string") {
     const s = v.trim()
     if (s === "1") return "trial"
     if (s === "3") return "3"
     if (s === "5") return "5"
+    if (s === "7") return "7"
   }
   return null
 }
@@ -58,6 +60,7 @@ function inferPlanFromLegacy(data: any): PlanId {
   // 2) 旧 quizLimit から推定
   const limit = typeof data?.quizLimit === "number" ? (data.quizLimit as number) : null
   if (limit === 5) return "5"
+  if (limit === 7) return "7"
   if (limit === 3) return "3"
   if (limit === 1) return "trial"
 
@@ -98,7 +101,7 @@ if (devUnlockAll) {
   const displayName = typeof data?.displayName === "string" ? data.displayName : ""
   const allQuizTypes = Object.keys(quizzes) as QuizType[]
   return {
-    plan: "all",
+    plan: "7",
     entitledQuizTypes: allQuizTypes,
     selectedQuizTypes: allQuizTypes,
     nextChangeAllowedAt: null,
@@ -132,6 +135,7 @@ if (devUnlockAll) {
       status: "active", // 決済未実装の現段階では既存ユーザーを active 扱い（後で pending/active に切替）
       currentPlan: plan,
       currentPeriodEnd: null,
+      aiConversationEnabled: false,
     }
     needUpdate = true
   }
@@ -278,6 +282,7 @@ export async function savePlanAndNormalizeSelected(params: {
             status: "active",
             currentPlan: params.plan,
             currentPeriodEnd: null,
+            aiConversationEnabled: false,
           },
       selectedQuizTypes: selected,
       entitledQuizTypes: deleteField(),

@@ -162,7 +162,7 @@ export default function SelectQuizzesPage() {
   const requiredCount = useMemo(() => {
     if (plan === "3") return 3
     if (plan === "5") return 5
-    if (plan === "all") return entitled.length
+    if (plan === "7") return 7
     return 1
   }, [plan, entitled.length])
 
@@ -300,7 +300,7 @@ export default function SelectQuizzesPage() {
           ) : null}
 
           <div style={styles.mini}>
-            推奨：{plan === "3" ? "3つ" : plan === "5" ? "5つ" : plan === "all" ? "全て" : "1つ"} 選ぶ
+            推奨：{plan === "3" ? "3つ" : plan === "5" ? "5つ" : plan === "7" ? "7つ" : "1つ"} 選ぶ
           </div>
         </section>
 

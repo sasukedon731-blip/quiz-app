@@ -2,14 +2,15 @@
 import { quizzes } from "@/app/data/quizzes"
 import type { QuizType } from "@/app/data/types"
 
-export type PlanId = "trial" | "free" | "3" | "5" | "all"
+export type PlanId = "trial" | "free" | "3" | "5" | "7"
 export type SelectLimit = number | "ALL"
 
 export function getSelectLimit(plan: PlanId): SelectLimit {
   if (plan === "trial" || plan === "free") return 1
   if (plan === "3") return 3
   if (plan === "5") return 5
-  return "ALL"
+  if (plan === "7") return 7
+  return 1
 }
 
 /**
@@ -26,7 +27,6 @@ export function buildEntitledQuizTypes(plan: PlanId): QuizType[] {
  * ✅ selected を plan に合わせて正規化
  * - trial/free: 1つ固定
  * - 3/5: 上限までに丸める（足りなければ先頭から補完）
- * - all: 空なら全件
  */
 export function normalizeSelectedForPlan(
   selected: QuizType[],
@@ -36,10 +36,6 @@ export function normalizeSelectedForPlan(
   const uniq = Array.from(new Set(selected)).filter((q) => entitled.includes(q))
 
   const limit = getSelectLimit(plan)
-  if (plan === "all") {
-    return uniq.length > 0 ? uniq : [...entitled]
-  }
-
   const n = limit === "ALL" ? entitled.length : limit
 
   // trial/free
@@ -96,5 +92,5 @@ export function isAccessActive(userDoc: any): boolean {
  */
 export function getEffectivePlanId(userDoc: any): PlanId {
   const p = userDoc?.billing?.currentPlan ?? userDoc?.plan
-  return (p === "trial" || p === "free" || p === "3" || p === "5" || p === "all") ? p : "trial"
+  return (p === "trial" || p === "free" || p === "3" || p === "5" || p === "7") ? p : "trial"
 }

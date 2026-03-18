@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
 import { saveConversationHistory } from "@/app/lib/conversationHistory"
+import { db } from "@/app/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 
 type ThemeOption = {
   id: string
@@ -157,6 +159,22 @@ export default function ConversationClient() {
   const levelLabel = useMemo(() => {
     return LEVEL_OPTIONS.find((item) => item.id === level)?.label ?? level
   }, [level])
+
+  useEffect(() => {
+    ;(async () => {
+      if (!user?.uid) return
+      const snap = await getDoc(doc(db, "users", user.uid))
+      const data = snap.exists() ? snap.data() : null
+      const enabled = Boolean(data?.billing?.aiConversationEnabled)
+      if (!enabled) {
+        alert("AI会話は追加オプションで利用できます。プラン管理画面から追加してください。")
+        router.replace("/plans")
+      }
+    })().catch((e) => {
+      console.error(e)
+      router.replace("/plans")
+    })
+  }, [user?.uid, router])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

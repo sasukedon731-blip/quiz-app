@@ -17,8 +17,12 @@ function parseDurationDays(v: any): 30 | 180 | 365 {
   return n === 180 ? 180 : n === 365 ? 365 : 30
 }
 
-function parsePlan(v: any): "3" | "5" | "all" | null {
-  return v === "3" || v === "5" || v === "all" ? v : null
+function parsePlan(v: any): "3" | "5" | "7" | null {
+  return v === "3" || v === "5" || v === "7" ? v : null
+}
+
+function parseAiConversation(v: any): boolean {
+  return v === true || v === "true"
 }
 
 function parseMethod(v: any): "convenience" | "card" {
@@ -84,6 +88,7 @@ export async function POST(req: Request) {
         const method = parseMethod(session.metadata?.method)
         const durationDays = parseDurationDays(session.metadata?.durationDays)
         const industry = parseIndustry(session.metadata?.industry)
+        const addAiConversation = parseAiConversation(session.metadata?.addAiConversation)
 
         const paid = session.payment_status === "paid"
 
@@ -98,6 +103,8 @@ export async function POST(req: Request) {
               : null,
           ...(plan ? { currentPlan: plan } : {}),
           currentPeriodEnd: paid ? addDays(new Date(), durationDays) : null,
+          aiConversationEnabled: paid ? addAiConversation : false,
+          aiConversationExpiresAt: paid && addAiConversation ? addDays(new Date(), durationDays) : null,
         })
 
         // ✅ ここが追加：paid のときだけ industry を確定保存
@@ -118,6 +125,7 @@ export async function POST(req: Request) {
         const method = parseMethod(pi.metadata?.method)
         const durationDays = parseDurationDays(pi.metadata?.durationDays)
         const industry = parseIndustry(pi.metadata?.industry)
+        const addAiConversation = parseAiConversation(pi.metadata?.addAiConversation)
 
         await setUserBillingMerge(uid, {
           accountType: "personal",
@@ -126,6 +134,8 @@ export async function POST(req: Request) {
           stripePaymentIntentId: pi.id,
           ...(plan ? { currentPlan: plan } : {}),
           currentPeriodEnd: addDays(new Date(), durationDays),
+          aiConversationEnabled: addAiConversation,
+          aiConversationExpiresAt: addAiConversation ? addDays(new Date(), durationDays) : null,
         })
 
         // ✅ ここが本命：最終確定タイミングで industry 保存

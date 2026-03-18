@@ -123,7 +123,7 @@ function UserBlocked({ onGoPlans, onGoHome }: { onGoPlans: () => void; onGoHome:
 }
 
 function isPaidPlan(plan: PlanId) {
-  return plan === "3" || plan === "5" || plan === "all"
+  return plan === "3" || plan === "5" || plan === "7"
 }
 
 export default function GameClient() {

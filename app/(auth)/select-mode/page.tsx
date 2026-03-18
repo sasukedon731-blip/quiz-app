@@ -19,7 +19,7 @@ const PLAN_LABEL: Record<PlanId, string> = {
   free: "無料",
   "3": "3教材プラン",
   "5": "5教材プラン",
-  all: "ALLプラン",
+  "7": "7教材プラン",
 }
 
 type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
