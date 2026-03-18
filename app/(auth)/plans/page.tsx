@@ -15,15 +15,6 @@ export default function PlansPage() {
     { id: 7, price: 1000 },
   ]
 
-  const handleSelect = (planId: number) => {
-    setSelectedPlan(planId)
-  }
-
-  const handlePurchase = () => {
-    if (!selectedPlan) return
-    alert(`プラン: ${selectedPlan}教材 / AI会話: ${aiOption ? "あり" : "なし"}`)
-  }
-
   return (
     <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       
@@ -33,7 +24,7 @@ export default function PlansPage() {
         <p>現在 36教材</p>
       </section>
 
-      {/* 支払い */}
+      {/* 支払い方法 */}
       <section style={card}>
         <h3 style={title}>お支払い方法</h3>
         <p>コンビニ・カード対応</p>
@@ -57,14 +48,14 @@ export default function PlansPage() {
           <h3 style={title}>{plan.id}教材プラン</h3>
           <p>選択式で{plan.id}教材受講可能</p>
 
-          <div style={{ fontSize: 28, fontWeight: 900 }}>
+          <div style={{ fontSize: 26, fontWeight: 900 }}>
             ¥{plan.price}
             <span style={{ fontSize: 14 }}> / 30日</span>
           </div>
 
           <button
             style={button}
-            onClick={() => handleSelect(plan.id)}
+            onClick={() => setSelectedPlan(plan.id)}
           >
             {selectedPlan === plan.id ? "選択中" : "このプランにする"}
           </button>
@@ -72,13 +63,20 @@ export default function PlansPage() {
       ))}
 
       {/* AI会話オプション */}
-      <section style={{ ...card, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff" }}>
+      <section
+        style={{
+          ...card,
+          background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+          color: "#fff",
+          marginTop: 16,
+        }}
+      >
         <div style={badge}>🔥 人気No.1</div>
 
         <h3 style={{ ...title, color: "#fff" }}>AI会話オプション</h3>
 
-        <p style={{ fontSize: 13 }}>
-          AI会話は教材には含まれません。<br />
+        <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+          AI会話は通常の教材には含まれません。<br />
           プランに追加して利用できます。
         </p>
 
@@ -100,14 +98,21 @@ export default function PlansPage() {
         </p>
       </section>
 
-      {/* 購入ボタン */}
+      {/* 決済ボタン */}
       <button
-        onClick={handlePurchase}
         style={{
           ...button,
           marginTop: 20,
           background: "#111",
           color: "#fff",
+          fontSize: 16,
+        }}
+        onClick={() => {
+          if (!selectedPlan) {
+            alert("プランを選択してください")
+            return
+          }
+          alert(`プラン:${selectedPlan} / AI:${aiOption}`)
         }}
       >
         この内容で進む
