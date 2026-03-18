@@ -785,38 +785,50 @@ export default function HomePage() {
 <div
   style={{
     marginTop: 18,
-    padding: 18,
-    borderRadius: 18,
-    background: "linear-gradient(135deg, #10b981, #0f766e)",
+    padding: 22,
+    borderRadius: 20,
+    background: "linear-gradient(135deg, #2563eb, #7c3aed)",
     color: "#fff",
-    boxShadow: "0 12px 24px rgba(0,0,0,0.12)",
+    boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+    transform: "scale(1.02)",
   }}
 >
-  <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 6 }}>
-    🚀 今すぐAI会話で実力アップ
+  <div style={{
+    fontSize: 12,
+    background: "rgba(255,255,255,0.2)",
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: 999,
+    marginBottom: 8,
+    fontWeight: 700
+  }}>
+    🔥 人気No.1
   </div>
 
-  <div style={{ fontSize: 13, opacity: 0.95, lineHeight: 1.6 }}>
-    実際の会話形式で、日本語をアウトプット。
-    AIがリアルタイムで評価・改善ポイントをフィードバック。
+  <div style={{ fontSize: 20, fontWeight: 900 }}>
+    AI会話トレーニング
+  </div>
+
+  <div style={{ fontSize: 14, marginTop: 6, opacity: 0.95 }}>
+    実際に話して、日本語を使えるレベルまで引き上げる
   </div>
 
   <button
     onClick={() => router.push("/conversation")}
     style={{
-      marginTop: 12,
+      marginTop: 14,
       width: "100%",
-      padding: "14px",
-      borderRadius: 14,
+      padding: "16px",
+      borderRadius: 16,
       border: "none",
       background: "#fff",
-      color: "#0f766e",
+      color: "#1e3a8a",
       fontWeight: 900,
-      fontSize: 16,
+      fontSize: 17,
       cursor: "pointer",
     }}
   >
-    AI会話を始める
+    今すぐ会話してみる
   </button>
 </div>
       </div>
