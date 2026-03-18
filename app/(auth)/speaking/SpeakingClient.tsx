@@ -67,12 +67,8 @@ export default function SpeakingClient() {
         throw new Error(json?.error || "日本語候補の作成に失敗しました")
       }
 
-      const nextCandidates = Array.isArray(json?.candidates)
-        ? json.candidates
-        : []
-
+      const nextCandidates = Array.isArray(json?.candidates) ? json.candidates : []
       setCandidates(nextCandidates)
-
       if (nextCandidates.length > 0) {
         setSelected(nextCandidates[0])
       }
