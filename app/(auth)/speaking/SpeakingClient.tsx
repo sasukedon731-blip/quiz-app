@@ -267,11 +267,7 @@ export default function SpeakingClient() {
             )}
 
             <div style={styles.actionRow}>
-              <button
-                type="button"
-                onClick={resetForRetry}
-                style={styles.subButton}
-              >
+              <button type="button" onClick={resetForRetry} style={styles.subButton}>
                 もう一回練習する
               </button>
 

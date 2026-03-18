@@ -1,5 +1,3 @@
-// app/lib/saveSpeakingHistory.ts
-
 import { addDoc, collection, serverTimestamp } from "firebase/firestore"
 import { db } from "@/app/lib/firebase"
 
@@ -18,23 +16,15 @@ type SpeakingHistoryInput = {
 }
 
 export async function saveSpeakingHistory(input: SpeakingHistoryInput) {
-  const {
-    uid,
-    prompt,
-    candidate,
-    transcript,
-    evaluation,
-  } = input
-
-  const ref = collection(db, "users", uid, "speakingHistory")
+  const ref = collection(db, "users", input.uid, "speakingHistory")
 
   await addDoc(ref, {
     type: "speaking",
-    prompt,
-    candidate,
-    transcript,
-    evaluation,
-    totalScore: evaluation.totalScore,
+    prompt: input.prompt,
+    candidate: input.candidate,
+    transcript: input.transcript,
+    evaluation: input.evaluation,
+    totalScore: input.evaluation.totalScore,
     createdAt: serverTimestamp(),
   })
 }
