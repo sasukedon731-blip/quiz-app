@@ -781,6 +781,45 @@ export default function HomePage() {
             )}
           </div>
         </section>
+        {/* ★ 目玉AI会話ブロック */}
+<div
+  style={{
+    marginTop: 18,
+    padding: 18,
+    borderRadius: 18,
+    background: "linear-gradient(135deg, #10b981, #0f766e)",
+    color: "#fff",
+    boxShadow: "0 12px 24px rgba(0,0,0,0.12)",
+  }}
+>
+  <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 6 }}>
+    🚀 今すぐAI会話で実力アップ
+  </div>
+
+  <div style={{ fontSize: 13, opacity: 0.95, lineHeight: 1.6 }}>
+    単語・問題だけじゃなく、「話せる力」を一気に伸ばす。
+    AIがその場で評価・改善ポイントまでフィードバック。
+  </div>
+
+  <button
+    onClick={goSpeaking}
+    style={{
+      marginTop: 12,
+      width: "100%",
+      padding: "14px",
+      borderRadius: 14,
+      border: "none",
+      background: "#fff",
+      color: "#0f766e",
+      fontWeight: 900,
+      fontSize: 16,
+      cursor: "pointer",
+      boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
+    }}
+  >
+    AI会話を始める
+  </button>
+</div>
       </div>
     </main>
   )
