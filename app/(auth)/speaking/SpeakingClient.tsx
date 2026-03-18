@@ -32,7 +32,7 @@ type EvaluationResult = {
 }
 
 export default function SpeakingClient() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [selected, setSelected] = useState<Candidate | null>(null)
@@ -86,6 +86,7 @@ export default function SpeakingClient() {
 
   async function evaluate(spoken: string) {
     if (!selected) return
+    if (!spoken?.trim()) return
 
     try {
       setError("")
@@ -109,28 +110,37 @@ export default function SpeakingClient() {
       const nextEvaluation = json as EvaluationResult
       setEvaluation(nextEvaluation)
 
-      if (user?.uid && spoken) {
-        const totalScore = Math.round(
-          ((nextEvaluation.scores?.meaning ?? 0) +
-            (nextEvaluation.scores?.naturalness ?? 0) +
-            (nextEvaluation.scores?.politeness ?? 0)) /
-            3
-        )
-
-        await saveSpeakingHistory({
-          uid: user.uid,
-          prompt: selected.japanese,
-          candidate: selected.japanese,
-          transcript: spoken,
-          evaluation: {
-            meaning: nextEvaluation.scores?.meaning ?? 0,
-            naturalness: nextEvaluation.scores?.naturalness ?? 0,
-            politeness: nextEvaluation.scores?.politeness ?? 0,
-            totalScore,
-            comment: nextEvaluation.shortFeedback,
-          },
-        })
+      if (authLoading) {
+        console.warn("認証状態の確認中のため、履歴保存をスキップしました")
+        return
       }
+
+      if (!user?.uid) {
+        console.warn("ユーザー未ログインのため、履歴保存をスキップしました")
+        return
+      }
+
+      const totalScore = Math.round(
+        ((nextEvaluation.scores?.meaning ?? 0) +
+          (nextEvaluation.scores?.naturalness ?? 0) +
+          (nextEvaluation.scores?.politeness ?? 0)) / 3
+      )
+
+      await saveSpeakingHistory({
+        uid: user.uid,
+        prompt: selected.japanese,
+        candidate: selected.japanese,
+        transcript: spoken,
+        evaluation: {
+          meaning: nextEvaluation.scores?.meaning ?? 0,
+          naturalness: nextEvaluation.scores?.naturalness ?? 0,
+          politeness: nextEvaluation.scores?.politeness ?? 0,
+          totalScore,
+          comment: nextEvaluation.shortFeedback,
+        },
+      })
+
+      console.log("speaking history saved")
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "評価に失敗しました")
