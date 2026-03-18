@@ -221,7 +221,7 @@ export default function PlansPage() {
   const months = monthsFromDays(durationDays)
   const planTotal = calcTotal(PRICE_YEN_30D[pendingPlan], durationDays)
   const planPerMonth = calcPerMonth(planTotal, durationDays)
-  const aiOptionTotal = addAiConversation ? 500 : 0
+  const aiOptionTotal = addAiConversation ? 500 * months : 0
   const grandTotal = planTotal + aiOptionTotal
 
   return (
@@ -409,7 +409,7 @@ export default function PlansPage() {
         <div style={{ fontWeight: 900, fontSize: 18 }}>AI会話オプション</div>
         <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, opacity: 0.88 }}>
           AI会話は通常の選べる教材には含まれません。
-          <br />3教材・5教材・7教材プランに <b>+¥500</b> で追加できます。
+          <br />3教材・5教材・7教材プランに <b>月額¥500</b> で追加できます。
           <br />教材数には含まれない、別枠の実践トレーニングです。
         </div>
 
@@ -423,7 +423,7 @@ export default function PlansPage() {
           <div style={styles.pmBody}>
             <div style={styles.pmTop}>
               <div style={styles.pmLabel}>AI会話を追加する</div>
-              <span style={styles.pmBadge}>+¥500固定</span>
+              <span style={styles.pmBadge}>月額 ¥500</span>
             </div>
             <div style={styles.pmDesc}>通常教材とは別枠。実際に話して練習できます。</div>
           </div>
@@ -436,7 +436,8 @@ export default function PlansPage() {
         ) : null}
 
         <div style={{ marginTop: 10, fontSize: 12, opacity: 0.78, lineHeight: 1.6 }}>
-          ※ AI会話オプションは期間割引の対象外です（常に +¥500）
+          ※ AI会話オプションは割引なしです。
+          {addAiConversation ? ` 選択中の${periodLabel(durationDays)}では ¥500 × ${months}ヶ月 = ¥${formatYen(aiOptionTotal)} になります。` : ""}
         </div>
       </section>
 
@@ -450,7 +451,7 @@ export default function PlansPage() {
           </div>
           <div style={styles.totalRow}>
             <span>AI会話オプション</span>
-            <b>{addAiConversation ? `+¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
+            <b>{addAiConversation ? `¥500 × ${months}ヶ月 = ¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
           </div>
         </div>
 
@@ -459,7 +460,7 @@ export default function PlansPage() {
         <div style={styles.totalBottom}>
           <div>
             <div style={styles.totalLabel}>今回のお支払い</div>
-            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"} / 実質 ¥{formatYen(planPerMonth)} / 月</div>
+            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"} / 基本プラン実質 ¥{formatYen(planPerMonth)} / 月</div>
           </div>
           <div style={styles.totalPrice}>¥{formatYen(grandTotal)}</div>
         </div>
