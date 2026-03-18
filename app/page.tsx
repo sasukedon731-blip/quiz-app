@@ -413,10 +413,6 @@ export default function HomePage() {
             <a href="#plans" style={styles.drawerLink} onClick={closeMenu}>
               プラン
             </a>
-            <a href="#flow" style={styles.drawerLink} onClick={closeMenu}>
-              流れ
-            </a>
-
             <div style={styles.drawerDivider} />
 
             {user ? (
@@ -486,27 +482,18 @@ export default function HomePage() {
               “今月の教材” に集中できる学習体験
             </h1>
             <div style={isMobile ? { ...styles.heroStack, marginTop: 14 } : styles.heroStack}>
-              <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16, marginTop: 0 } : styles.gameHero}>
-              <div style={styles.gameHeroTop}>
-                <div style={styles.gameHeroBadge}>🔥 今月のおすすめ</div>
-                <div style={styles.gameHeroTitle}>🎮 日本語バトル</div>
-                <div style={styles.gameHeroSub}>
-                  {user ? "今日も腕試し！スコア・レベルが保存されます" : "登録不要でまず体験。ゲストは1日1回プレイOK"}
-                </div>
-              </div>
-
-              <button type="button" onClick={goJapaneseBattle} style={styles.gameHeroBtn}>
-                今すぐバトルする
-              </button>
-
-              <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
-              </div>
-
-              <div style={isMobile ? { ...styles.speakingHero, padding: 14, borderRadius: 16 } : styles.speakingHero}>
+              <div
+                style={
+                  isMobile
+                    ? { ...styles.speakingHero, padding: 16, borderRadius: 16 }
+                    : { ...styles.speakingHero, padding: 20 }
+                }
+              >
                 <div style={styles.gameHeroTop}>
-                  <div style={styles.speakingHeroBadge}>🎤 AI会話トレーニング</div>
-                  <div style={styles.gameHeroTitle}>AI日本語スピーキング</div>
-                  <div style={styles.gameHeroSub}>言いたいことを日本語にして、話して、AI評価まで一気に練習できます</div>
+                  <div style={styles.speakingHeroTitle}>🎤 AI日本語スピーキング</div>
+                  <div style={styles.speakingHeroSub}>
+                    言いたいことを日本語にして、話して、AI評価まで一気に練習できます
+                  </div>
                 </div>
 
                 <button type="button" onClick={goSpeaking} style={styles.speakingHeroBtn}>
@@ -514,6 +501,21 @@ export default function HomePage() {
                 </button>
 
                 <div style={styles.gameHeroNote}>※ マイクが必要です。スマホでも練習できます</div>
+              </div>
+
+              <div style={isMobile ? { ...styles.gameHero, padding: 14, borderRadius: 16, marginTop: 0 } : styles.gameHero}>
+                <div style={styles.gameHeroTop}>
+                  <div style={styles.gameHeroTitle}>🎮 日本語バトル</div>
+                  <div style={styles.gameHeroSub}>
+                    {user ? "今日も腕試し！スコア・レベルが保存されます" : "登録不要でまず体験。ゲストは1日1回プレイOK"}
+                  </div>
+                </div>
+
+                <button type="button" onClick={goJapaneseBattle} style={styles.gameHeroBtn}>
+                  今すぐバトルする
+                </button>
+
+                <div style={styles.gameHeroNote}>{user ? "※ ランキングはゲーム内から挑戦できます" : "※ 2回目以降は登録で解放"}</div>
               </div>
             </div>
 
@@ -741,29 +743,23 @@ export default function HomePage() {
             <div style={styles.sectionSub}>教材は月替わりで変更。企業は請求/振込にも対応可能。</div>
           </div>
 
-          <div style={styles.grid4}>
-            <div style={styles.planCard}>
-              <div style={styles.planTitle}>trial</div>
-              <div style={styles.planText}>お試し（教材固定1つ）</div>
-              <div style={styles.planMeta}>まず体験したい人向け</div>
-            </div>
-
+          <div style={styles.grid3}>
             <div style={styles.planCard}>
               <div style={styles.planTitle}>3教材</div>
               <div style={styles.planText}>毎月3教材を選択</div>
-              <div style={styles.planMeta}>個人学習の主力</div>
+              <div style={styles.planMeta}>まずは無理なく始めたい人向け</div>
             </div>
 
             <div style={styles.planCard}>
               <div style={styles.planTitle}>5教材</div>
               <div style={styles.planText}>毎月5教材を選択</div>
-              <div style={styles.planMeta}>短期で伸ばしたい人</div>
+              <div style={styles.planMeta}>標準的にしっかり学びたい人向け</div>
             </div>
 
             <div style={styles.planCard}>
-              <div style={styles.planTitle}>ALL</div>
-              <div style={styles.planText}>全教材を利用</div>
-              <div style={styles.planMeta}>企業研修・管理に最適</div>
+              <div style={styles.planTitle}>7教材</div>
+              <div style={styles.planText}>毎月7教材を選択</div>
+              <div style={styles.planMeta}>幅広く一気に伸ばしたい人向け</div>
             </div>
           </div>
 
@@ -785,57 +781,6 @@ export default function HomePage() {
             )}
           </div>
         </section>
-
-        <section id="flow" style={styles.section}>
-          <div style={styles.sectionHead}>
-            <h2 style={styles.h2}>学習の流れ</h2>
-            <div style={styles.sectionSub}>迷わない導線で、学習だけに集中。</div>
-          </div>
-
-          <ol style={styles.flow}>
-            <li>
-              <b>ログイン</b>（公式LINE入口はここに接続予定）
-            </li>
-            <li>
-              <b>教材選択</b>（今月の受講を確定 → 1ヶ月ロック）
-            </li>
-            <li>
-              <b>学習</b>（通常 / 模擬 / 復習）
-            </li>
-            <li>
-              <b>可視化</b>（進捗・合格率・履歴）
-            </li>
-          </ol>
-
-          <div style={styles.centerRow}>
-            <Button variant="main" onClick={cta}>
-              {user ? "学習を始める" : "ログインして始める"}
-            </Button>
-          </div>
-        </section>
-
-        <footer style={styles.footer}>
-          <div style={styles.footerInner}>
-            <div style={{ fontWeight: 900 }}>学習クイズプラットフォーム</div>
-            <div style={{ opacity: 0.7, marginTop: 6, lineHeight: 1.6 }}>
-              教材追加・分野分け・出題形式拡張（スピーキング/画像）など、成長前提で設計しています。
-            </div>
-            <div style={styles.footerLinks}>
-              <a href="#features" style={styles.footerLink}>
-                特徴
-              </a>
-              <a href="#contents" style={styles.footerLink}>
-                教材
-              </a>
-              <a href="#plans" style={styles.footerLink}>
-                プラン
-              </a>
-              <a href="#flow" style={styles.footerLink}>
-                流れ
-              </a>
-            </div>
-          </div>
-        </footer>
       </div>
     </main>
   )
@@ -942,7 +887,7 @@ const styles: Record<string, React.CSSProperties> = {
   h1: { margin: 0, fontSize: 34, letterSpacing: 0.2, lineHeight: 1.1 },
   lead: { marginTop: 10, opacity: 0.85, lineHeight: 1.7, fontSize: 14 },
   heroActions: { marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" },
-  heroStack: { marginTop: 14, display: "grid", gap: 12 },
+  heroStack: { marginTop: 12, display: "grid", gap: 10 },
 
   gameHero: {
     marginTop: 12,
@@ -953,23 +898,13 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 26px rgba(0,0,0,0.14)",
     border: "1px solid rgba(255,255,255,0.12)",
   },
-  gameHeroTop: { display: "flex", flexDirection: "column", gap: 6 },
-  gameHeroBadge: {
-    display: "inline-flex",
-    alignSelf: "flex-start",
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.16)",
-    fontSize: 12,
-    fontWeight: 900,
-    letterSpacing: 0.2,
-  },
-  gameHeroTitle: { fontSize: 18, fontWeight: 900, letterSpacing: 0.2 },
-  gameHeroSub: { opacity: 0.92, fontSize: 13, lineHeight: 1.5 },
+  gameHeroTop: { display: "flex", flexDirection: "column", gap: 4 },
+  gameHeroTitle: { fontSize: 20, fontWeight: 900, letterSpacing: 0.2 },
+  gameHeroSub: { opacity: 0.92, fontSize: 13, lineHeight: 1.45 },
   gameHeroBtn: {
-    marginTop: 12,
+    marginTop: 10,
     width: "100%",
-    padding: "14px 14px",
+    padding: "13px 14px",
     borderRadius: 14,
     border: "none",
     background: "#fff",
@@ -988,16 +923,8 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
     border: "1px solid rgba(255,255,255,0.12)",
   },
-  speakingHeroBadge: {
-    display: "inline-flex",
-    alignSelf: "flex-start",
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.18)",
-    fontSize: 12,
-    fontWeight: 900,
-    letterSpacing: 0.2,
-  },
+  speakingHeroTitle: { fontSize: 22, fontWeight: 900, letterSpacing: 0.2 },
+  speakingHeroSub: { opacity: 0.96, fontSize: 14, lineHeight: 1.6 },
   speakingHeroBtn: {
     marginTop: 12,
     width: "100%",
@@ -1007,7 +934,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#0f766e",
     fontWeight: 900,
-    fontSize: 16,
+    fontSize: 17,
     cursor: "pointer",
     boxShadow: "0 10px 18px rgba(0,0,0,0.10)",
   },
@@ -1162,13 +1089,6 @@ const styles: Record<string, React.CSSProperties> = {
   industryItemDesc: { marginTop: 6, opacity: 0.8, fontSize: 12.5, lineHeight: 1.6, minHeight: 36 },
   industryItemDescMuted: { marginTop: 6, opacity: 0.5, fontSize: 12.5, minHeight: 36 },
   industryItemMeta: { marginTop: "auto", paddingTop: 8, fontSize: 12, fontWeight: 800, opacity: 0.7 },
-
-  grid4: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: 12,
-    alignItems: "stretch",
-  },
   planCard: {
     background: "#fff",
     border: "1px solid #e5e7eb",
@@ -1180,21 +1100,5 @@ const styles: Record<string, React.CSSProperties> = {
   planText: { marginTop: 6, opacity: 0.85, lineHeight: 1.6, fontSize: 13 },
   planMeta: { marginTop: 10, fontSize: 12, opacity: 0.65 },
 
-  flow: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 16,
-    padding: 14,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.05)",
-    lineHeight: 1.9,
-    margin: 0,
-    paddingLeft: 22,
-  },
-
   centerRow: { marginTop: 12, display: "flex", justifyContent: "center" },
-
-  footer: { marginTop: 18, paddingTop: 12, borderTop: "1px solid #e5e7eb" },
-  footerInner: { padding: 4 },
-  footerLinks: { marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" },
-  footerLink: { textDecoration: "none", color: "#111", opacity: 0.75, fontWeight: 800 },
 }
