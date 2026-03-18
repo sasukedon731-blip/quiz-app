@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/useAuth"
-import { calcGrowth } from "@/app/lib/calcGrowth"
 import {
   ConversationHistoryItem,
   getConversationHistory,
 } from "@/app/lib/getConversationHistory"
+import { calcGrowth } from "@/app/lib/calcGrowth"
+import ScoreTrendChart from "@/app/components/ScoreTrendChart"
 
 function formatDate(date: Date | null) {
   if (!date) return "-"
@@ -25,6 +26,10 @@ function toDisplayScore(value?: number | string) {
   return Math.max(0, Math.min(100, Math.round(num)))
 }
 
+function shortLabel(index: number) {
+  return `${index + 1}回前`
+}
+
 export default function ConversationHistoryPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -33,10 +38,6 @@ export default function ConversationHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [openId, setOpenId] = useState<string | null>(null)
-
-  const growth = useMemo(() => {
-  return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
-}, [items])
 
   useEffect(() => {
     async function load() {
@@ -67,6 +68,20 @@ export default function ConversationHistoryPage() {
       items.reduce((sum, item) => sum + Number(item.totalScore || 0), 0) /
         items.length
     )
+  }, [items])
+
+  const growth = useMemo(() => {
+    return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
+  }, [items])
+
+  const trendPoints = useMemo(() => {
+    return [...items]
+      .slice(0, 10)
+      .reverse()
+      .map((item, index) => ({
+        label: shortLabel(index),
+        score: Number(item.totalScore || 0),
+      }))
   }, [items])
 
   return (
@@ -142,35 +157,42 @@ export default function ConversationHistoryPage() {
           <SummaryCard title="会話回数" value={`${items.length}回`} />
           <SummaryCard title="平均スコア" value={`${averageScore}点`} />
         </div>
-        {growth ? (
-  <Panel>
-    <div
-      style={{
-        fontSize: 16,
-        fontWeight: 800,
-        color: "#111827",
-        marginBottom: 10,
-      }}
-    >
-      最近の成長
-    </div>
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-        gap: 10,
-      }}
-    >
-      <MiniStat label="直近平均" value={`${growth.avgRecent}点`} />
-      <MiniStat label="その前の平均" value={`${growth.avgPrev}点`} />
-      <MiniStat
-        label="変化"
-        value={`${growth.diff >= 0 ? "+" : ""}${growth.diff}点`}
-      />
-    </div>
-  </Panel>
-) : null}
+        {growth ? (
+          <Panel>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: "#111827",
+                marginBottom: 10,
+              }}
+            >
+              最近の成長
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <MiniStat label="直近平均" value={`${growth.avgRecent}点`} />
+              <MiniStat label="その前の平均" value={`${growth.avgPrev}点`} />
+              <MiniStat
+                label="変化"
+                value={`${growth.diff >= 0 ? "+" : ""}${growth.diff}点`}
+              />
+            </div>
+          </Panel>
+        ) : null}
+
+        {trendPoints.length > 0 ? (
+          <div style={{ marginBottom: 18 }}>
+            <ScoreTrendChart title="スコア推移" points={trendPoints} />
+          </div>
+        ) : null}
 
         {loading ? (
           <Panel>
@@ -262,7 +284,7 @@ export default function ConversationHistoryPage() {
                       >
                         <Badge>{item.themeLabel || item.theme}</Badge>
                         <Badge>{item.levelLabel || item.level}</Badge>
-                        <BadgeDark>{item.totalScore}点</BadgeDark>
+                        <BadgeDark>{toDisplayScore(item.totalScore)}点</BadgeDark>
                       </div>
 
                       <div
@@ -297,7 +319,7 @@ export default function ConversationHistoryPage() {
                           value={`${toDisplayScore(item.evaluation?.politeness)}点`}
                         />
                         <MiniStat
-                          label="会話継続力"
+                          label="継続力"
                           value={`${toDisplayScore(item.evaluation?.continuity)}点`}
                         />
                       </div>
@@ -323,116 +345,37 @@ export default function ConversationHistoryPage() {
 
                   {open ? (
                     <div style={{ marginTop: 16 }}>
-                      {!!item.evaluation?.goodPoints?.length && (
-                        <SectionBox
-                          title="良かったところ"
-                          items={item.evaluation.goodPoints}
-                        />
-                      )}
-
-                      {!!item.evaluation?.nextTips?.length && (
-                        <SectionBox
-                          title="次に意識すること"
-                          items={item.evaluation.nextTips}
-                        />
-                      )}
-
-                      {item.evaluation?.comment ? (
-                        <div
-                          style={{
-                            marginTop: 12,
-                            background: "#f9fafb",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: 14,
-                            padding: 14,
-                            fontSize: 14,
-                            color: "#374151",
-                            lineHeight: 1.8,
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {item.evaluation.comment}
-                        </div>
+                      {item.evaluation?.goodPoints?.length ? (
+                        <SectionBlock title="良かったところ">
+                          <BulletList items={item.evaluation.goodPoints} />
+                        </SectionBlock>
                       ) : null}
 
-                      <div
-                        style={{
-                          marginTop: 14,
-                          background: "#f9fafb",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 14,
-                          padding: 14,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 15,
-                            fontWeight: 800,
-                            color: "#111827",
-                            marginBottom: 10,
-                          }}
-                        >
-                          会話ログ
-                        </div>
+                      {item.evaluation?.nextTips?.length ? (
+  <SectionBlock title="次に意識すること">
+    <BulletList items={item.evaluation.nextTips} />
+  </SectionBlock>
+) : null}
 
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {item.messages.map((msg, index) => {
-                            const isAi = msg.role === "ai"
-                            return (
-                              <div
-                                key={`${item.id}_${index}`}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: isAi
-                                    ? "flex-start"
-                                    : "flex-end",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    maxWidth: "80%",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: isAi
-                                      ? "flex-start"
-                                      : "flex-end",
-                                    gap: 4,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      fontSize: 12,
-                                      color: "#6b7280",
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {isAi ? "AI" : "あなた"}
-                                  </div>
-                                  <div
-                                    style={{
-                                      background: isAi
-                                        ? "#ffffff"
-                                        : "#22c55e",
-                                      color: isAi ? "#111827" : "#ffffff",
-                                      border: isAi
-                                        ? "1px solid #e5e7eb"
-                                        : "none",
-                                      borderRadius: 16,
-                                      padding: "10px 12px",
-                                      fontSize: 14,
-                                      lineHeight: 1.8,
-                                      whiteSpace: "pre-wrap",
-                                      wordBreak: "break-word",
-                                    }}
-                                  >
-                                    {msg.text}
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                      {item.evaluation?.comment ? (
+                        <SectionBlock title="コメント">
+                          <PlainBox>{item.evaluation.comment}</PlainBox>
+                        </SectionBlock>
+                      ) : null}
+
+                      {item.messages?.length ? (
+                        <SectionBlock title="会話ログ">
+                          <div style={{ display: "grid", gap: 10 }}>
+                            {item.messages.map((message, index) => (
+                              <MessageBubble
+                                key={`${item.id}-${index}`}
+                                role={message.role}
+                                text={message.text}
+                              />
+                            ))}
+                          </div>
+                        </SectionBlock>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -454,6 +397,7 @@ function Panel({ children }: { children: React.ReactNode }) {
         borderRadius: 18,
         padding: 18,
         boxShadow: "0 10px 30px rgba(17,24,39,0.05)",
+        marginBottom: 18,
       }}
     >
       {children}
@@ -506,9 +450,9 @@ function Badge({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        background: "#eff6ff",
-        color: "#1d4ed8",
-        border: "1px solid #bfdbfe",
+        background: "#eef2ff",
+        color: "#4338ca",
+        border: "1px solid #c7d2fe",
         borderRadius: 999,
         padding: "6px 10px",
         fontSize: 12,
@@ -577,23 +521,15 @@ function MiniStat({
   )
 }
 
-function SectionBox({
+function SectionBlock({
   title,
-  items,
+  children,
 }: {
   title: string
-  items: string[]
+  children: React.ReactNode
 }) {
   return (
-    <div
-      style={{
-        marginTop: 12,
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
-        borderRadius: 14,
-        padding: 14,
-      }}
-    >
+    <div style={{ marginTop: 12 }}>
       <div
         style={{
           fontSize: 14,
@@ -604,24 +540,90 @@ function SectionBox({
       >
         {title}
       </div>
+      {children}
+    </div>
+  )
+}
 
-      <div style={{ display: "grid", gap: 8 }}>
-        {items.map((item, index) => (
-          <div
-            key={`${title}_${index}`}
-            style={{
-              fontSize: 14,
-              color: "#374151",
-              lineHeight: 1.7,
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: 12,
-              padding: "10px 12px",
-            }}
-          >
-            {item}
-          </div>
-        ))}
+function PlainBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
+        borderRadius: 14,
+        padding: 14,
+        fontSize: 14,
+        color: "#374151",
+        lineHeight: 1.8,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      {items.map((item, index) => (
+        <div
+          key={`${item}-${index}`}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 14,
+            color: "#374151",
+            lineHeight: 1.7,
+            fontWeight: 700,
+          }}
+        >
+          <span style={{ color: "#111827" }}>•</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MessageBubble({
+  role,
+  text,
+}: {
+  role: string
+  text: string
+}) {
+  const isUser = role === "user"
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: isUser ? "flex-end" : "flex-start",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "85%",
+          background: isUser ? "#dcfce7" : "#ffffff",
+          border: `1px solid ${isUser ? "#86efac" : "#e5e7eb"}`,
+          borderRadius: 16,
+          padding: 12,
+          fontSize: 14,
+          color: "#374151",
+          lineHeight: 1.7,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {text}
       </div>
     </div>
   )

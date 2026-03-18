@@ -18,21 +18,6 @@ function normalizeScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-function labelOverall(value: string) {
-  switch (value) {
-    case "excellent":
-      return "とても良い"
-    case "good":
-      return "良い"
-    case "almost_ok":
-      return "あと少しで自然"
-    case "needs_work":
-      return "練習でもっと良くなる"
-    default:
-      return value || "評価結果"
-  }
-}
-
 function scoreColor(score: number) {
   if (score >= 90) {
     return {
@@ -42,6 +27,7 @@ function scoreColor(score: number) {
       bar: "#10b981",
     }
   }
+
   if (score >= 75) {
     return {
       bg: "#eff6ff",
@@ -50,6 +36,7 @@ function scoreColor(score: number) {
       bar: "#3b82f6",
     }
   }
+
   if (score >= 60) {
     return {
       bg: "#fffbeb",
@@ -58,12 +45,29 @@ function scoreColor(score: number) {
       bar: "#f59e0b",
     }
   }
+
   return {
     bg: "#fef2f2",
     border: "#fecaca",
     text: "#b91c1c",
     bar: "#ef4444",
   }
+}
+
+function calcTotalScore(scores: EvaluationResult["scores"]) {
+  return Math.round(
+    (normalizeScore(scores.meaning) +
+      normalizeScore(scores.naturalness) +
+      normalizeScore(scores.politeness)) /
+      3
+  )
+}
+
+function scoreComment(score: number) {
+  if (score >= 90) return "かなり良い"
+  if (score >= 75) return "良い"
+  if (score >= 60) return "あと少し"
+  return "練習しよう"
 }
 
 function ScoreCard({
@@ -152,13 +156,7 @@ function ScoreCard({
           color: colors.text,
         }}
       >
-        {score >= 90
-          ? "かなり良い"
-          : score >= 75
-            ? "良い"
-            : score >= 60
-              ? "あと少し"
-              : "練習しよう"}
+        {scoreComment(score)}
       </div>
     </div>
   )
@@ -225,13 +223,22 @@ export default function EvaluationCard({
 }: {
   result: EvaluationResult
 }) {
-  const overallLabel = labelOverall(result.overallResult)
+  const totalScore = calcTotalScore(result.scores)
 
   return (
     <div style={styles.wrap}>
       <div style={styles.overallCard}>
-        <div style={styles.overallLabel}>総合評価</div>
-        <div style={styles.overallValue}>{overallLabel}</div>
+        <div style={styles.overallTopRow}>
+          <div>
+            <div style={styles.overallLabel}>総合評価</div>
+            <div style={styles.overallValue}>{result.overallResult}</div>
+          </div>
+
+          <div style={styles.totalScoreBadge}>
+            <div style={styles.totalScoreNumber}>{totalScore}</div>
+            <div style={styles.totalScoreUnit}>/ 100</div>
+          </div>
+        </div>
 
         {result.shortFeedback ? (
           <div style={styles.overallText}>{result.shortFeedback}</div>
@@ -279,6 +286,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 24,
     padding: 18,
   },
+  overallTopRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 10,
+  },
   overallLabel: {
     fontSize: 14,
     fontWeight: 900,
@@ -286,11 +301,11 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 8,
   },
   overallValue: {
-    fontSize: 34,
-    lineHeight: 1.15,
+    fontSize: 26,
+    lineHeight: 1.5,
     fontWeight: 900,
     color: "#0f172a",
-    marginBottom: 10,
+    wordBreak: "break-word",
   },
   overallText: {
     fontSize: 16,
@@ -298,9 +313,31 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#334155",
     fontWeight: 700,
   },
+  totalScoreBadge: {
+    minWidth: 110,
+    background: "#ffffff",
+    border: "1px solid #bbf7d0",
+    borderRadius: 20,
+    padding: "12px 14px",
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: 6,
+  },
+  totalScoreNumber: {
+    fontSize: 32,
+    lineHeight: 1,
+    fontWeight: 900,
+    color: "#0f172a",
+  },
+  totalScoreUnit: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#64748b",
+  },
   scoreGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 10,
   },
   recommendCard: {

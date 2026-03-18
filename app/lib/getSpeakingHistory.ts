@@ -1,6 +1,11 @@
-// app/lib/getSpeakingHistory.ts
-
-import { collection, getDocs, orderBy, query } from "firebase/firestore"
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  Timestamp,
+} from "firebase/firestore"
 import { db } from "@/app/lib/firebase"
 
 export type SpeakingHistoryItem = {
@@ -19,56 +24,53 @@ export type SpeakingHistoryItem = {
   createdAt: Date | null
 }
 
-export async function getSpeakingHistory(
-  uid: string
-): Promise<SpeakingHistoryItem[]> {
-  const ref = collection(db, "users", uid, "speakingHistory")
-  const q = query(ref, orderBy("createdAt", "desc"))
-  const snap = await getDocs(q)
+function toDate(value: unknown): Date | null {
+  if (value instanceof Timestamp) return value.toDate()
+  if (value instanceof Date) return value
+  return null
+}
 
-  return snap.docs.map((doc) => {
-    const d = doc.data()
-    const evaluationRaw = d.evaluation ?? null
+function toNumber(value: unknown, fallback = 0) {
+  const num = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(num) ? num : fallback
+}
+
+export async function getSpeakingHistory(
+  uid: string,
+  maxCount = 30
+): Promise<SpeakingHistoryItem[]> {
+  if (!uid) return []
+
+  const ref = collection(db, "users", uid, "speakingHistory")
+  const q = query(ref, orderBy("createdAt", "desc"), limit(maxCount))
+  const snapshot = await getDocs(q)
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data()
+    const evaluationRaw = data.evaluation ?? null
 
     return {
       id: doc.id,
-      prompt: typeof d.prompt === "string" ? d.prompt : "",
-      candidate: typeof d.candidate === "string" ? d.candidate : "",
-      transcript: typeof d.transcript === "string" ? d.transcript : "",
-      totalScore:
-        typeof d.totalScore === "number"
-          ? d.totalScore
-          : typeof evaluationRaw?.totalScore === "number"
-          ? evaluationRaw.totalScore
-          : 0,
+      prompt: String(data.prompt || ""),
+      candidate: String(data.candidate || ""),
+      transcript: String(data.transcript || ""),
+      totalScore: toNumber(
+        data.totalScore,
+        toNumber(evaluationRaw?.totalScore, 0)
+      ),
       evaluation: evaluationRaw
         ? {
-            meaning:
-              typeof evaluationRaw.meaning === "number"
-                ? evaluationRaw.meaning
-                : 0,
-            naturalness:
-              typeof evaluationRaw.naturalness === "number"
-                ? evaluationRaw.naturalness
-                : 0,
-            politeness:
-              typeof evaluationRaw.politeness === "number"
-                ? evaluationRaw.politeness
-                : 0,
-            totalScore:
-              typeof evaluationRaw.totalScore === "number"
-                ? evaluationRaw.totalScore
-                : 0,
+            meaning: toNumber(evaluationRaw.meaning, 0),
+            naturalness: toNumber(evaluationRaw.naturalness, 0),
+            politeness: toNumber(evaluationRaw.politeness, 0),
+            totalScore: toNumber(evaluationRaw.totalScore, 0),
             comment:
               typeof evaluationRaw.comment === "string"
                 ? evaluationRaw.comment
                 : undefined,
           }
         : null,
-      createdAt:
-        d.createdAt && typeof d.createdAt.toDate === "function"
-          ? d.createdAt.toDate()
-          : null,
+      createdAt: toDate(data.createdAt),
     }
   })
 }

@@ -8,6 +8,7 @@ import {
   getSpeakingHistory,
 } from "@/app/lib/getSpeakingHistory"
 import { calcGrowth } from "@/app/lib/calcGrowth"
+import ScoreTrendChart from "@/app/components/ScoreTrendChart"
 
 function formatDate(date: Date | null) {
   if (!date) return "-"
@@ -19,6 +20,10 @@ function formatDate(date: Date | null) {
   return `${y}/${m}/${d} ${hh}:${mm}`
 }
 
+function shortLabel(index: number) {
+  return `${index + 1}回前`
+}
+
 export default function SpeakingHistoryPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -27,10 +32,6 @@ export default function SpeakingHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [openId, setOpenId] = useState<string | null>(null)
-
-  const growth = useMemo(() => {
-    return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
-  }, [items])
 
   useEffect(() => {
     async function load() {
@@ -42,7 +43,7 @@ export default function SpeakingHistoryPage() {
       try {
         setLoading(true)
         setError("")
-        const rows = await getSpeakingHistory(user.uid)
+        const rows = await getSpeakingHistory(user.uid, 50)
         setItems(rows)
       } catch (e: any) {
         console.error(e)
@@ -61,6 +62,20 @@ export default function SpeakingHistoryPage() {
       items.reduce((sum, item) => sum + Number(item.totalScore || 0), 0) /
         items.length
     )
+  }, [items])
+
+  const growth = useMemo(() => {
+    return calcGrowth(items.map((item) => Number(item.totalScore || 0)))
+  }, [items])
+
+  const trendPoints = useMemo(() => {
+    return [...items]
+      .slice(0, 10)
+      .reverse()
+      .map((item, index) => ({
+        label: shortLabel(index),
+        score: Number(item.totalScore || 0),
+      }))
   }, [items])
 
   return (
@@ -165,6 +180,12 @@ export default function SpeakingHistoryPage() {
               />
             </div>
           </Panel>
+        ) : null}
+
+        {trendPoints.length > 0 ? (
+          <div style={{ marginBottom: 18 }}>
+            <ScoreTrendChart title="スコア推移" points={trendPoints} />
+          </div>
         ) : null}
 
         {loading ? (
@@ -357,6 +378,7 @@ function Panel({ children }: { children: React.ReactNode }) {
         borderRadius: 18,
         padding: 18,
         boxShadow: "0 10px 30px rgba(17,24,39,0.05)",
+        marginBottom: 18,
       }}
     >
       {children}
