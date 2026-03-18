@@ -797,12 +797,12 @@ export default function HomePage() {
   </div>
 
   <div style={{ fontSize: 13, opacity: 0.95, lineHeight: 1.6 }}>
-    単語・問題だけじゃなく、「話せる力」を一気に伸ばす。
-    AIがその場で評価・改善ポイントまでフィードバック。
+    実際の会話形式で、日本語をアウトプット。
+    AIがリアルタイムで評価・改善ポイントをフィードバック。
   </div>
 
   <button
-    onClick={goSpeaking}
+    onClick={() => router.push("/conversation")}
     style={{
       marginTop: 12,
       width: "100%",
@@ -814,7 +814,6 @@ export default function HomePage() {
       fontWeight: 900,
       fontSize: 16,
       cursor: "pointer",
-      boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
     }}
   >
     AI会話を始める
