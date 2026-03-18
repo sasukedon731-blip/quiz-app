@@ -113,6 +113,7 @@ export default function PlansPage() {
   const [error, setError] = useState("")
 
   const [currentPlan, setCurrentPlan] = useState<PlanId>("trial")
+  const [pendingPlan, setPendingPlan] = useState<"3" | "5" | "7">("3")
   const [addAiConversation, setAddAiConversation] = useState(false)
   const [aiConversationEnabled, setAiConversationEnabled] = useState(false)
   const [billingMethod, setBillingMethod] = useState<"convenience" | "card">(
@@ -140,6 +141,7 @@ export default function PlansPage() {
       try {
         const st = await loadAndRepairUserPlanState(uid)
         setCurrentPlan(st.plan)
+        setPendingPlan(st.plan === "3" || st.plan === "5" || st.plan === "7" ? st.plan : "3")
         setDisplayName(st.displayName)
 
         const userSnap = await getDoc(doc(db, "users", uid))
@@ -217,10 +219,10 @@ export default function PlansPage() {
   if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
 
   const months = monthsFromDays(durationDays)
-  const currentPlanBase30 = currentPlan === "3" || currentPlan === "5" || currentPlan === "7" ? PRICE_YEN_30D[currentPlan] : 0
-  const selectedPlanTotal = currentPlanBase30 ? calcTotal(currentPlanBase30, durationDays) : 0
-  const aiOptionTotal = addAiConversation ? calcTotal(500, durationDays) : 0
-  const grandTotal = selectedPlanTotal + aiOptionTotal
+  const planTotal = calcTotal(PRICE_YEN_30D[pendingPlan], durationDays)
+  const planPerMonth = calcPerMonth(planTotal, durationDays)
+  const aiOptionTotal = addAiConversation ? 500 : 0
+  const grandTotal = planTotal + aiOptionTotal
 
   return (
     <main style={styles.main}>
@@ -336,8 +338,9 @@ export default function PlansPage() {
 
       {/* プラン一覧（価格表示つき） */}
       <div style={styles.planGrid}>
-        {(["3", "5", "7"] as PlanId[]).map((p) => {
+        {(["3", "5", "7"] as const).map((p) => {
           const isCurrent = p === currentPlan
+          const isPending = p === pendingPlan
 
           const base30 = PRICE_YEN_30D[p]
           const total = calcTotal(base30, durationDays)
@@ -346,11 +349,19 @@ export default function PlansPage() {
           const saved = Math.max(0, compareTotal - total)
 
           return (
-            <div key={p} style={styles.planCard}>
-              <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
+            <div
+              key={p}
+              style={{
+                ...styles.planCard,
+                ...(isPending ? styles.planCardSelected : null),
+              }}
+            >
+              <div style={styles.planHeadRow}>
+                <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
+                {isCurrent ? <span style={styles.currentBadge}>利用中</span> : null}
+              </div>
               <div style={styles.planDesc}>{PLAN_DESC[p]}</div>
 
-              {/* ✅ 価格ブロック */}
               <div style={{ marginTop: 12 }}>
                 <div style={styles.priceRow}>
                   <div style={styles.priceMain}>
@@ -377,16 +388,17 @@ export default function PlansPage() {
               </div>
 
               <button
-                onClick={() => handleChoose(p)}
-                disabled={saving || isCurrent}
+                type="button"
+                onClick={() => setPendingPlan(p)}
+                disabled={saving}
                 style={{
                   ...styles.planBtn,
-                  background: isCurrent ? "#9ca3af" : "#2563eb",
-                  cursor: saving || isCurrent ? "not-allowed" : "pointer",
+                  background: isPending ? "#2563eb" : "#111827",
+                  cursor: saving ? "not-allowed" : "pointer",
                   opacity: saving ? 0.85 : 1,
                 }}
               >
-                {isCurrent ? "現在のプラン" : saving ? "更新中..." : "このプランにする"}
+                {isPending ? "選択中" : isCurrent ? "このプランに変更する" : "このプランを選ぶ"}
               </button>
             </div>
           )
@@ -397,7 +409,7 @@ export default function PlansPage() {
         <div style={{ fontWeight: 900, fontSize: 18 }}>AI会話オプション</div>
         <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, opacity: 0.88 }}>
           AI会話は通常の選べる教材には含まれません。
-          <br />3教材・5教材・7教材プランに <b>+¥{formatYen(calcTotal(500, durationDays))}</b> / {periodLabel(durationDays)} で追加できます。
+          <br />3教材・5教材・7教材プランに <b>+¥500</b> で追加できます。
           <br />教材数には含まれない、別枠の実践トレーニングです。
         </div>
 
@@ -411,7 +423,7 @@ export default function PlansPage() {
           <div style={styles.pmBody}>
             <div style={styles.pmTop}>
               <div style={styles.pmLabel}>AI会話を追加する</div>
-              <span style={styles.pmBadge}>+¥500</span>
+              <span style={styles.pmBadge}>+¥500固定</span>
             </div>
             <div style={styles.pmDesc}>通常教材とは別枠。実際に話して練習できます。</div>
           </div>
@@ -422,17 +434,23 @@ export default function PlansPage() {
             現在AI会話オプションは有効です
           </div>
         ) : null}
+
+        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.78, lineHeight: 1.6 }}>
+          ※ AI会話オプションは期間割引の対象外です（常に +¥500）
+        </div>
       </section>
-      <section style={{ ...styles.card, marginTop: 16, borderColor: "rgba(37,99,235,.22)", background: "#f8fafc" }}>
+
+      <section style={{ ...styles.card, marginTop: 16, borderColor: "rgba(37,99,235,.24)", background: "#f8fafc" }}>
         <div style={{ fontWeight: 900, fontSize: 18 }}>お支払い合計</div>
-        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+
+        <div style={styles.totalBox}>
           <div style={styles.totalRow}>
-            <span>{PLAN_LABEL[currentPlan]}（{periodLabel(durationDays)}）</span>
-            <b>{currentPlan === "3" || currentPlan === "5" || currentPlan === "7" ? `¥${formatYen(selectedPlanTotal)}` : "¥0"}</b>
+            <span>{PLAN_LABEL[pendingPlan]}（{periodLabel(durationDays)}）</span>
+            <b>¥{formatYen(planTotal)}</b>
           </div>
           <div style={styles.totalRow}>
-            <span>AI会話オプション（{periodLabel(durationDays)}）</span>
-            <b>{addAiConversation ? `¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
+            <span>AI会話オプション</span>
+            <b>{addAiConversation ? `+¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
           </div>
         </div>
 
@@ -441,18 +459,23 @@ export default function PlansPage() {
         <div style={styles.totalBottom}>
           <div>
             <div style={styles.totalLabel}>今回のお支払い</div>
-            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"}</div>
+            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"} / 実質 ¥{formatYen(planPerMonth)} / 月</div>
           </div>
           <div style={styles.totalPrice}>¥{formatYen(grandTotal)}</div>
         </div>
 
-        {currentPlan !== "3" && currentPlan !== "5" && currentPlan !== "7" ? (
-          <div style={{ marginTop: 10, fontSize: 12, color: "#b45309", fontWeight: 800 }}>
-            ※ 合計金額は有料プラン選択時に確定します
-          </div>
-        ) : null}
+        <button
+          onClick={() => handleChoose(pendingPlan)}
+          disabled={saving}
+          style={{
+            ...styles.checkoutBtn,
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.85 : 1,
+          }}
+        >
+          {saving ? "決済ページへ移動中..." : "この内容で決済に進む"}
+        </button>
       </section>
-
 
     </main>
   )
@@ -616,6 +639,28 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
   },
 
+  planCardSelected: {
+    border: "1px solid rgba(37,99,235,.55)",
+    boxShadow: "0 8px 22px rgba(37,99,235,.10)",
+  },
+
+  planHeadRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  currentBadge: {
+    padding: "4px 8px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 900,
+    background: "rgba(15,23,42,.08)",
+    color: "#334155",
+    whiteSpace: "nowrap",
+  },
+
   planTitle: {
     fontWeight: 900,
     fontSize: 16,
@@ -676,11 +721,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
   },
 
+  totalBox: {
+    marginTop: 12,
+    display: "grid",
+    gap: 10,
+  },
+
   totalRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     fontSize: 14,
     lineHeight: 1.5,
   },
@@ -710,12 +761,25 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 4,
     fontSize: 12,
     opacity: 0.72,
+    lineHeight: 1.5,
   },
 
   totalPrice: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: 900,
     lineHeight: 1,
     color: "#2563eb",
+  },
+
+  checkoutBtn: {
+    width: "100%",
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    border: "none",
+    background: "#111827",
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: 16,
   },
 }
