@@ -69,6 +69,7 @@ export default function SpeakingClient() {
 
       const nextCandidates = Array.isArray(json?.candidates) ? json.candidates : []
       setCandidates(nextCandidates)
+
       if (nextCandidates.length > 0) {
         setSelected(nextCandidates[0])
       }
@@ -113,13 +114,16 @@ export default function SpeakingClient() {
 
       if (!user?.uid) {
         console.warn("ユーザー未ログインのため、履歴保存をスキップしました")
+        setError("ログイン情報を確認できないため、履歴を保存できませんでした")
         return
       }
 
       const totalScore = Math.round(
-        ((nextEvaluation.scores?.meaning ?? 0) +
+        (
+          (nextEvaluation.scores?.meaning ?? 0) +
           (nextEvaluation.scores?.naturalness ?? 0) +
-          (nextEvaluation.scores?.politeness ?? 0)) / 3
+          (nextEvaluation.scores?.politeness ?? 0)
+        ) / 3
       )
 
       await saveSpeakingHistory({
