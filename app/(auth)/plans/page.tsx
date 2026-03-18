@@ -13,34 +13,36 @@ import {
 } from "@/app/lib/userPlanState"
 import AppHeader from "@/app/components/AppHeader"
 
-const PLAN_LABEL: Record<PlanId, string> = {
+// 画面表示用：通常プラン（ALLは画面に出さず、7教材を追加）
+type VisiblePlanId = "3" | "5" | "7"
+
+const CURRENT_PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
   free: "無料",
   "3": "3教材プラン",
   "5": "5教材プラン",
-  all: "ALLプラン",
+  all: "ALLプラン（開発用）",
 }
 
-const PLAN_DESC: Record<PlanId, string> = {
-  trial: "まずは1教材で体験。気に入ったらプラン変更できます。",
-  free: "無料のまま使う（お試しと同等）",
-  "3": "10以上の教材から3つ選んで受講",
-  "5": "10以上の教材から5つ選んで受講",
-  all: "全教材受講（教材追加も自動で利用可能）",
+const VISIBLE_PLAN_LABEL: Record<VisiblePlanId, string> = {
+  "3": "3教材プラン",
+  "5": "5教材プラン",
+  "7": "7教材プラン",
 }
 
-/**
- * ✅ 価格（30日）
- * - ブラザー要望：30日=500円 → 3教材プランを500円に設定
- * - ここだけ変えれば全表示が変わる
- */
-const PRICE_YEN_30D: Record<PlanId, number> = {
-  trial: 0,
-  free: 0,
-  "3": 500, // ✅ 30日500円
-  "5": 800, // ←必要なら調整
-  all: 1200, // ←必要なら調整
+const VISIBLE_PLAN_DESC: Record<VisiblePlanId, string> = {
+  "3": "選べる教材の中から3つ選んで受講",
+  "5": "選べる教材の中から5つ選んで受講",
+  "7": "選べる教材の中から7つ選んで受講",
 }
+
+const PRICE_YEN_30D: Record<VisiblePlanId, number> = {
+  "3": 500,
+  "5": 800,
+  "7": 1000,
+}
+
+const AI_OPTION_PRICE_30D = 500
 
 function formatYen(n: number) {
   return n.toLocaleString("ja-JP")
@@ -54,11 +56,6 @@ function periodLabel(days: 30 | 180 | 365) {
   return days === 30 ? "30日" : days === 180 ? "半年" : "1年"
 }
 
-/**
- * ✅ 期間合計金額（割引ルール）
- * - 半年：10%OFF
- * - 年：20%OFF
- */
 function calcTotal(base30: number, days: 30 | 180 | 365) {
   if (days === 30) return base30
   if (days === 180) return Math.round(base30 * 6 * 0.9)
@@ -70,7 +67,6 @@ function calcPerMonth(total: number, days: 30 | 180 | 365) {
   return Math.round(total / m)
 }
 
-// ✅ 業種（表示＆導線）
 type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
 
 const INDUSTRY_LABEL: Record<IndustryId, string> = {
@@ -149,7 +145,7 @@ export default function PlansPage() {
 
   const allCount = useMemo(() => Object.keys(quizzes).length, [])
 
-  const startCheckout = async (plan: PlanId) => {
+  const startCheckout = async (plan: VisiblePlanId) => {
     if (!uid) return
     setSaving(true)
     setError("")
@@ -166,7 +162,6 @@ export default function PlansPage() {
           plan,
           method: billingMethod,
           durationDays,
-          // ✅ 追加：業種（API側は受け取って保存しても、無視してもOK）
           industry,
         }),
       })
@@ -184,18 +179,17 @@ export default function PlansPage() {
     }
   }
 
-  const handleChoose = async (plan: PlanId) => {
+  const handleChoose = async (plan: PlanId | VisiblePlanId) => {
     if (!uid) return
     setSaving(true)
     setError("")
 
     try {
-      if (plan === "3" || plan === "5" || plan === "all") {
+      if (plan === "3" || plan === "5" || plan === "7") {
         await startCheckout(plan)
         return
       }
 
-      // trial/free（開発用）
       await savePlanAndNormalizeSelected({ uid, plan })
       router.push(withIndustry("/select-mode"))
     } catch (e) {
@@ -209,12 +203,13 @@ export default function PlansPage() {
   if (loading) return <div style={{ padding: 24 }}>読み込み中...</div>
 
   const months = monthsFromDays(durationDays)
+  const aiOptionTotal = calcTotal(AI_OPTION_PRICE_30D, durationDays)
+  const aiOptionPerMonth = calcPerMonth(aiOptionTotal, durationDays)
 
   return (
     <main style={styles.main}>
       <AppHeader title="プラン" />
 
-      {/* ✅ 業種表示（導線の一貫性） */}
       {industry ? (
         <section style={{ ...styles.card, borderColor: "rgba(37,99,235,.35)", background: "#eff6ff" }}>
           <div style={{ fontWeight: 900, fontSize: 14 }}>
@@ -226,28 +221,20 @@ export default function PlansPage() {
         </section>
       ) : null}
 
-      {/* 現在のプラン */}
       <section style={styles.card}>
         <div style={styles.cardTitle}>現在のプラン</div>
         <div style={styles.cardText}>
-          {displayName ? `${displayName} さん：` : ""} <b>{PLAN_LABEL[currentPlan]}</b>
+          {displayName ? `${displayName} さん：` : ""} <b>{CURRENT_PLAN_LABEL[currentPlan]}</b>
         </div>
       </section>
 
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* 教材数 */}
       <section style={styles.card}>
         <div style={styles.secTitle}>教材数</div>
-        <div style={styles.secText}>
-          現在 <b>{allCount}</b> 教材（今後10以上に拡張）
-        </div>
-        <div style={styles.secText}>
-          3/5プランでは、ここから選んで受講できます（1ヶ月ごとに変更可能）。
-        </div>
+        <div style={styles.secCount}>現在 {allCount}教材</div>
       </section>
 
-      {/* お支払い方法（Stripe風） */}
       <section style={styles.card}>
         <div style={styles.secTitle}>お支払い方法（個人）</div>
         <div style={styles.secTextStrong}>
@@ -255,7 +242,6 @@ export default function PlansPage() {
         </div>
 
         <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-          {/* convenience */}
           <label
             style={{
               ...styles.pmCard,
@@ -278,7 +264,6 @@ export default function PlansPage() {
             </div>
           </label>
 
-          {/* card */}
           <label
             style={{
               ...styles.pmCard,
@@ -301,13 +286,12 @@ export default function PlansPage() {
           </label>
         </div>
 
-        {/* 期間 */}
         <div style={styles.durationWrap}>
           <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
           <div style={styles.durationRow}>
             <select
               value={durationDays}
-              onChange={(e) => setDurationDays(Number(e.target.value) as any)}
+              onChange={(e) => setDurationDays(Number(e.target.value) as 30 | 180 | 365)}
               style={styles.select}
             >
               <option value={30}>30日（通常）</option>
@@ -322,66 +306,106 @@ export default function PlansPage() {
         </div>
       </section>
 
-      {/* プラン一覧（価格表示つき） */}
-      <div style={styles.planGrid}>
-        {(["3", "5", "all"] as PlanId[]).map((p) => {
-          const isCurrent = p === currentPlan
+      <section style={styles.sectionBlock}>
+        <div style={styles.sectionTitle}>基本プラン</div>
+        <div style={styles.sectionSub}>通常の選べる教材プランです。AI会話はこの中には含まれません。</div>
 
-          const base30 = PRICE_YEN_30D[p]
-          const total = calcTotal(base30, durationDays)
-          const perMonth = calcPerMonth(total, durationDays)
-          const compareTotal = base30 * months
-          const saved = Math.max(0, compareTotal - total)
+        <div style={styles.planGrid}>
+          {(["3", "5", "7"] as VisiblePlanId[]).map((p) => {
+            const base30 = PRICE_YEN_30D[p]
+            const total = calcTotal(base30, durationDays)
+            const perMonth = calcPerMonth(total, durationDays)
+            const compareTotal = base30 * months
+            const saved = Math.max(0, compareTotal - total)
+            const isCurrent = currentPlan === p
 
-          return (
-            <div key={p} style={styles.planCard}>
-              <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
-              <div style={styles.planDesc}>{PLAN_DESC[p]}</div>
+            return (
+              <div key={p} style={styles.planCard}>
+                <div style={styles.planTitle}>{VISIBLE_PLAN_LABEL[p]}</div>
+                <div style={styles.planDesc}>{VISIBLE_PLAN_DESC[p]}</div>
 
-              {/* ✅ 価格ブロック */}
-              <div style={{ marginTop: 12 }}>
-                <div style={styles.priceRow}>
-                  <div style={styles.priceMain}>
-                    ¥{formatYen(total)}
-                    <span style={styles.priceUnit}> / {periodLabel(durationDays)}</span>
+                <div style={{ marginTop: 12 }}>
+                  <div style={styles.priceRow}>
+                    <div style={styles.priceMain}>
+                      ¥{formatYen(total)}
+                      <span style={styles.priceUnit}> / {periodLabel(durationDays)}</span>
+                    </div>
                   </div>
+
+                  <div style={styles.priceSub}>
+                    実質 ¥{formatYen(perMonth)} / 月（{months}ヶ月換算）
+                  </div>
+
+                  {durationDays !== 30 && (
+                    <div style={styles.priceSave}>
+                      30日×{months}回より <b>¥{formatYen(saved)}</b> お得
+                    </div>
+                  )}
                 </div>
 
-                <div style={styles.priceSub}>
-                  実質 ¥{formatYen(perMonth)} / 月（{months}ヶ月換算）
-                </div>
+                <div style={styles.planMeta}>利用可能：{p}教材（選択式）</div>
 
-                {durationDays !== 30 && (
-                  <div style={styles.priceSave}>
-                    30日×{months}回より <b>¥{formatYen(saved)}</b> お得
-                  </div>
-                )}
+                <button
+                  onClick={() => handleChoose(p)}
+                  disabled={saving || isCurrent}
+                  style={{
+                    ...styles.planBtn,
+                    background: isCurrent ? "#9ca3af" : "#2563eb",
+                    cursor: saving || isCurrent ? "not-allowed" : "pointer",
+                    opacity: saving ? 0.85 : 1,
+                  }}
+                >
+                  {isCurrent ? "現在のプラン" : saving ? "更新中..." : "このプランにする"}
+                </button>
               </div>
+            )
+          })}
+        </div>
+      </section>
 
-              <div style={styles.planMeta}>
-                {p === "3" && "利用可能：3教材（選択式）"}
-                {p === "5" && "利用可能：5教材（選択式）"}
-                {p === "all" && "利用可能：全教材"}
-              </div>
+      <section style={styles.aiWrap}>
+        <div style={styles.aiHeaderRow}>
+          <div>
+            <div style={styles.aiEyebrow}>追加オプション</div>
+            <div style={styles.aiTitle}>AI会話</div>
+          </div>
+          <div style={styles.aiPriceBadge}>+¥{formatYen(aiOptionTotal)}</div>
+        </div>
 
-              <button
-                onClick={() => handleChoose(p)}
-                disabled={saving || isCurrent}
-                style={{
-                  ...styles.planBtn,
-                  background: isCurrent ? "#9ca3af" : "#2563eb",
-                  cursor: saving || isCurrent ? "not-allowed" : "pointer",
-                  opacity: saving ? 0.85 : 1,
-                }}
-              >
-                {isCurrent ? "現在のプラン" : saving ? "更新中..." : "このプランにする"}
-              </button>
-            </div>
-          )
-        })}
-      </div>
+        <div style={styles.aiLead}>
+          AI会話は、通常の選べる教材には含まれません。<br />
+          <b>3教材・5教材・7教材プランに追加して使う機能</b>です。
+        </div>
 
-      {/* trial/free の導線（必要なら見せる：開発用） */}
+        <div style={styles.aiPointGrid}>
+          <div style={styles.aiPointCard}>
+            <div style={styles.aiPointTitle}>別料金で追加</div>
+            <div style={styles.aiPointText}>どの基本プランでも月額 +¥500 で追加できます。</div>
+          </div>
+          <div style={styles.aiPointCard}>
+            <div style={styles.aiPointTitle}>教材数に含まれない</div>
+            <div style={styles.aiPointText}>3/5/7教材の選択枠はそのまま使えます。</div>
+          </div>
+          <div style={styles.aiPointCard}>
+            <div style={styles.aiPointTitle}>実践向け</div>
+            <div style={styles.aiPointText}>問題演習とは別に、会話のアウトプットを強化します。</div>
+          </div>
+        </div>
+
+        <div style={styles.aiPricePanel}>
+          <div>
+            <div style={styles.aiPanelTitle}>AI会話オプション</div>
+            <div style={styles.aiPanelSub}>実質 ¥{formatYen(aiOptionPerMonth)} / 月（{months}ヶ月換算）</div>
+          </div>
+          <div style={styles.aiPanelRight}>基本プランに追加</div>
+        </div>
+
+        <div style={styles.aiNote}>
+          ※ 画面上ではオプションとして案内しています。実際に決済で追加するには、
+          Stripe/API 側でも「AI会話オプション」の商品追加が必要です。
+        </div>
+      </section>
+
       <section style={{ ...styles.card, marginTop: 16 }}>
         <div style={{ fontWeight: 900, fontSize: 14 }}>お試し（開発/検証用）</div>
         <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.6 }}>
@@ -431,11 +455,11 @@ export default function PlansPage() {
         </div>
       </section>
 
-      {/* 補足（信頼） */}
       <section style={{ ...styles.card, marginTop: 16 }}>
         <div style={{ fontWeight: 900, fontSize: 14 }}>補足</div>
-        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.6 }}>
-          ・プラン購入後、受講する教材を選択します（3/5プランは選択式、ALLは全部利用可）。<br />
+        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8, lineHeight: 1.7 }}>
+          ・基本プラン購入後、受講する教材を選択します。<br />
+          ・AI会話は教材数には含まれず、追加オプションとして利用します。<br />
           ・期間を「半年 / 年」にすると割引され、更新回数も減ります。<br />
           ・業種を選んでいる場合、教材選択画面はその業種向けに絞り込み表示されます。
         </div>
@@ -481,11 +505,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 16,
   },
 
-  secText: {
-    marginTop: 6,
-    opacity: 0.85,
-    lineHeight: 1.55,
-    fontSize: 13,
+  secCount: {
+    marginTop: 8,
+    fontWeight: 900,
+    fontSize: 18,
+    lineHeight: 1.4,
   },
 
   secTextStrong: {
@@ -495,7 +519,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
   },
 
-  // PayMethod Cards (Stripe-ish)
   pmCard: {
     display: "flex",
     gap: 12,
@@ -521,7 +544,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   pmBody: {
-    minWidth: 0, // ✅ 折り返し崩壊防止（重要）
+    minWidth: 0,
     flex: 1,
   },
 
@@ -536,7 +559,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     fontSize: 15,
     lineHeight: 1.2,
-    whiteSpace: "nowrap", // ✅ “縦書き化”防止
+    whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
@@ -588,8 +611,25 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.4,
   },
 
-  planGrid: {
+  sectionBlock: {
     marginTop: 16,
+  },
+
+  sectionTitle: {
+    fontWeight: 900,
+    fontSize: 20,
+    lineHeight: 1.2,
+  },
+
+  sectionSub: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 1.6,
+    opacity: 0.78,
+  },
+
+  planGrid: {
+    marginTop: 12,
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: 12,
@@ -660,5 +700,122 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     color: "#fff",
     fontWeight: 900,
+  },
+
+  aiWrap: {
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 20,
+    background: "linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)",
+    border: "1px solid rgba(59,130,246,.18)",
+  },
+
+  aiHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  aiEyebrow: {
+    display: "inline-flex",
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: "rgba(37,99,235,.10)",
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: 900,
+  },
+
+  aiTitle: {
+    marginTop: 8,
+    fontWeight: 900,
+    fontSize: 24,
+    lineHeight: 1.15,
+    color: "#0f172a",
+  },
+
+  aiPriceBadge: {
+    padding: "10px 12px",
+    borderRadius: 14,
+    background: "#2563eb",
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: 18,
+    lineHeight: 1.1,
+  },
+
+  aiLead: {
+    marginTop: 12,
+    fontSize: 14,
+    lineHeight: 1.75,
+    color: "#1f2937",
+  },
+
+  aiPointGrid: {
+    marginTop: 14,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: 10,
+  },
+
+  aiPointCard: {
+    padding: 12,
+    borderRadius: 14,
+    background: "#fff",
+    border: "1px solid rgba(17,24,39,.08)",
+  },
+
+  aiPointTitle: {
+    fontWeight: 900,
+    fontSize: 14,
+    color: "#0f172a",
+  },
+
+  aiPointText: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "#374151",
+  },
+
+  aiPricePanel: {
+    marginTop: 14,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+    padding: 14,
+    borderRadius: 16,
+    background: "linear-gradient(135deg, #2563eb, #4f46e5)",
+    color: "#fff",
+  },
+
+  aiPanelTitle: {
+    fontWeight: 900,
+    fontSize: 18,
+  },
+
+  aiPanelSub: {
+    marginTop: 4,
+    fontSize: 13,
+    opacity: 0.92,
+  },
+
+  aiPanelRight: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,.16)",
+    fontSize: 13,
+    fontWeight: 900,
+  },
+
+  aiNote: {
+    marginTop: 12,
+    fontSize: 12,
+    lineHeight: 1.7,
+    color: "#475569",
   },
 }
