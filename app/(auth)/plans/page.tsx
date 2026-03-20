@@ -240,6 +240,48 @@ export default function PlansPage() {
         </section>
       ) : null}
 
+      {/* サービス説明（LINE流入でも分かるように上部で案内） */}
+      <section
+        style={{
+          ...styles.card,
+          borderColor: "rgba(37,99,235,.28)",
+          background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        }}
+      >
+        <div style={styles.heroTitle}>このアプリでできること</div>
+        <div style={styles.heroLead}>
+          仕事で使う日本語、資格対策、AIを使った実践練習を、1つのアプリでまとめて学べます。
+        </div>
+
+        <div style={styles.heroPointList}>
+          <div style={styles.heroPointItem}>・業種に合わせた教材を選んで1ヶ月集中学習</div>
+          <div style={styles.heroPointItem}>・日本語バトルで毎日楽しく復習</div>
+          <div style={styles.heroPointItem}>・AI会話を追加すれば実践的な会話練習も可能</div>
+        </div>
+
+        <div style={styles.heroInfoGrid}>
+          <div style={styles.heroInfoCard}>
+            <div style={styles.heroInfoLabel}>無料でできること</div>
+            <div style={styles.heroInfoTitle}>日本語バトル 1日1回</div>
+            <div style={styles.heroInfoText}>
+              まずは無料で日本語バトルから始められます。操作感や学習の雰囲気を気軽に確認できます。
+            </div>
+          </div>
+
+          <div style={styles.heroInfoCard}>
+            <div style={styles.heroInfoLabel}>有料プランでできること</div>
+            <div style={styles.heroInfoTitle}>3 / 5 / 7教材を1ヶ月利用</div>
+            <div style={styles.heroInfoText}>
+              選んだ教材を期間中しっかり学習できます。教材は1ヶ月ごとに選び直せるので、目的に合わせて続けやすい設計です。
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.heroFootNote}>
+          ※ AI会話は通常教材とは別料金です。必要な方だけ月額¥500で追加できます。
+        </div>
+      </section>
+
       {/* 現在のプラン */}
       <section style={styles.card}>
         <div style={styles.cardTitle}>現在のプラン</div>
@@ -506,6 +548,73 @@ const styles: Record<string, React.CSSProperties> = {
   cardText: {
     opacity: 0.88,
     lineHeight: 1.5,
+  },
+
+  heroTitle: {
+    fontWeight: 900,
+    fontSize: 20,
+    lineHeight: 1.25,
+  },
+
+  heroLead: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 1.75,
+    opacity: 0.88,
+  },
+
+  heroPointList: {
+    marginTop: 14,
+    display: "grid",
+    gap: 8,
+  },
+
+  heroPointItem: {
+    fontSize: 13,
+    lineHeight: 1.65,
+    fontWeight: 700,
+    color: "#1f2937",
+  },
+
+  heroInfoGrid: {
+    marginTop: 16,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 12,
+  },
+
+  heroInfoCard: {
+    padding: 14,
+    borderRadius: 14,
+    border: "1px solid rgba(17,24,39,.08)",
+    background: "#fff",
+  },
+
+  heroInfoLabel: {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "#2563eb",
+  },
+
+  heroInfoTitle: {
+    marginTop: 6,
+    fontSize: 17,
+    fontWeight: 900,
+    lineHeight: 1.35,
+  },
+
+  heroInfoText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 1.7,
+    opacity: 0.82,
+  },
+
+  heroFootNote: {
+    marginTop: 12,
+    fontSize: 12,
+    lineHeight: 1.6,
+    opacity: 0.75,
   },
 
   error: {

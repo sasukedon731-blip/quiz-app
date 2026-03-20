@@ -210,7 +210,6 @@ export default function GameClient() {
     }
   }, [user])
 
-  // ここを return より前に置く
   useEffect(() => {
     if (!user || checkingUserLimit || !userOk || awardOnceRef.current) return
     awardOnceRef.current = true

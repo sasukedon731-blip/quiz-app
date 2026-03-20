@@ -9,6 +9,7 @@ import { parseQuizType } from "@/app/lib/quizTypeGuard"
 import { getQuizByType } from "@/app/lib/getQuizByType"
 import NormalClient from "./NormalClient"
 import type { QuizType } from "@/app/data/types"
+import LockedFeature from "@/app/components/LockedFeature"
 
 export default function NormalClientWrapper() {
   const router = useRouter()
@@ -134,7 +135,17 @@ export default function NormalClientWrapper() {
   if (allowed === null) return null
   if (!quizType) return null
   if (!quiz) return null
-  if (!allowed.includes(quizType)) return null
+  if (!allowed.includes(quizType)) {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+        <LockedFeature
+          title={quiz.title}
+          description="この教材は有料プランで選択すると利用できます。無料ユーザーは日本語バトルを1日1回利用できます。"
+          onClickPlan={() => router.push("/plans")}
+        />
+      </div>
+    )
+  }
 
   return <NormalClient quiz={quiz} />
 }

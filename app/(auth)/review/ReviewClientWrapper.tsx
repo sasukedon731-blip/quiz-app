@@ -8,6 +8,7 @@ import type { QuizType } from "@/app/data/types"
 import { useAuth } from "@/app/lib/useAuth"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import { assertActiveAccess } from "@/app/lib/guards"
+import LockedFeature from "@/app/components/LockedFeature"
 
 function isQuizType(v: string): v is QuizType {
   return (quizzes as any)[v] != null
@@ -143,7 +144,17 @@ export default function ReviewClientWrapper() {
   if (allowed === null) return null
   if (!quizType) return null
   if (!quiz) return null
-  if (!allowed.includes(quizType)) return null
+  if (!allowed.includes(quizType)) {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+        <LockedFeature
+          title={quiz.title}
+          description="この教材は有料プランで選択すると利用できます。無料ユーザーは日本語バトルを1日1回利用できます。"
+          onClickPlan={() => router.push("/plans")}
+        />
+      </div>
+    )
+  }
 
   return <ReviewClient quiz={quiz} />
 }
