@@ -13,6 +13,7 @@ import {
   savePlanAndNormalizeSelected,
 } from "@/app/lib/userPlanState"
 import AppHeader from "@/app/components/AppHeader"
+import LegalFooter from "@/app/components/LegalFooter"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
@@ -32,14 +33,13 @@ const PLAN_DESC: Record<PlanId, string> = {
 
 /**
  * ✅ 価格（30日）
- * - ブラザー要望：30日=500円 → 3教材プランを500円に設定
  * - ここだけ変えれば全表示が変わる
  */
 const PRICE_YEN_30D: Record<PlanId, number> = {
   trial: 0,
   free: 0,
-  "3": 500, // ✅ 30日500円
-  "5": 800, // ←必要なら調整
+  "3": 500,
+  "5": 800,
   "7": 1000,
 }
 
@@ -71,8 +71,12 @@ function calcPerMonth(total: number, days: 30 | 180 | 365) {
   return Math.round(total / m)
 }
 
-// ✅ 業種（表示＆導線）
-type IndustryId = "construction" | "manufacturing" | "care" | "driver" | "undecided"
+type IndustryId =
+  | "construction"
+  | "manufacturing"
+  | "care"
+  | "driver"
+  | "undecided"
 
 const INDUSTRY_LABEL: Record<IndustryId, string> = {
   construction: "建設",
@@ -141,12 +145,16 @@ export default function PlansPage() {
       try {
         const st = await loadAndRepairUserPlanState(uid)
         setCurrentPlan(st.plan)
-        setPendingPlan(st.plan === "3" || st.plan === "5" || st.plan === "7" ? st.plan : "3")
+        setPendingPlan(
+          st.plan === "3" || st.plan === "5" || st.plan === "7" ? st.plan : "3"
+        )
         setDisplayName(st.displayName)
 
         const userSnap = await getDoc(doc(db, "users", uid))
         const userData = userSnap.exists() ? userSnap.data() : null
-        setAiConversationEnabled(Boolean(userData?.billing?.aiConversationEnabled))
+        setAiConversationEnabled(
+          Boolean(userData?.billing?.aiConversationEnabled)
+        )
       } catch (e) {
         console.error(e)
         setError("読み込みに失敗しました")
@@ -175,7 +183,6 @@ export default function PlansPage() {
           plan,
           method: billingMethod,
           durationDays,
-          // ✅ 追加：業種（API側は受け取って保存しても、無視してもOK）
           industry,
           addAiConversation,
         }),
@@ -205,7 +212,6 @@ export default function PlansPage() {
         return
       }
 
-      // trial/free（開発用）
       await savePlanAndNormalizeSelected({ uid, plan })
       router.push(withIndustry("/select-mode"))
     } catch (e) {
@@ -228,19 +234,30 @@ export default function PlansPage() {
     <main style={styles.main}>
       <AppHeader title="プラン" />
 
-      {/* ✅ 業種表示（導線の一貫性） */}
       {industry ? (
-        <section style={{ ...styles.card, borderColor: "rgba(37,99,235,.35)", background: "#eff6ff" }}>
+        <section
+          style={{
+            ...styles.card,
+            borderColor: "rgba(37,99,235,.35)",
+            background: "#eff6ff",
+          }}
+        >
           <div style={{ fontWeight: 900, fontSize: 14 }}>
             選択中の業種：<b>{INDUSTRY_LABEL[industry]}</b>
           </div>
-          <div style={{ marginTop: 6, fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 13,
+              opacity: 0.85,
+              lineHeight: 1.6,
+            }}
+          >
             このまま進むと、教材選択画面も「{INDUSTRY_LABEL[industry]}向け」で絞り込み表示されます。
           </div>
         </section>
       ) : null}
 
-      {/* サービス説明（LINE流入でも分かるように上部で案内） */}
       <section
         style={{
           ...styles.card,
@@ -254,9 +271,15 @@ export default function PlansPage() {
         </div>
 
         <div style={styles.heroPointList}>
-          <div style={styles.heroPointItem}>・業種に合わせた教材を選んで1ヶ月集中学習</div>
-          <div style={styles.heroPointItem}>・日本語バトルで毎日楽しく復習</div>
-          <div style={styles.heroPointItem}>・AI会話を追加すれば実践的な会話練習も可能</div>
+          <div style={styles.heroPointItem}>
+            ・業種に合わせた教材を選んで期間集中学習
+          </div>
+          <div style={styles.heroPointItem}>
+            ・日本語バトルで毎日楽しく復習
+          </div>
+          <div style={styles.heroPointItem}>
+            ・AI会話を追加すれば実践的な会話練習も可能
+          </div>
         </div>
 
         <div style={styles.heroInfoGrid}>
@@ -270,48 +293,46 @@ export default function PlansPage() {
 
           <div style={styles.heroInfoCard}>
             <div style={styles.heroInfoLabel}>有料プランでできること</div>
-            <div style={styles.heroInfoTitle}>3 / 5 / 7教材を1ヶ月利用</div>
+            <div style={styles.heroInfoTitle}>3 / 5 / 7教材を期間利用</div>
             <div style={styles.heroInfoText}>
-              選んだ教材を期間中しっかり学習できます。教材は1ヶ月ごとに選び直せるので、目的に合わせて続けやすい設計です。
+              選んだ教材を購入した期間中しっかり学習できます。期間終了後は、必要に応じて再購入してください。
             </div>
           </div>
         </div>
 
         <div style={styles.heroFootNote}>
-          ※ AI会話は通常教材とは別料金です。必要な方だけ月額¥500で追加できます。
+          ※ AI会話は通常教材とは別料金です。必要な方だけ追加できます。料金は選択した利用期間に応じて計算されます。
         </div>
       </section>
 
-      {/* 現在のプラン */}
       <section style={styles.card}>
         <div style={styles.cardTitle}>現在のプラン</div>
         <div style={styles.cardText}>
-          {displayName ? `${displayName} さん：` : ""} <b>{PLAN_LABEL[currentPlan]}</b>
+          {displayName ? `${displayName} さん：` : ""}{" "}
+          <b>{PLAN_LABEL[currentPlan]}</b>
         </div>
       </section>
 
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* 教材数 */}
       <section style={styles.card}>
         <div style={styles.secTitle}>教材数</div>
         <div style={styles.secText}>
           現在 <b>{allCount}</b> 教材
         </div>
         <div style={styles.secText}>
-          3/5/7プランでは、ここから選んで受講できます（1ヶ月ごとに変更可能）。
+          3/5/7プランでは、ここから選んで受講できます。
         </div>
       </section>
 
-      {/* お支払い方法（Stripe風） */}
       <section style={styles.card}>
         <div style={styles.secTitle}>お支払い方法（個人）</div>
         <div style={styles.secTextStrong}>
-          外国人ユーザー向けに <b>コンビニ払い</b> をおすすめにします（カードは任意）。
+          外国人ユーザー向けに <b>コンビニ払い</b>{" "}
+          をおすすめにします（カードは任意）。
         </div>
 
         <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-          {/* convenience */}
           <label
             style={{
               ...styles.pmCard,
@@ -330,11 +351,12 @@ export default function PlansPage() {
                 <div style={styles.pmLabel}>コンビニ払い</div>
                 <span style={styles.pmBadge}>おすすめ</span>
               </div>
-              <div style={styles.pmDesc}>現金で支払い可能。カードがなくてもOK。</div>
+              <div style={styles.pmDesc}>
+                現金で支払い可能。カードがなくてもOK。
+              </div>
             </div>
           </label>
 
-          {/* card */}
           <label
             style={{
               ...styles.pmCard,
@@ -352,18 +374,19 @@ export default function PlansPage() {
               <div style={styles.pmTop}>
                 <div style={styles.pmLabel}>カード払い</div>
               </div>
-              <div style={styles.pmDesc}>即時決済。更新もスムーズ。</div>
+              <div style={styles.pmDesc}>
+                即時決済。すぐに利用を開始できます。
+              </div>
             </div>
           </label>
         </div>
 
-        {/* 期間 */}
         <div style={styles.durationWrap}>
           <div style={{ fontWeight: 900, fontSize: 13 }}>期間</div>
           <div style={styles.durationRow}>
             <select
               value={durationDays}
-              onChange={(e) => setDurationDays(Number(e.target.value) as any)}
+              onChange={(e) => setDurationDays(Number(e.target.value) as 30 | 180 | 365)}
               style={styles.select}
             >
               <option value={30}>30日（通常）</option>
@@ -372,13 +395,13 @@ export default function PlansPage() {
             </select>
 
             <span style={styles.hint}>
-              選んだ期間に応じて、下のプラン価格も自動で切り替わります（{months}ヶ月換算）
+              選んだ期間に応じて、下のプラン価格も自動で切り替わります（{months}
+              ヶ月換算）
             </span>
           </div>
         </div>
       </section>
 
-      {/* プラン一覧（価格表示つき） */}
       <div style={styles.planGrid}>
         {(["3", "5", "7"] as const).map((p) => {
           const isCurrent = p === currentPlan
@@ -400,7 +423,9 @@ export default function PlansPage() {
             >
               <div style={styles.planHeadRow}>
                 <div style={styles.planTitle}>{PLAN_LABEL[p]}</div>
-                {isCurrent ? <span style={styles.currentBadge}>利用中</span> : null}
+                {isCurrent ? (
+                  <span style={styles.currentBadge}>利用中</span>
+                ) : null}
               </div>
               <div style={styles.planDesc}>{PLAN_DESC[p]}</div>
 
@@ -408,7 +433,10 @@ export default function PlansPage() {
                 <div style={styles.priceRow}>
                   <div style={styles.priceMain}>
                     ¥{formatYen(total)}
-                    <span style={styles.priceUnit}> / {periodLabel(durationDays)}</span>
+                    <span style={styles.priceUnit}>
+                      {" "}
+                      / {periodLabel(durationDays)}
+                    </span>
                   </div>
                 </div>
 
@@ -440,22 +468,48 @@ export default function PlansPage() {
                   opacity: saving ? 0.85 : 1,
                 }}
               >
-                {isPending ? "選択中" : isCurrent ? "このプランに変更する" : "このプランを選ぶ"}
+                {isPending
+                  ? "選択中"
+                  : isCurrent
+                    ? "このプランに変更する"
+                    : "このプランを選ぶ"}
               </button>
             </div>
           )
         })}
       </div>
 
-      <section style={{ ...styles.card, marginTop: 16, borderColor: "rgba(16,185,129,.35)", background: "#ecfdf5" }}>
+      <section
+        style={{
+          ...styles.card,
+          marginTop: 16,
+          borderColor: "rgba(16,185,129,.35)",
+          background: "#ecfdf5",
+        }}
+      >
         <div style={{ fontWeight: 900, fontSize: 18 }}>AI会話オプション</div>
-        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, opacity: 0.88 }}>
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 13,
+            lineHeight: 1.7,
+            opacity: 0.88,
+          }}
+        >
           AI会話は通常の選べる教材には含まれません。
-          <br />3教材・5教材・7教材プランに <b>月額¥500</b> で追加できます。
-          <br />教材数には含まれない、別枠の実践トレーニングです。
+          <br />
+          3教材・5教材・7教材プランに追加できます。
+          <br />
+          教材数には含まれない、別枠の実践トレーニングです。
         </div>
 
-        <label style={{ ...styles.pmCard, ...(addAiConversation ? styles.pmCardOn : null), marginTop: 12 }}>
+        <label
+          style={{
+            ...styles.pmCard,
+            ...(addAiConversation ? styles.pmCardOn : null),
+            marginTop: 12,
+          }}
+        >
           <input
             type="checkbox"
             checked={addAiConversation}
@@ -465,35 +519,61 @@ export default function PlansPage() {
           <div style={styles.pmBody}>
             <div style={styles.pmTop}>
               <div style={styles.pmLabel}>AI会話を追加する</div>
-              <span style={styles.pmBadge}>月額 ¥500</span>
+              <span style={styles.pmBadge}>月額 ¥500相当</span>
             </div>
-            <div style={styles.pmDesc}>通常教材とは別枠。実際に話して練習できます。</div>
+            <div style={styles.pmDesc}>
+              通常教材とは別枠。実際に話して練習できます。
+            </div>
           </div>
         </label>
 
         {aiConversationEnabled ? (
-          <div style={{ marginTop: 10, fontSize: 12, fontWeight: 800, color: "#047857" }}>
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 12,
+              fontWeight: 800,
+              color: "#047857",
+            }}
+          >
             現在AI会話オプションは有効です
           </div>
         ) : null}
 
         <div style={{ marginTop: 10, fontSize: 12, opacity: 0.78, lineHeight: 1.6 }}>
           ※ AI会話オプションは割引なしです。
-          {addAiConversation ? ` 選択中の${periodLabel(durationDays)}では ¥500 × ${months}ヶ月 = ¥${formatYen(aiOptionTotal)} になります。` : ""}
+          {addAiConversation
+            ? ` 選択中の${periodLabel(durationDays)}では ¥500 × ${months}ヶ月 = ¥${formatYen(
+                aiOptionTotal
+              )} になります。`
+            : ""}
         </div>
       </section>
 
-      <section style={{ ...styles.card, marginTop: 16, borderColor: "rgba(37,99,235,.24)", background: "#f8fafc" }}>
+      <section
+        style={{
+          ...styles.card,
+          marginTop: 16,
+          borderColor: "rgba(37,99,235,.24)",
+          background: "#f8fafc",
+        }}
+      >
         <div style={{ fontWeight: 900, fontSize: 18 }}>お支払い合計</div>
 
         <div style={styles.totalBox}>
           <div style={styles.totalRow}>
-            <span>{PLAN_LABEL[pendingPlan]}（{periodLabel(durationDays)}）</span>
+            <span>
+              {PLAN_LABEL[pendingPlan]}（{periodLabel(durationDays)}）
+            </span>
             <b>¥{formatYen(planTotal)}</b>
           </div>
           <div style={styles.totalRow}>
             <span>AI会話オプション</span>
-            <b>{addAiConversation ? `¥500 × ${months}ヶ月 = ¥${formatYen(aiOptionTotal)}` : "¥0"}</b>
+            <b>
+              {addAiConversation
+                ? `¥500 × ${months}ヶ月 = ¥${formatYen(aiOptionTotal)}`
+                : "¥0"}
+            </b>
           </div>
         </div>
 
@@ -502,9 +582,24 @@ export default function PlansPage() {
         <div style={styles.totalBottom}>
           <div>
             <div style={styles.totalLabel}>今回のお支払い</div>
-            <div style={styles.totalHint}>選択中の支払い方法：{billingMethod === "convenience" ? "コンビニ払い" : "カード払い"} / 基本プラン実質 ¥{formatYen(planPerMonth)} / 月</div>
+            <div style={styles.totalHint}>
+              選択中の支払い方法：
+              {billingMethod === "convenience" ? "コンビニ払い" : "カード払い"} /
+              基本プラン実質 ¥{formatYen(planPerMonth)} / 月
+            </div>
           </div>
           <div style={styles.totalPrice}>¥{formatYen(grandTotal)}</div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 12,
+            lineHeight: 1.7,
+            color: "rgba(17,24,39,.72)",
+          }}
+        >
+          このプランは買い切り型です。自動更新はありません。利用期間終了後は、必要に応じて再購入してください。
         </div>
 
         <button
@@ -520,6 +615,7 @@ export default function PlansPage() {
         </button>
       </section>
 
+      <LegalFooter compact />
     </main>
   )
 }
@@ -642,7 +738,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
   },
 
-  // PayMethod Cards (Stripe-ish)
   pmCard: {
     display: "flex",
     gap: 12,
@@ -668,7 +763,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   pmBody: {
-    minWidth: 0, // ✅ 折り返し崩壊防止（重要）
+    minWidth: 0,
     flex: 1,
   },
 
@@ -683,7 +778,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     fontSize: 15,
     lineHeight: 1.2,
-    whiteSpace: "nowrap", // ✅ “縦書き化”防止
+    whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
