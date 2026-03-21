@@ -18,7 +18,7 @@ export default function TokushohoPage() {
         />
         <InfoRow
   label="電話番号"
-  value={`090-xxxx-xxxx
+  value={`090-7616-0777
 ※電話でのお問い合わせには対応しておりません。
 お問い合わせはメール（info@outin-plus.com）までお願いいたします。
 ※We do not provide phone support. Please contact us via email.`}
