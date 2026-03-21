@@ -1,4 +1,5 @@
-// app/lib/firebaseAdmin.ts
+import "server-only"
+
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
@@ -8,10 +9,18 @@ function getServiceAccount() {
   if (!raw) {
     throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_KEY env var (JSON)")
   }
+
+  let parsed: any
   try {
-    return JSON.parse(raw)
+    parsed = JSON.parse(raw)
   } catch {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY must be valid JSON")
+  }
+
+  return {
+    projectId: parsed.project_id,
+    clientEmail: parsed.client_email,
+    privateKey: parsed.private_key.replace(/\\n/g, "\n"),
   }
 }
 
