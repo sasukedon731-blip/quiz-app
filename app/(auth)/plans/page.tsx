@@ -112,6 +112,7 @@ export default function PlansPage() {
   }
 
   const [uid, setUid] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -133,6 +134,7 @@ export default function PlansPage() {
         return
       }
       setUid(u.uid)
+      setUser(u) // ←これ追加
     })
     return () => unsub()
   }, [router])
@@ -167,12 +169,12 @@ export default function PlansPage() {
   const allCount = useMemo(() => Object.keys(quizzes).length, [])
 
   const startCheckout = async (plan: PlanId) => {
-    if (!uid) return
+    if (!user) return
     setSaving(true)
     setError("")
 
     try {
-      const idToken = await auth.currentUser?.getIdToken()
+      const idToken = await user.getIdToken()
       if (!idToken) throw new Error("ログイン情報を取得できませんでした")
 
       const res = await fetch("/api/stripe/checkout", {
