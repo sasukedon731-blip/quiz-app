@@ -19,6 +19,7 @@ import {
   getUnlockedBadgeCount,
   getRarityColors,
 } from "@/app/lib/badges"
+import PendingPaymentNotice from "@/app/components/billing/PendingPaymentNotice"
 
 type QuizResult = {
   score: number
@@ -626,6 +627,7 @@ const currentPlanLabel = useMemo(() => getPlanLabel(billing?.currentPlan ?? null
         </section>
 
         <section style={S.card}>
+          <PendingPaymentNotice billing={billing} />
           <BillingStatusCard billing={billing} plansHref="/plans" />
         </section>
 
