@@ -104,6 +104,9 @@ export async function POST(req: Request) {
 
         const plan = parsePlan(getMetadataValue(session.metadata, "plan"))
         const method = parseMethod(getMetadataValue(session.metadata, "method"))
+        const durationDays = parseDurationDays(
+          getMetadataValue(session.metadata, "durationDays")
+        )
         const industry = parseIndustry(
           getMetadataValue(session.metadata, "industry")
         )
@@ -124,9 +127,58 @@ export async function POST(req: Request) {
               : null,
           ...(plan ? { currentPlan: plan } : {}),
           aiConversationEnabled: paid ? addAiConversation : false,
+          ...(paid ? { purchasedDurationDays: durationDays } : {}),
         })
 
         if (paid && industry) {
+          await setUserIndustryMerge(uid, industry)
+        }
+
+        break
+      }
+
+
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session
+
+        const uid =
+          getMetadataValue(session.metadata, "uid") ||
+          (typeof session.client_reference_id === "string"
+            ? session.client_reference_id
+            : undefined)
+
+        if (!uid) {
+          console.warn("checkout.session.async_payment_succeeded: missing uid")
+          break
+        }
+
+        const plan = parsePlan(getMetadataValue(session.metadata, "plan"))
+        const method = parseMethod(getMetadataValue(session.metadata, "method"))
+        const durationDays = parseDurationDays(
+          getMetadataValue(session.metadata, "durationDays")
+        )
+        const industry = parseIndustry(
+          getMetadataValue(session.metadata, "industry")
+        )
+        const addAiConversation = parseAiConversation(
+          getMetadataValue(session.metadata, "addAiConversation")
+        )
+
+        await setUserBillingMerge(uid, {
+          accountType: "personal",
+          method,
+          status: "active",
+          stripeCheckoutSessionId: session.id,
+          stripePaymentIntentId:
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : null,
+          ...(plan ? { currentPlan: plan } : {}),
+          aiConversationEnabled: addAiConversation,
+          purchasedDurationDays: durationDays,
+        })
+
+        if (industry) {
           await setUserIndustryMerge(uid, industry)
         }
 
