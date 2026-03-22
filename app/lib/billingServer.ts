@@ -19,6 +19,9 @@ export type BillingPatch = Partial<{
   updatedAt: any
   aiConversationEnabled: boolean
   aiConversationExpiresAt: any
+
+  // ✅ 上乗せ計算用
+  purchasedDurationDays: 30 | 180 | 365
 }>
 
 type UserDoc = {
@@ -26,7 +29,7 @@ type UserDoc = {
   entitledQuizTypes?: QuizType[]
   selectedQuizTypes?: QuizType[]
   nextChangeAllowedAt?: any
-  billing?: any
+  billing?: BillingPatch
   industry?: string
 }
 
@@ -38,6 +41,40 @@ function nextMonthDate(from = new Date()) {
   const d = new Date(from)
   d.setMonth(d.getMonth() + 1)
   return d
+}
+
+function toDateOrNull(value: any): Date | null {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
+
+  // Firestore Timestamp 互換
+  if (typeof value?.toDate === "function") {
+    const d = value.toDate()
+    return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null
+  }
+
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function addDays(from: Date, days: number) {
+  const d = new Date(from)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+function calcExtendedEnd(currentEnd: any, durationDays: 30 | 180 | 365) {
+  const now = new Date()
+  const current = toDateOrNull(currentEnd)
+  const base =
+    current && current.getTime() > now.getTime()
+      ? current
+      : now
+
+  return addDays(base, durationDays)
 }
 
 /**
@@ -55,13 +92,17 @@ export async function setUserIndustryMerge(uid: string, industry: string) {
 }
 
 /**
- * ✅ billing を merge 更新（既存の動作を維持）
+ * ✅ billing を merge 更新
  */
 export async function patchUserBilling(uid: string, patch: BillingPatch) {
   const ref = adminDb().collection("users").doc(uid)
+  const snap = await ref.get()
+  const current = (snap.exists ? (snap.data() as UserDoc) : {}) as UserDoc
+
   await ref.set(
     {
       billing: {
+        ...(current.billing ?? {}),
         ...patch,
       },
       updatedAt: new Date(),
@@ -75,21 +116,47 @@ export async function patchUserBilling(uid: string, patch: BillingPatch) {
  * - billing を merge
  * - status=active & currentPlan が来た場合は
  *   entitled/selected/nextChangeAllowedAt を確定
+ * - さらに purchasedDurationDays が来た場合は currentPeriodEnd を上乗せ
  */
 export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
   const ref = adminDb().collection("users").doc(uid)
 
-  // selected を壊さないために現状取得
   const snap = await ref.get()
   const current = (snap.exists ? (snap.data() as UserDoc) : {}) as UserDoc
+  const currentBilling = current.billing ?? {}
 
-  const next: any = {
-    billing: patch,
-    updatedAt: new Date(),
+  const nextBilling: BillingPatch = {
+    ...currentBilling,
+    ...patch,
   }
 
   const becomingActive = patch.status === "active"
   const nextPlan = patch.currentPlan
+
+  // ✅ 再購入時の期限上乗せ
+  if (becomingActive && patch.purchasedDurationDays) {
+    nextBilling.currentPeriodEnd = calcExtendedEnd(
+      currentBilling.currentPeriodEnd,
+      patch.purchasedDurationDays
+    )
+
+    if (patch.aiConversationEnabled) {
+      nextBilling.aiConversationEnabled = true
+      nextBilling.aiConversationExpiresAt = calcExtendedEnd(
+        currentBilling.aiConversationExpiresAt,
+        patch.purchasedDurationDays
+      )
+    } else if (patch.aiConversationEnabled === false) {
+      // 明示的に false が来たら無効化はする
+      nextBilling.aiConversationEnabled = false
+      nextBilling.aiConversationExpiresAt = null
+    }
+  }
+
+  const next: any = {
+    billing: nextBilling,
+    updatedAt: new Date(),
+  }
 
   // ✅ 有料プラン確定時に entitlements を確定
   if (
@@ -99,7 +166,6 @@ export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
   ) {
     const entitled = buildEntitledQuizTypes(nextPlan)
 
-    // ✅ 引数順は (selected, entitled, plan)
     const selected = normalizeSelectedForPlan(
       (current.selectedQuizTypes ?? []) as QuizType[],
       entitled,
@@ -109,8 +175,6 @@ export async function setUserBillingMerge(uid: string, patch: BillingPatch) {
     next.entitledQuizTypes = entitled
     next.selectedQuizTypes = selected
     next.nextChangeAllowedAt = nextMonthDate()
-
-    // 任意：旧互換で plan も揃える
     next.plan = nextPlan
   }
 

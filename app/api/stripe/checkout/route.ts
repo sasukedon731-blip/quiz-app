@@ -94,7 +94,11 @@ export async function POST(req: Request) {
 
     const amount = PRICE_TABLE[body.plan][body.durationDays]
     const aiConversationAmount = body.addAiConversation ? PRICE_TABLE_ADDON[body.durationDays] : 0
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+
+if (!appUrl) {
+  throw new Error("Missing NEXT_PUBLIC_APP_URL")
+}
 
     const planName =
       body.plan === "3"

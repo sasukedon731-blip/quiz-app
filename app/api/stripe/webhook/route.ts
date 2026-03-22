@@ -6,29 +6,8 @@ import { setUserBillingMerge, setUserIndustryMerge } from "@/app/lib/billingServ
 
 export const runtime = "nodejs"
 
-function addDays(date: Date, days: number) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-function parseDurationDays(v: any): 30 | 180 | 365 {
-  const n = Number(v)
-  return n === 180 ? 180 : n === 365 ? 365 : 30
-}
-
-function parsePlan(v: any): "3" | "5" | "7" | null {
-  return v === "3" || v === "5" || v === "7" ? v : null
-}
-
-function parseAiConversation(v: any): boolean {
-  return v === true || v === "true"
-}
-
-function parseMethod(v: any): "convenience" | "card" {
-  return v === "convenience" ? "convenience" : "card"
-}
-
+type PlanId = "3" | "5" | "7"
+type PaymentMethodType = "convenience" | "card"
 type IndustryId =
   | "construction"
   | "manufacturing"
@@ -36,7 +15,26 @@ type IndustryId =
   | "driver"
   | "undecided"
 
-function parseIndustry(v: any): IndustryId | null {
+function parseDurationDays(v: unknown): 30 | 180 | 365 {
+  const n = Number(v)
+  if (n === 180) return 180
+  if (n === 365) return 365
+  return 30
+}
+
+function parsePlan(v: unknown): PlanId | null {
+  return v === "3" || v === "5" || v === "7" ? v : null
+}
+
+function parseAiConversation(v: unknown): boolean {
+  return v === true || v === "true"
+}
+
+function parseMethod(v: unknown): PaymentMethodType {
+  return v === "convenience" ? "convenience" : "card"
+}
+
+function parseIndustry(v: unknown): IndustryId | null {
   return v === "construction" ||
     v === "manufacturing" ||
     v === "care" ||
@@ -46,49 +44,72 @@ function parseIndustry(v: any): IndustryId | null {
     : null
 }
 
-export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2026-02-25.clover",
-  })
-
-  const sig = (await headers()).get("stripe-signature")
-  if (!sig)
-    return NextResponse.json(
-      { error: "Missing stripe-signature" },
-      { status: 400 }
-    )
-
-  const rawBody = await req.text()
-
-  let event: Stripe.Event
-  try {
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
-  } catch (err: any) {
-    console.error("Webhook signature verification failed.", err?.message)
-    return NextResponse.json({ error: "Bad signature" }, { status: 400 })
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing ${name}`)
   }
+  return value
+}
 
+function getMetadataValue(
+  value: Stripe.Metadata | null | undefined,
+  key: string
+): string | undefined {
+  const v = value?.[key]
+  return typeof v === "string" ? v : undefined
+}
+
+export async function POST(req: Request) {
   try {
+    const stripeSecretKey = requireEnv("STRIPE_SECRET_KEY")
+    const webhookSecret = requireEnv("STRIPE_WEBHOOK_SECRET")
+
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2026-02-25.clover",
+    })
+
+    const sig = (await headers()).get("stripe-signature")
+    if (!sig) {
+      return NextResponse.json(
+        { error: "Missing stripe-signature" },
+        { status: 400 }
+      )
+    }
+
+    const rawBody = await req.text()
+
+    let event: Stripe.Event
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
+    } catch (err: any) {
+      console.error("Webhook signature verification failed:", err?.message)
+      return NextResponse.json({ error: "Bad signature" }, { status: 400 })
+    }
+
     switch (event.type) {
-      // Checkout completed (customer finished hosted flow).
-      // For async methods (konbini), payment might still be unpaid here.
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
 
-        const uid = (session.metadata?.uid || session.client_reference_id) as
-          | string
-          | undefined
-        if (!uid) break
+        const uid =
+          getMetadataValue(session.metadata, "uid") ||
+          (typeof session.client_reference_id === "string"
+            ? session.client_reference_id
+            : undefined)
 
-        const plan = parsePlan(session.metadata?.plan)
-        const method = parseMethod(session.metadata?.method)
-        const durationDays = parseDurationDays(session.metadata?.durationDays)
-        const industry = parseIndustry(session.metadata?.industry)
-        const addAiConversation = parseAiConversation(session.metadata?.addAiConversation)
+        if (!uid) {
+          console.warn("checkout.session.completed: missing uid")
+          break
+        }
+
+        const plan = parsePlan(getMetadataValue(session.metadata, "plan"))
+        const method = parseMethod(getMetadataValue(session.metadata, "method"))
+        const industry = parseIndustry(
+          getMetadataValue(session.metadata, "industry")
+        )
+        const addAiConversation = parseAiConversation(
+          getMetadataValue(session.metadata, "addAiConversation")
+        )
 
         const paid = session.payment_status === "paid"
 
@@ -102,12 +123,9 @@ export async function POST(req: Request) {
               ? session.payment_intent
               : null,
           ...(plan ? { currentPlan: plan } : {}),
-          currentPeriodEnd: paid ? addDays(new Date(), durationDays) : null,
           aiConversationEnabled: paid ? addAiConversation : false,
-          aiConversationExpiresAt: paid && addAiConversation ? addDays(new Date(), durationDays) : null,
         })
 
-        // ✅ ここが追加：paid のときだけ industry を確定保存
         if (paid && industry) {
           await setUserIndustryMerge(uid, industry)
         }
@@ -115,17 +133,24 @@ export async function POST(req: Request) {
         break
       }
 
-      // Payment succeeded (card immediately, konbini after customer pays at store)
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent
-        const uid = pi.metadata?.uid as string | undefined
-        if (!uid) break
 
-        const plan = parsePlan(pi.metadata?.plan)
-        const method = parseMethod(pi.metadata?.method)
-        const durationDays = parseDurationDays(pi.metadata?.durationDays)
-        const industry = parseIndustry(pi.metadata?.industry)
-        const addAiConversation = parseAiConversation(pi.metadata?.addAiConversation)
+        const uid = getMetadataValue(pi.metadata, "uid")
+        if (!uid) {
+          console.warn("payment_intent.succeeded: missing uid")
+          break
+        }
+
+        const plan = parsePlan(getMetadataValue(pi.metadata, "plan"))
+        const method = parseMethod(getMetadataValue(pi.metadata, "method"))
+        const durationDays = parseDurationDays(
+          getMetadataValue(pi.metadata, "durationDays")
+        )
+        const industry = parseIndustry(getMetadataValue(pi.metadata, "industry"))
+        const addAiConversation = parseAiConversation(
+          getMetadataValue(pi.metadata, "addAiConversation")
+        )
 
         await setUserBillingMerge(uid, {
           accountType: "personal",
@@ -133,12 +158,10 @@ export async function POST(req: Request) {
           status: "active",
           stripePaymentIntentId: pi.id,
           ...(plan ? { currentPlan: plan } : {}),
-          currentPeriodEnd: addDays(new Date(), durationDays),
           aiConversationEnabled: addAiConversation,
-          aiConversationExpiresAt: addAiConversation ? addDays(new Date(), durationDays) : null,
+          purchasedDurationDays: durationDays,
         })
 
-        // ✅ ここが本命：最終確定タイミングで industry 保存
         if (industry) {
           await setUserIndustryMerge(uid, industry)
         }
@@ -148,18 +171,24 @@ export async function POST(req: Request) {
 
       case "payment_intent.payment_failed": {
         const pi = event.data.object as Stripe.PaymentIntent
-        const uid = pi.metadata?.uid as string | undefined
-        if (uid) {
-          await setUserBillingMerge(uid, {
-            status: "past_due",
-            stripePaymentIntentId: pi.id,
-          })
+        const uid = getMetadataValue(pi.metadata, "uid")
+
+        if (!uid) {
+          console.warn("payment_intent.payment_failed: missing uid")
+          break
         }
+
+        await setUserBillingMerge(uid, {
+          status: "past_due",
+          stripePaymentIntentId: pi.id,
+        })
+
         break
       }
 
-      default:
+      default: {
         break
+      }
     }
 
     return NextResponse.json({ received: true }, { status: 200 })

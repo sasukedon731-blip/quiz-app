@@ -11,6 +11,8 @@ import { auth, db } from "@/app/lib/firebase"
 import type { QuizType } from "@/app/data/types"
 import { quizCatalog } from "@/app/data/quizCatalog"
 import { fetchMyAttackRank } from "../game/firestore"
+import BillingStatusCard from "@/app/components/billing/BillingStatusCard"
+import { getPlanLabel } from "@/app/lib/billingAccess"
 import {
   getPreviewBadgeMeta,
   getTotalBadgeCount,
@@ -34,6 +36,18 @@ type Progress = {
   bestStreak?: number
   updatedAt?: any
 }
+
+
+type BillingData = Partial<{
+  status: "pending" | "active" | "past_due" | "canceled"
+  currentPlan: "trial" | "free" | "3" | "5" | "7"
+  currentPeriodEnd: any
+  aiConversationEnabled: boolean
+  aiConversationExpiresAt: any
+  stripeCheckoutSessionId: string | null
+  stripePaymentIntentId: string | null
+  method: "convenience" | "card"
+}>
 
 function toDate(v: any): Date | null {
   if (!v) return null
@@ -231,6 +245,7 @@ export default function MyPage() {
   const [industry, setIndustry] = useState<IndustryId | null>(null)
   const [showAllCards, setShowAllCards] = useState(false)
   const [badges, setBadges] = useState<string[]>([])
+  const [billing, setBilling] = useState<BillingData | null>(null)
 
   const withIndustry = (path: string) => {
     if (!industry) return path
@@ -310,8 +325,10 @@ export default function MyPage() {
         const snap = await getDoc(userRef)
         const userData = snap.exists() ? ((snap.data() as any) ?? {}) : {}
         const v = userData?.industry ?? null
-        const badgeList = Array.isArray(userData?.badges) ? userData.badges.filter((x: any) => typeof x === 'string') : []
+        const badgeList = Array.isArray(userData?.badges) ? userData.badges.filter((x: any) => typeof x === "string") : []
         setBadges(badgeList)
+        const billingData = userData?.billing && typeof userData.billing === "object" ? userData.billing as BillingData : null
+        setBilling(billingData)
         if (isIndustryId(v)) {
           setIndustry(v)
           try {
@@ -447,6 +464,7 @@ export default function MyPage() {
 
 const unlockedBadgeCount = useMemo(() => getUnlockedBadgeCount(badges), [badges])
 const totalBadgeCount = useMemo(() => getTotalBadgeCount(), [badges])
+const currentPlanLabel = useMemo(() => getPlanLabel(billing?.currentPlan ?? null), [billing])
 
   // =======================
   // summaries
@@ -591,6 +609,12 @@ const totalBadgeCount = useMemo(() => getTotalBadgeCount(), [badges])
               </div>
             </div>
 
+            <div style={S.kv}>
+              <div style={S.kvLabel}>現在のプラン</div>
+              <div style={S.kvValue}>{currentPlanLabel}</div>
+              <div style={S.kvHint}>契約状態や有効期限は下の「ご利用プラン」で確認できます</div>
+            </div>
+
             {/* ✅ 進捗（2列・コンパクト） */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <MiniStat label="総学習回数" value={`${totalSessionsAll}`} sub="全教材合計" />
@@ -600,6 +624,11 @@ const totalBadgeCount = useMemo(() => getTotalBadgeCount(), [badges])
             </div>
           </div>
         </section>
+
+        <section style={S.card}>
+          <BillingStatusCard billing={billing} plansHref="/plans" />
+        </section>
+
         {/* AI学習履歴 */}
         <section style={S.card}>
           <div style={S.cardHeadRow}>
