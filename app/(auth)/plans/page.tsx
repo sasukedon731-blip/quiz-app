@@ -101,6 +101,7 @@ function isIndustryId(v: string | null): v is IndustryId {
 export default function PlansPage() {
   const router = useRouter()
   const params = useSearchParams()
+  const checkout = params.get("checkout")
 
   const industryParamRaw = params.get("industry")
   const industry: IndustryId | null = isIndustryId(industryParamRaw)
@@ -237,6 +238,12 @@ export default function PlansPage() {
   return (
     <main style={styles.main}>
       <AppHeader title="プラン" />
+
+      <CheckoutResultNotice
+        checkout={checkout}
+        showAiCta={aiConversationEnabled || addAiConversation}
+      />
+      <KonbiniGuideNotice />
 
       {industry ? (
         <section
