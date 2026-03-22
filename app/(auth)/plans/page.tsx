@@ -14,6 +14,8 @@ import {
 } from "@/app/lib/userPlanState"
 import AppHeader from "@/app/components/AppHeader"
 import LegalFooter from "@/app/components/LegalFooter"
+import CheckoutResultNotice from "@/app/components/billing/CheckoutResultNotice"
+import KonbiniGuideNotice from "@/app/components/billing/KonbiniGuideNotice"
 
 const PLAN_LABEL: Record<PlanId, string> = {
   trial: "お試し（無料）",
