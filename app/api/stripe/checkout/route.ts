@@ -163,14 +163,23 @@ if (!appUrl) {
       },
     })
 
-    // ✅ Set billing to pending immediately
+    // ✅ 既存の有効期限は消さない
+    //    - 更新購入時に残り日数をリセットしない
+    //    - すでに有効な契約中なら access は active のまま保つ
+    const userSnap = await adminDb().collection("users").doc(uid).get()
+    const currentBilling = userSnap.exists
+      ? (userSnap.data()?.billing ?? {})
+      : {}
+
+    const keepActive =
+      currentBilling?.status === "active" &&
+      hasFuturePeriodEnd(currentBilling?.currentPeriodEnd)
+
     await setUserBillingMerge(uid, {
       accountType: "personal",
       method: body.method,
-      status: "pending",
+      status: keepActive ? "active" : "pending",
       currentPlan: body.plan,
-      currentPeriodEnd: null,
-      aiConversationEnabled: !!body.addAiConversation,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId:
         typeof session.payment_intent === "string" ? session.payment_intent : null,
