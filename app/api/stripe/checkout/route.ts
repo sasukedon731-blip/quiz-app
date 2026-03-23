@@ -1,7 +1,7 @@
 // app/api/stripe/checkout/route.ts
 import Stripe from "stripe"
 import { NextResponse } from "next/server"
-import { adminAuth } from "@/app/lib/firebaseAdmin"
+import { adminAuth, adminDb } from "@/app/lib/firebaseAdmin"
 import { setUserBillingMerge } from "@/app/lib/billingServer"
 
 export const runtime = "nodejs"
@@ -54,6 +54,23 @@ function isValidDuration(v: any): v is 30 | 180 | 365 {
   return v === 30 || v === 180 || v === 365
 }
 
+
+function hasFuturePeriodEnd(value: any) {
+  if (!value) return false
+
+  let date: Date | null = null
+
+  if (value instanceof Date) {
+    date = value
+  } else if (typeof value?.toDate === "function") {
+    date = value.toDate()
+  } else {
+    const d = new Date(value)
+    date = Number.isNaN(d.getTime()) ? null : d
+  }
+
+  return !!date && date.getTime() > Date.now()
+}
 function isIndustryId(v: any): v is IndustryId {
   return (
     v === "construction" ||
