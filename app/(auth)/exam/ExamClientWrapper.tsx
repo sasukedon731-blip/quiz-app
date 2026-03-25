@@ -3,23 +3,20 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import ExamClient from "./ExamClient"
-import { quizzes } from "@/app/data/quizzes"
-import type { QuizType, Quiz } from "@/app/data/types"
+import type { QuizType } from "@/app/data/types"
 import { useAuth } from "@/app/lib/useAuth"
+import { parseQuizType } from "@/app/lib/quizTypeGuard"
+import { getQuizByType } from "@/app/lib/getQuizByType"
 import { loadAndRepairUserPlanState } from "@/app/lib/userPlanState"
 import { assertActiveAccess } from "@/app/lib/guards"
 import LockedFeature from "@/app/components/LockedFeature"
-
-function isQuizType(v: string): v is QuizType {
-  return (quizzes as any)[v] != null
-}
 
 export default function ExamClientWrapper() {
   const router = useRouter()
   const params = useSearchParams()
   const { user, loading } = useAuth()
 
-  const typeRaw = params.get("type")
+  const quizType = useMemo(() => parseQuizType(params.get("type")), [params])
 
   const [stateLoaded, setStateLoaded] = useState(false)
   const [allowed, setAllowed] = useState<QuizType[] | null>(null)
@@ -67,12 +64,8 @@ export default function ExamClientWrapper() {
     }
   }, [loading, user?.uid, router, user])
 
-  // URL type -> quiz 取得
-  const quiz: Quiz | null = useMemo(() => {
-    if (!typeRaw) return null
-    if (!isQuizType(typeRaw)) return null
-    return (quizzes as any)[typeRaw] as Quiz
-  }, [typeRaw])
+  // URL type -> quiz 取得（Normal と同じく audioUrl 自動付与込み）
+  const quiz = useMemo(() => (quizType ? getQuizByType(quizType) : null), [quizType])
 
   // ② ガード（事故ゼロ、Normalと同じ方針）
   useEffect(() => {
@@ -82,7 +75,7 @@ export default function ExamClientWrapper() {
     if (allowed === null) return
 
     // (A) type が無い/不正 → hub
-    if (!typeRaw || !isQuizType(typeRaw)) {
+    if (!quizType) {
       router.replace("/select-mode")
       return
     }
@@ -100,12 +93,11 @@ export default function ExamClientWrapper() {
     }
 
     // (D) 未選択教材へ直リンク → hub
-    const qt = typeRaw as QuizType
-    if (!allowed.includes(qt)) {
+    if (!allowed.includes(quizType)) {
       router.replace("/select-mode")
       return
     }
-  }, [loading, user, stateLoaded, allowed, typeRaw, quiz, router])
+  }, [loading, user, stateLoaded, allowed, quizType, quiz, router])
 
   
   // ③ 描画ガード
@@ -139,9 +131,9 @@ export default function ExamClientWrapper() {
     )
   }
   if (allowed === null) return null
-  if (!typeRaw || !isQuizType(typeRaw)) return null
+  if (!quizType) return null
   if (!quiz) return null
-  if (!allowed.includes(typeRaw as QuizType)) {
+  if (!allowed.includes(quizType)) {
     return (
       <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
         <LockedFeature
