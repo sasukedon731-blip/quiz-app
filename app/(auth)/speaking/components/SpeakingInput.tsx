@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 type Props = {
   onGenerate: (args: {
@@ -14,11 +14,27 @@ type Props = {
 
 const MAX_TEXT_LENGTH = 80
 
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "🇬🇧 English", placeholder: "Example: Hello / Nice to meet you / I will be late tomorrow" },
+  { value: "id", label: "🇮🇩 Bahasa Indonesia", placeholder: "Contoh: Halo / Senang bertemu dengan Anda / Saya akan terlambat besok" },
+  { value: "my", label: "🇲🇲 မြန်မာ", placeholder: "ဥပမာ - မင်္ဂလာပါ / တွေ့ရတာဝမ်းသာပါတယ် / မနက်ဖြန် နောက်ကျပါမယ်" },
+  { value: "vi", label: "🇻🇳 Tiếng Việt", placeholder: "Ví dụ: Xin chào / Rất vui được gặp bạn / Ngày mai tôi sẽ đến muộn" },
+  { value: "tl", label: "🇵🇭 Filipino", placeholder: "Halimbawa: Hello / Ikinagagalak kitang makilala / Mahuhuli ako bukas" },
+  { value: "hi", label: "🇮🇳 हिन्दी", placeholder: "उदाहरण: नमस्ते / आपसे मिलकर खुशी हुई / मैं कल देर से आऊँगा" },
+] as const
+
 export default function SpeakingInput({ onGenerate, loading = false }: Props) {
   const [text, setText] = useState("")
   const [language, setLanguage] = useState("en")
   const [scene, setScene] = useState("work")
   const [politeness, setPoliteness] = useState("polite")
+
+  const placeholder = useMemo(
+    () =>
+      LANGUAGE_OPTIONS.find((option) => option.value === language)?.placeholder ??
+      LANGUAGE_OPTIONS[0].placeholder,
+    [language]
+  )
 
   const disabled = loading || !text.trim()
 
@@ -32,9 +48,11 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
             onChange={(e) => setLanguage(e.target.value)}
             style={styles.select}
           >
-            <option value="en">English</option>
-            <option value="id">Bahasa Indonesia</option>
-            <option value="my">Myanmar</option>
+            {LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -58,7 +76,7 @@ export default function SpeakingInput({ onGenerate, loading = false }: Props) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_LENGTH))}
-          placeholder="例: HELLO / Nice to meet you / I will be late tomorrow"
+          placeholder={placeholder}
           style={styles.textarea}
         />
 

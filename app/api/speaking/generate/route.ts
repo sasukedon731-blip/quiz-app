@@ -15,12 +15,21 @@ type Candidate = {
   note: string
 }
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  id: "Bahasa Indonesia",
+  my: "Myanmar Burmese",
+  vi: "Vietnamese",
+  tl: "Filipino (Tagalog)",
+  hi: "Hindi",
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
 
     const sourceText = String(body?.sourceText ?? "").trim()
-    const sourceLanguage = String(body?.sourceLanguage ?? "en")
+    const sourceLanguage = String(body?.sourceLanguage ?? "en").trim().toLowerCase()
     const scene = String(body?.scene ?? "work")
     const politeness = String(body?.politeness ?? "polite")
 
@@ -29,6 +38,8 @@ export async function POST(req: Request) {
     }
 
     const openai = getOpenAI()
+
+    const sourceLanguageLabel = LANGUAGE_LABELS[sourceLanguage] ?? sourceLanguage
 
     const prompt = `
 You are a Japanese expression coach for foreign learners.
@@ -44,12 +55,13 @@ Return JSON only in this exact format:
 }
 
 Rules:
-- sourceLanguage: ${sourceLanguage}
+- sourceLanguage: ${sourceLanguageLabel} (${sourceLanguage})
 - scene: ${scene}
 - politeness: ${politeness}
 - first sentence should be the best recommendation
 - reading should be mainly hiragana
 - note should be short and in Japanese
+- understand the user input in the specified source language before converting it to natural Japanese
 - useful for real work or daily life
 - output JSON only
 
